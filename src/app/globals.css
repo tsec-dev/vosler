@@ -133,3 +133,121 @@ This helps with the centering issues
 .cl-formFieldLabel {
   color: #a0aec0 !important;
 }
+/* Add these styles to your globals.css file */
+
+/* Additional Clerk styling fixes */
+.cl-formButtonPrimary svg {
+  margin-left: 6px;
+}
+
+/* Fix MFA boxes layout */
+.cl-verificationCodeDigitsRow,
+.cl-otpCodeContainer {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin: 20px 0;
+}
+
+.cl-verificationCodeDigitsRow input,
+.cl-otpCodeContainer input {
+  background-color: #1a202c !important;
+  color: white !important;
+  border: 1px solid rgba(75, 85, 99, 0.6) !important;
+  border-radius: 6px !important;
+  width: 50px !important;
+  height: 50px !important;
+  font-size: 20px !important;
+  text-align: center !important;
+}
+
+/* Fix identity preview */
+.cl-identityPreview {
+  background-color: #1a202c !important;
+  border: 1px solid rgba(75, 85, 99, 0.6) !important;
+  border-radius: 6px !important;
+  padding: 12px 16px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+}
+
+.cl-identityPreviewText {
+  color: white !important;
+}
+
+.cl-identityPreviewEditButton {
+  color: #3b82f6 !important;
+  background: transparent !important;
+  border: none !important;
+  cursor: pointer !important;
+  padding: 4px 8px !important;
+  border-radius: 4px !important;
+}
+
+.cl-identityPreviewEditButton:hover {
+  background-color: rgba(59, 130, 246, 0.1) !important;
+}
+
+/* Fix spacing between elements */
+.cl-formFieldRow {
+  margin-bottom: 20px !important;
+}
+
+/* Fix alert boxes */
+.cl-alert {
+  background-color: #1a202c !important;
+  border: 1px solid rgba(75, 85, 99, 0.6) !important;
+  border-radius: 6px !important;
+  padding: 16px !important;
+  color: white !important;
+  margin: 16px 0 !important;
+}
+
+/* Fix the "Resend code" link */
+.cl-formResendCodeLink {
+  color: #3b82f6 !important;
+  display: block !important;
+  text-align: center !important;
+  margin-top: 16px !important;
+  text-decoration: none !important;
+}
+
+.cl-formResendCodeLink:hover {
+  text-decoration: underline !important;
+}
+
+/* Fix "Back" button */
+.cl-formFieldAction {
+  color: #3b82f6 !important;
+  text-decoration: none !important;
+}
+
+.cl-formFieldAction:hover {
+  text-decoration: underline !important;
+}
+
+/* Fix password field */
+.cl-formFieldInput[type="password"] {
+  background-color: #1a202c !important;
+  color: white !important;
+  border: 1px solid rgba(75, 85, 99, 0.6) !important;
+}
+
+/* Fix form sections */
+.cl-formSection {
+  padding: 0 !important;
+  margin-bottom: 20px !important;
+}
+
+/* Ensure content is centered inside the card */
+.cl-card {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+}
+
+.cl-main {
+  width: 100% !important;
+  max-width: 100% !important;
+}
