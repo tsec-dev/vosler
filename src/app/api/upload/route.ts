@@ -1,6 +1,4 @@
-// src/app/api/upload/route.ts
-
-// @ts-expect-error: no types for pdf-parse
+// @ts-expect-error: pdf-parse has no types
 import pdfParse from "pdf-parse";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -18,10 +16,10 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({
       name: file.name,
-      snippet: parsed.text.slice(0, 1000),
+      snippet: parsed.text.slice(0, 1000), // Just return a small preview for now
     });
-  } catch (err) {
-    console.error("Upload error:", err);
-    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+  } catch (error) {
+    console.error("❌ Upload error:", error);
+    return NextResponse.json({ error: "Failed to process PDF." }, { status: 500 });
   }
 }
