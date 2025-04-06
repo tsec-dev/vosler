@@ -3,34 +3,95 @@
 @tailwind utilities;
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: 0 0% 0%;
+  --foreground: 210 40% 98%;
+  
+  --card: 222 47% 11%;
+  --card-foreground: 210 40% 98%;
+  
+  --primary: 217.2 91.2% 59.8%;
+  --primary-foreground: 222.2 47.4% 11.2%;
+  
+  --secondary: 217.2 32.6% 17.5%;
+  --secondary-foreground: 210 40% 98%;
+  
+  --border: 215 28% 17%;
+  --input: 217.2 32.6% 17.5%;
+  --ring: 224.3 76.3% 48%;
 }
 
-@keyframes backgroundShift {
-  0%, 100% {
-    background-position: 0% 50%;
-  }
-  50% {
-    background-position: 100% 50%;
-  }
-}
-
-.animate-gradient {
-  background-size: 400% 400%;
-  animation: backgroundShift 15s ease infinite;
-}
-
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+* {
+  @apply border-border;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: var(--font-sans, Arial, Helvetica, sans-serif);
+  @apply bg-background text-foreground;
+}
+
+/* Custom scrollbar for dark mode */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-gray-900;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-gray-700 rounded-full;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-gray-600;
+}
+
+/* Animations */
+@keyframes shimmer {
+  0% {
+    background-position: -1000px 0;
+  }
+  100% {
+    background-position: 1000px 0;
+  }
+}
+
+.animate-shimmer {
+  background: linear-gradient(
+    to right,
+    rgba(64, 64, 64, 0) 0%,
+    rgba(64, 64, 64, 0.3) 50%,
+    rgba(64, 64, 64, 0) 100%
+  );
+  background-size: 1000px 100%;
+  animation: shimmer 2s infinite linear;
+}
+
+/* Override Clerk UI for dark mode if needed */
+.cl-formButtonPrimary {
+  @apply bg-blue-600 hover:bg-blue-700 text-white;
+}
+
+.cl-card {
+  @apply bg-gray-900 border-gray-800;
+}
+
+.cl-formFieldInput {
+  @apply bg-gray-800 border-gray-700 text-white;
+}
+
+.cl-formFieldLabel {
+  @apply text-gray-300;
+}
+
+.cl-footerActionLink {
+  @apply text-blue-400 hover:text-blue-300;
+}
+
+.cl-headerTitle {
+  @apply text-white;
+}
+
+.cl-headerSubtitle {
+  @apply text-gray-400;
 }
