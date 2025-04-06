@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+// @ts-expect-error
 import pdfParse from "pdf-parse";
 
 // Ensure you install pdf-parse if you haven't:
