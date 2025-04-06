@@ -1,39 +1,29 @@
 // src/middleware.ts
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { getAuth } from "@clerk/nextjs/server";
-
-// Define public routes that don't require authentication
-const publicRoutes = ["/", "/sign-in", "/sign-up"];
 
 export default function middleware(req: NextRequest) {
-  const { userId } = getAuth(req);
+  // Get the current path
   const path = req.nextUrl.pathname;
   
-  // Check if the current path is a public route
-  const isPublicRoute = publicRoutes.includes(path);
-
-  // Allow access to public routes regardless of auth status
-  if (isPublicRoute) {
-    // If user is authenticated and trying to access sign-in, redirect to dashboard
-    if (userId && (path === "/sign-in" || path === "/sign-up")) {
-      return NextResponse.redirect(new URL("/dashboard", req.url));
+  // Log information about the request for debugging
+  console.log(`Middleware processing path: ${path}`);
+  
+  // Only protect dashboard routes
+  if (path.startsWith("/dashboard")) {
+    // Basic auth check
+    const hasClerkCookie = req.cookies.has("__session") || 
+                          req.cookies.has("__client");
+    
+    if (!hasClerkCookie) {
+      return NextResponse.redirect(new URL("/sign-in", req.url));
     }
-    return NextResponse.next();
   }
-
-  // Protected routes - redirect to sign-in if not authenticated
-  if (!userId) {
-    return NextResponse.redirect(new URL("/sign-in", req.url));
-  }
-
-  // User is authenticated and accessing a protected route
+  
   return NextResponse.next();
 }
 
+// Only apply to dashboard routes to minimize risk of problems
 export const config = {
-  matcher: [
-    // Skip all internal paths (_next) and static resources
-    "/((?!api|_next/static|_next/image|favicon.ico|.*\\.png$|.*\\.jpg$).*)",
-  ],
+  matcher: ["/dashboard/:path*"],
 };
