@@ -1,12 +1,14 @@
 // src/app/dashboard/page.tsx
-import { UserButton } from "@clerk/nextjs";
-import { currentUser } from "@clerk/nextjs/server";
+"use client";
 
-export default async function Dashboard() {
-  const user = await currentUser();
+import { UserButton } from "@clerk/nextjs";
+import { useUser } from "@clerk/nextjs";
+
+export default function Dashboard() {
+  const { isLoaded, isSignedIn, user } = useUser();
   
-  if (!user) {
-    return null; // This shouldn't happen due to middleware, but just in case
+  if (!isLoaded || !isSignedIn) {
+    return <div>Loading...</div>;
   }
   
   return (
