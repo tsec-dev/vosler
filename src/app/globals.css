@@ -344,3 +344,76 @@ This helps with the centering issues
   box-sizing: border-box !important;
   margin: 16px 0 !important;
 }
+/* Add these styles to your globals.css file to ensure proper rendering */
+
+/* Make MFA boxes clearly visible */
+.cl-verificationCodeInput,
+.cl-otpCodeInput,
+.cl-verificationCodeDigitsRow input,
+.cl-otpCodeContainer input {
+  background-color: #2d3748 !important;
+  color: white !important;
+  border: 1px solid rgba(160, 174, 192, 0.6) !important;
+  border-radius: 6px !important;
+  width: 46px !important;
+  height: 46px !important;
+  font-size: 18px !important;
+  text-align: center !important;
+  margin: 0 4px !important;
+  padding: 0 !important;
+}
+
+/* Ensure the footer stays within container boundaries */
+.cl-card {
+  overflow: hidden !important;
+  border-radius: 0 !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+.cl-footer {
+  width: 100% !important;
+  max-width: 100% !important;
+  margin: 0 !important;
+  border-radius: 0 !important;
+}
+
+/* Ensure the "Development mode" text stays properly centered */
+.cl-footerAction {
+  width: 100% !important;
+  text-align: center !important;
+  justify-content: center !important;
+  display: flex !important;
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+/* Fix hover and focus styles for MFA input boxes */
+.cl-verificationCodeInput:focus,
+.cl-otpCodeInput:focus,
+.cl-verificationCodeDigitsRow input:focus,
+.cl-otpCodeContainer input:focus {
+  border-color: #4299e1 !important;
+  outline: none !important;
+  box-shadow: 0 0 0 2px rgba(66, 153, 225, 0.5) !important;
+}
+
+.cl-verificationCodeInput::placeholder,
+.cl-otpCodeInput::placeholder,
+.cl-verificationCodeDigitsRow input::placeholder,
+.cl-otpCodeContainer input::placeholder {
+  color: rgba(160, 174, 192, 0.5) !important;
+}
+
+/* Make the resend code link more visible */
+.cl-formResendCodeLink {
+  color: #4299e1 !important;
+  text-align: center !important;
+  display: block !important;
+  margin-top: 16px !important;
+  text-decoration: none !important;
+}
+
+.cl-formResendCodeLink:hover {
+  text-decoration: underline !important;
+}
