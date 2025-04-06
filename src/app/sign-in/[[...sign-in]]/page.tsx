@@ -7,14 +7,14 @@ import Link from "next/link";
 
 export default function SignInPage() {
   return (
-    <div className="min-h-screen flex items-center justify-center relative bg-black text-white overflow-hidden">
+    <div className="min-h-screen flex flex-col items-center justify-center relative bg-black text-white overflow-hidden">
       {/* Simple dark blue to black gradient background */}
       <div className="absolute inset-0">
         <div className="absolute inset-0 bg-gradient-to-b from-[#0a1933] to-black"></div>
         <div className="absolute inset-0 bg-[url('/noise.png')] opacity-10 mix-blend-overlay"></div>
       </div>
       
-      <div className="w-full max-w-md p-6 relative z-10">
+      <div className="w-full max-w-md p-6 relative z-10 flex flex-col items-center">
         {/* Logo */}
         <div className="text-center mb-8">
           <Link href="/" className="inline-block">
@@ -29,8 +29,8 @@ export default function SignInPage() {
           </Link>
         </div>
         
-        {/* Clerk SignIn component in a nice card */}
-        <div className="bg-gray-900/70 backdrop-blur-sm rounded-xl shadow-xl border border-gray-800 overflow-hidden p-2">
+        {/* Clerk SignIn component in a nice card - full width for better centering */}
+        <div className="w-full bg-gray-900/70 backdrop-blur-sm rounded-xl shadow-xl border border-gray-800 overflow-hidden p-2">
           <SignIn 
             appearance={{
               elements: {
@@ -45,6 +45,9 @@ export default function SignInPage() {
                 footerActionLink: 'text-blue-400 hover:text-blue-300',
                 identityPreviewText: 'text-gray-300',
                 formFieldAction: 'text-blue-400 hover:text-blue-300',
+                rootBox: 'mx-auto',
+                main: 'mx-auto',
+                form: 'mx-auto',
               }
             }}
             redirectUrl="/dashboard"
@@ -52,7 +55,7 @@ export default function SignInPage() {
         </div>
         
         {/* Footer */}
-        <div className="mt-8 text-center text-xs text-gray-500">
+        <div className="mt-8 text-center text-xs text-gray-500 w-full">
           © {new Date().getFullYear()} Vosler | Team Development Demo • All rights reserved
         </div>
       </div>
