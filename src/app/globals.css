@@ -280,3 +280,58 @@ body {
   margin: 16px 0 !important;
   box-sizing: border-box !important;
 }
+
+/* -----------------------------------------------------------------------------
+   Additional styles to fix the background width issue
+----------------------------------------------------------------------------- */
+
+/* Fix the card background to extend fully */
+.cl-card {
+  width: 100% !important;
+  max-width: 100% !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+/* Ensure the main content area takes full width */
+.cl-main {
+  width: 100% !important;
+  max-width: 100% !important;
+  background-color: #101726 !important; /* Ensure background color is consistent */
+}
+
+/* Make the root container take full width */
+.cl-rootBox {
+  width: 100% !important;
+  max-width: 100% !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  background-color: #101726 !important;
+}
+
+/* Ensure headers take full width */
+.cl-header {
+  width: 100% !important;
+  max-width: 100% !important;
+  background-color: #101726 !important;
+}
+
+/* Force background color on all internal elements */
+.cl-internal-b1sxj55 {
+  background-color: #101726 !important;
+}
+
+/* Remove any margins that might be causing the issue */
+.cl-formButtonPrimary,
+.cl-formFieldInput,
+.cl-formFieldRow,
+.cl-form {
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+}
+
+/* Make outer wrapper take full width */
+.cl-card > div {
+  width: 100% !important;
+  background-color: #101726 !important;
+}
