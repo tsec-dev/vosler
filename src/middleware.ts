@@ -8,7 +8,13 @@ export default function middleware(req: NextRequest) {
     const { userId } = getAuth(req);
     const path = req.nextUrl.pathname;
     
-    // Allow access to sign-in and sign-up pages without authentication
+    // If already at sign-in or sign-up page AND authenticated, 
+    // redirect to home/dashboard to prevent redirect loops
+    if ((path === "/sign-in" || path === "/sign-up") && userId) {
+      return NextResponse.redirect(new URL("/", req.url));
+    }
+    
+    // Allow unauthenticated access to sign-in and sign-up pages
     if (path === "/sign-in" || path === "/sign-up") {
       return NextResponse.next();
     }
@@ -18,11 +24,16 @@ export default function middleware(req: NextRequest) {
       return NextResponse.redirect(new URL("/sign-in", req.url));
     }
     
+    // For all other cases, authenticated users can access protected routes
     return NextResponse.next();
   } catch (error) {
     console.error("Middleware error:", error);
-    // Fallback to redirecting to sign-in page if something goes wrong
-    return NextResponse.redirect(new URL("/sign-in", req.url));
+    // Only redirect to sign-in for non-authentication pages to avoid loops
+    const path = req.nextUrl.pathname;
+    if (path !== "/sign-in" && path !== "/sign-up") {
+      return NextResponse.redirect(new URL("/sign-in", req.url));
+    }
+    return NextResponse.next();
   }
 }
 
