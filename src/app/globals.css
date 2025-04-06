@@ -18,6 +18,10 @@
   --border: 215 28% 17%;
   --input: 217.2 32.6% 17.5%;
   --ring: 224.3 76.3% 48%;
+  
+  /* USSF Colors */
+  --ussf-blue: #0033a0;
+  --ussf-dark-blue: #1a2654;
 }
 
 body {
@@ -64,6 +68,18 @@ body {
   }
 }
 
+@keyframes twinkle {
+  0% { opacity: 0.2; }
+  50% { opacity: 0.7; }
+  100% { opacity: 0.2; }
+}
+
+@keyframes float {
+  0% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
+  100% { transform: translateY(0px); }
+}
+
 .animate-shimmer {
   background: linear-gradient(
     to right,
@@ -76,13 +92,42 @@ body {
 }
 
 .animate-gradient {
-  background-size: 400% 400%;
-  animation: gradient 15s ease infinite;
+  background-size: 300% 300%;
+  animation: gradient 20s ease infinite;
 }
 
-/* Override Clerk UI for dark mode if needed */
+.animate-float {
+  animation: float 6s ease-in-out infinite;
+}
+
+/* USSF Space Theme */
+.stars-small::before,
+.stars-medium::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image: radial-gradient(white, rgba(255, 255, 255, 0) 2px);
+  background-size: 50px 50px;
+  animation: twinkle 4s infinite alternate;
+}
+
+.stars-medium::before {
+  background-size: 100px 100px;
+  opacity: 0.5;
+  animation-delay: 1s;
+  animation-duration: 6s;
+}
+
+/* Override Clerk UI for dark mode with USSF theme */
 .cl-formButtonPrimary {
-  @apply bg-blue-600 hover:bg-blue-700 text-white;
+  background-color: var(--ussf-blue) !important;
+}
+
+.cl-formButtonPrimary:hover {
+  background-color: #002787 !important;
 }
 
 .cl-card {

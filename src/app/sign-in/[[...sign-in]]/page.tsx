@@ -2,26 +2,44 @@
 "use client";
 
 import { SignIn } from "@clerk/nextjs";
+import Image from "next/image";
+import Link from "next/link";
 
 export default function SignInPage() {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-black text-white">
-      <div className="w-full max-w-md p-6">
-        {/* Header with brand */}
+    <div className="min-h-screen flex items-center justify-center relative bg-black text-white overflow-hidden">
+      {/* USSF themed space background */}
+      <div className="absolute inset-0">
+        <div className="absolute inset-0 bg-gradient-to-br from-[#0033a0] via-[#1a2654] to-black animate-gradient"></div>
+        <div className="absolute inset-0 bg-[url('/noise.png')] opacity-20 mix-blend-overlay"></div>
+        
+        {/* Optional: subtle star effect */}
+        <div className="stars-small"></div>
+        <div className="stars-medium"></div>
+      </div>
+      
+      <div className="w-full max-w-md p-6 relative z-10">
+        {/* Logo */}
         <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-500 to-purple-600">
-            Vosler
-          </h1>
-          <p className="mt-2 text-gray-400">Team Builder</p>
+          <Link href="/" className="inline-block">
+            <Image 
+              src="/unit-logo.png" 
+              alt="Vosler Logo" 
+              width={180} 
+              height={70} 
+              className="h-auto" 
+              priority
+            />
+          </Link>
         </div>
         
         {/* Clerk SignIn component in a nice card */}
-        <div className="bg-gray-900 rounded-xl shadow-xl border border-gray-800 overflow-hidden p-2">
+        <div className="bg-gray-900/70 backdrop-blur-sm rounded-xl shadow-xl border border-gray-800 overflow-hidden p-2">
           <SignIn 
             appearance={{
               elements: {
                 formButtonPrimary: 
-                  'bg-blue-600 hover:bg-blue-700 text-white shadow-md',
+                  'bg-[#0033a0] hover:bg-[#002787] text-white shadow-md',
                 card: 'bg-transparent shadow-none',
                 headerTitle: 'text-white',
                 headerSubtitle: 'text-gray-400',
@@ -39,7 +57,7 @@ export default function SignInPage() {
         
         {/* Footer */}
         <div className="mt-8 text-center text-xs text-gray-500">
-          © {new Date().getFullYear()} Vosler Team Builder • All rights reserved
+          © {new Date().getFullYear()} Vosler | Team Development Demo • All rights reserved
         </div>
       </div>
     </div>
