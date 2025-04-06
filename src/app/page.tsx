@@ -5,14 +5,10 @@ import Image from "next/image";
 export default function Home() {
   return (
     <div className="min-h-screen flex items-center justify-center relative bg-black text-white overflow-hidden">
-      {/* USSF themed space background */}
+      {/* Simple dark blue to black gradient background */}
       <div className="absolute inset-0">
-        <div className="absolute inset-0 bg-gradient-to-br from-[#0033a0] via-[#1a2654] to-black animate-gradient"></div>
-        <div className="absolute inset-0 bg-[url('/noise.png')] opacity-20 mix-blend-overlay"></div>
-        
-        {/* Optional: subtle star effect */}
-        <div className="stars-small"></div>
-        <div className="stars-medium"></div>
+        <div className="absolute inset-0 bg-gradient-to-b from-[#0a1933] to-black"></div>
+        <div className="absolute inset-0 bg-[url('/noise.png')] opacity-10 mix-blend-overlay"></div>
       </div>
       
       {/* Content */}
