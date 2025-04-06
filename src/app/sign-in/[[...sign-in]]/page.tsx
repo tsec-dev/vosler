@@ -2,7 +2,6 @@
 "use client";
 
 import { SignIn } from "@clerk/nextjs";
-import Image from "next/image";
 import Link from "next/link";
 
 export default function SignInPage() {
@@ -14,40 +13,52 @@ export default function SignInPage() {
         <div className="absolute inset-0 bg-[url('/noise.png')] opacity-10 mix-blend-overlay"></div>
       </div>
       
-      <div className="w-full max-w-md p-6 relative z-10 flex flex-col items-center">
-        {/* Logo */}
-        <div className="text-center mb-8">
-          <Link href="/" className="inline-block">
-            <Image 
-              src="/unit-logo.png" 
-              alt="Vosler Logo" 
-              width={180} 
-              height={70} 
-              className="h-auto" 
-              priority
-            />
-          </Link>
-        </div>
-        
-        {/* Clerk SignIn component in a nice card - full width for better centering */}
-        <div className="w-full bg-gray-900/70 backdrop-blur-sm rounded-xl shadow-xl border border-gray-800 overflow-hidden p-2">
+      <div className="w-full relative z-10 flex flex-col items-center justify-center">
+        {/* Clerk SignIn component - use a fixed width for better alignment */}
+        <div className="w-[460px] max-w-[90vw] bg-gray-900/70 backdrop-blur-sm rounded-xl shadow-xl border border-gray-800 overflow-hidden">
           <SignIn 
             appearance={{
               elements: {
-                formButtonPrimary: 
-                  'bg-[#0033a0] hover:bg-[#002787] text-white shadow-md',
-                card: 'bg-transparent shadow-none',
+                card: {
+                  boxShadow: 'none',
+                  width: '100%',
+                  margin: '0 auto',
+                  background: 'transparent'
+                },
                 headerTitle: 'text-white',
                 headerSubtitle: 'text-gray-400',
-                formFieldInput: 
-                  'bg-gray-800 border-gray-700 text-white',
+                formFieldInput: 'bg-gray-800 border-gray-700 text-white',
                 formFieldLabel: 'text-gray-300',
                 footerActionLink: 'text-blue-400 hover:text-blue-300',
                 identityPreviewText: 'text-gray-300',
                 formFieldAction: 'text-blue-400 hover:text-blue-300',
                 rootBox: 'mx-auto',
-                main: 'mx-auto',
-                form: 'mx-auto',
+                form: {
+                  margin: '0 auto',
+                  width: '100%',
+                  maxWidth: '100%'
+                },
+                formFieldRow: {
+                  margin: '0 auto',
+                  width: '100%',
+                  maxWidth: '100%'
+                },
+                formButtonPrimary: {
+                  backgroundColor: '#0033a0',
+                  '&:hover': {
+                    backgroundColor: '#002787'
+                  },
+                  color: 'white',
+                  boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)'
+                }
+              },
+              layout: {
+                socialButtonsPlacement: 'bottom',
+                socialButtonsVariant: 'iconButton'
+              },
+              variables: {
+                spacingUnit: '0.75rem',
+                borderRadius: '0.375rem'
               }
             }}
             redirectUrl="/dashboard"
@@ -55,7 +66,7 @@ export default function SignInPage() {
         </div>
         
         {/* Footer */}
-        <div className="mt-8 text-center text-xs text-gray-500 w-full">
+        <div className="mt-8 text-center text-xs text-gray-500">
           © {new Date().getFullYear()} Vosler | Team Development Demo • All rights reserved
         </div>
       </div>

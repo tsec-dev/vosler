@@ -74,3 +74,62 @@ body {
 .cl-headerSubtitle {
   @apply text-gray-400;
 }
+/* 
+Add this to your globals.css file to override Clerk's styling more precisely
+This helps with the centering issues
+*/
+
+/* Centering Clerk components */
+.cl-rootBox,
+.cl-card,
+.cl-main {
+  width: 100% !important;
+  max-width: 100% !important;
+  margin: 0 auto !important;
+  padding: 0 !important;
+}
+
+.cl-form {
+  margin: 0 auto !important;
+  width: 100% !important;
+  max-width: 100% !important;
+}
+
+.cl-formFieldRow {
+  margin: 0 auto !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  display: flex !important;
+  justify-content: center !important;
+}
+
+.cl-formButtonPrimary {
+  width: 100% !important;
+  margin: 0 auto !important;
+  background-color: #0033a0 !important;
+}
+
+.cl-footerAction {
+  justify-content: center !important;
+  display: flex !important;
+}
+
+.cl-header {
+  text-align: center !important;
+}
+
+/* Background and colors */
+.cl-card {
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.cl-formFieldInput {
+  background-color: #1a2235 !important;
+  border-color: #2c3a4d !important;
+  color: white !important;
+}
+
+.cl-formFieldLabel {
+  color: #a0aec0 !important;
+}
