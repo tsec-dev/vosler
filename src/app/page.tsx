@@ -1,17 +1,7 @@
 // src/app/page.tsx
-import { currentUser } from "@clerk/nextjs/server";
-import { redirect } from "next/navigation";
 import Link from "next/link";
 
-export default async function Home() {
-  const user = await currentUser();
-  
-  // If user is logged in, redirect to dashboard
-  if (user) {
-    redirect("/dashboard");
-  }
-
-  // Otherwise, show landing page with sign-in link
+export default function Home() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-900 text-white">
       <div className="text-center">
