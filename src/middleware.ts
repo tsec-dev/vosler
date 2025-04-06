@@ -9,9 +9,9 @@ export default function middleware(req: NextRequest) {
     const path = req.nextUrl.pathname;
     
     // If already at sign-in or sign-up page AND authenticated, 
-    // redirect to home/dashboard to prevent redirect loops
+    // redirect to dashboard to prevent redirect loops
     if ((path === "/sign-in" || path === "/sign-up") && userId) {
-      return NextResponse.redirect(new URL("/", req.url));
+      return NextResponse.redirect(new URL("/dashboard", req.url));
     }
     
     // Allow unauthenticated access to sign-in and sign-up pages

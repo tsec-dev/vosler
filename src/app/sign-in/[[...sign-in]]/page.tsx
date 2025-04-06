@@ -1,8 +1,11 @@
 "use client";
 import { SignIn } from "@clerk/nextjs";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 
 export default function SignInPage() {
+  const router = useRouter();
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#0f0f1a] via-[#141528] to-[#1a1d3a]">
       <div className="bg-[#0f111b] rounded-2xl shadow-xl p-8 w-full max-w-md">
@@ -58,7 +61,8 @@ export default function SignInPage() {
           path="/sign-in"
           routing="path"
           signUpUrl="/sign-up"
-          redirectUrl="/dashboard"  
+          redirectUrl="/dashboard" // Redirect to dashboard after successful sign-in
+          afterSignInUrl="/dashboard" // Alternative way to specify redirect
         />
       </div>
     </div>
