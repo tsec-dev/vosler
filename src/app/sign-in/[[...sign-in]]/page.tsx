@@ -40,8 +40,7 @@ export default function SignInPage() {
               dividerLine: "bg-[#2a2c45]",
               dividerText: "text-gray-400",
               formFieldAction: "text-[#5b68ff]",
-              footer: "mt-6",
-              footerAction: "text-gray-400",
+              footer: "hidden", // This hides the footer with "Don't have an account? Sign up"
               main: "gap-0",
             },
             layout: {
@@ -60,9 +59,7 @@ export default function SignInPage() {
           routing="path"
           signUpUrl="/sign-up"
         />
-        <div className="mt-4 pt-4 border-t border-[#2a2c45] text-center">
-          <p className="text-amber-500">Development mode</p>
-        </div>
+        {/* Removed the Development mode section */}
       </div>
     </div>
   );
