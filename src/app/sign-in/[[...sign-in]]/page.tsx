@@ -4,31 +4,43 @@ import { SignIn } from "@clerk/nextjs";
 
 export default function SignInPage() {
   return (
-    <div className="relative h-screen w-full overflow-hidden bg-gradient-to-br from-gray-900 via-gray-950 to-black animate-background flex items-center justify-center">
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-indigo-900 via-gray-900 to-black opacity-50 animate-pulse z-0" />
+    <div className="h-screen w-full bg-gradient-to-br from-[#0f0f1a] via-[#1a1a2e] to-black flex items-center justify-center">
+      <div className="bg-gray-900 border border-gray-700 shadow-xl rounded-xl w-[380px] p-6 flex flex-col items-center space-y-6">
+        
+        {/* Embedded Unit Logo */}
+        <div className="w-24 h-24 rounded-full overflow-hidden border-4 border-gray-700 shadow">
+          <img
+            src="/unit-logo.png"
+            alt="Unit Logo"
+            className="object-cover w-full h-full"
+          />
+        </div>
 
-      <div className="relative z-10 flex flex-col items-center space-y-6">
-        {/* UNIT LOGO */}
-        <img
-          src="/unit-logo.png"
-          alt="Unit Emblem"
-          className="h-36 w-36 rounded-full border-4 border-gray-700 shadow-lg object-cover"
-        />
+        {/* Sign-In Title */}
+        <h1 className="text-white text-xl font-semibold -mt-2">Sign in to Vosler</h1>
 
-        {/* CLERK SIGN-IN */}
-        <SignIn
-          appearance={{
-            elements: {
-              card: "bg-gray-900 border border-gray-700 text-white shadow-2xl w-[350px]",
-              headerTitle: "text-white text-xl font-semibold",
-              formFieldLabel: "text-gray-400",
-              formFieldInput: "bg-gray-800 border border-gray-600 text-white",
-              formButtonPrimary: "bg-indigo-600 hover:bg-indigo-500 text-white font-medium",
-              footerActionText: "text-gray-500",
-              footerActionLink: "text-indigo-400 hover:underline",
-            },
-          }}
-        />
+        {/* Clerk Sign-In Component */}
+        <div className="w-full">
+          <SignIn
+            appearance={{
+              elements: {
+                card: "shadow-none border-none",
+                header: "hidden",
+                headerTitle: "hidden",
+                formFieldLabel: "text-gray-400",
+                formFieldInput:
+                  "bg-gray-800 border border-gray-600 text-white focus:ring-indigo-500 focus:border-indigo-500",
+                formButtonPrimary:
+                  "bg-indigo-600 hover:bg-indigo-500 text-white font-medium w-full",
+                footer: "text-center text-sm text-gray-500",
+                footerActionLink: "text-indigo-400 hover:underline",
+              },
+              variables: {
+                colorPrimary: "#6366f1", // Tailwind indigo-500
+              },
+            }}
+          />
+        </div>
       </div>
     </div>
   );
