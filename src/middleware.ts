@@ -7,30 +7,32 @@ export default function middleware(req: NextRequest) {
   try {
     const { userId } = getAuth(req);
     const path = req.nextUrl.pathname;
-    
-    // If already at sign-in or sign-up page AND authenticated, 
-    // redirect to dashboard to prevent redirect loops
-    if ((path === "/sign-in" || path === "/sign-up") && userId) {
+
+    console.log(`Middleware for ${path}, userId: ${userId || 'not authenticated'}`);
+
+    // If already at sign-in and authenticated, redirect to dashboard
+    if (path === "/sign-in" && userId) {
+      console.log("Redirecting authenticated user to dashboard");
       return NextResponse.redirect(new URL("/dashboard", req.url));
     }
-    
-    // Allow unauthenticated access to sign-in and sign-up pages
-    if (path === "/sign-in" || path === "/sign-up") {
+
+    // Allow unauthenticated access only to sign-in
+    if (path === "/sign-in") {
       return NextResponse.next();
     }
-    
-    // Redirect to sign-in if not authenticated and trying to access protected routes
+
+    // For all other routes, redirect to sign-in if not authenticated
     if (!userId) {
+      console.log(`No userId for path: ${path}, redirecting to sign-in`);
       return NextResponse.redirect(new URL("/sign-in", req.url));
     }
-    
-    // For all other cases, authenticated users can access protected routes
+
+    // Authenticated users can access all protected routes
     return NextResponse.next();
   } catch (error) {
     console.error("Middleware error:", error);
-    // Only redirect to sign-in for non-authentication pages to avoid loops
     const path = req.nextUrl.pathname;
-    if (path !== "/sign-in" && path !== "/sign-up") {
+    if (path !== "/sign-in") {
       return NextResponse.redirect(new URL("/sign-in", req.url));
     }
     return NextResponse.next();
@@ -38,5 +40,5 @@ export default function middleware(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/((?!_next|.*\\..*).*)"],
+  matcher: ["/((?!_next|api|.*\\..*).*)"],
 };
