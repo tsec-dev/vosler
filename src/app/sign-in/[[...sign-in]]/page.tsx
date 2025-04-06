@@ -5,31 +5,48 @@ import { SignIn } from "@clerk/nextjs";
 export default function SignInPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-black text-white relative">
-      {/* Simple dark blue to black gradient background */}
-      <div className="absolute inset-0 bg-gradient-to-b from-[#0a1933] to-black" />
+      {/* Background gradient, now ending in the same color as the card */}
+      <div className="absolute inset-0 bg-gradient-to-b from-[#0a1933] to-[#101726]" />
 
       {/* Established container */}
-      <div className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[460px] max-w-[95vw] z-10">
-        <div className="overflow-hidden rounded-2xl border border-gray-800">
+      <div className="w-[460px] max-w-[95vw] z-10">
+        <div className="overflow-hidden rounded-2xl border border-[#101726]">
           <SignIn
             appearance={{
               elements: {
-                // Ensure the Clerk container fits the parent container
+                // Force the root container to fill the parent container.
                 rootBox: {
                   width: "100%",
                   maxWidth: "100%",
                   margin: "0 auto",
                 },
+                // Force the card to fill the parent container with no extra spacing.
                 card: {
                   width: "100%",
+                  maxWidth: "100%",
                   margin: "0",
+                  padding: "0",
                   backgroundColor: "#101726",
                   borderRadius: "0",
                   boxShadow: "none",
                   border: "none",
                   overflow: "hidden",
                 },
-                // You can leave the rest of your appearance overrides as is
+                // Developer banner fills the same width as the card.
+                devEnvironmentBanner: {
+                  width: "100%",
+                  maxWidth: "100%",
+                  margin: "0 auto",
+                  textAlign: "center",
+                  borderRadius: "0",
+                },
+                // Form container inside the card.
+                form: {
+                  width: "100%",
+                  maxWidth: "100%",
+                  padding: "0 32px",
+                  margin: "0 auto",
+                },
                 headerTitle: {
                   fontSize: "24px",
                   fontWeight: "700",
@@ -40,13 +57,6 @@ export default function SignInPage() {
                 headerSubtitle: {
                   textAlign: "center",
                   color: "rgba(156, 163, 175, 1)",
-                },
-                form: {
-                  gap: "24px",
-                  width: "100%",
-                  padding: "0 32px",
-                  maxWidth: "396px",
-                  margin: "0 auto",
                 },
                 formFieldLabel: {
                   color: "rgba(156, 163, 175, 1)",
@@ -96,7 +106,7 @@ export default function SignInPage() {
                   display: "flex",
                   justifyContent: "center",
                   gap: "8px",
-                  maxWidth: "396px",
+                  width: "100%",
                   margin: "24px auto",
                 },
                 verificationCodeInput: {
@@ -114,7 +124,7 @@ export default function SignInPage() {
                   display: "flex",
                   justifyContent: "center",
                   gap: "8px",
-                  maxWidth: "396px",
+                  width: "100%",
                   margin: "24px auto",
                 },
                 otpCodeInput: {
@@ -161,13 +171,6 @@ export default function SignInPage() {
                 },
                 formFieldAction: {
                   color: "#3b82f6",
-                },
-                // Optionally, if you have a dev environment banner:
-                devEnvironmentBanner: {
-                  margin: "0 auto",
-                  width: "100%",
-                  maxWidth: "460px",
-                  textAlign: "center",
                 },
               },
               layout: {
