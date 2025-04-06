@@ -4,37 +4,32 @@ import { SignIn } from "@clerk/nextjs";
 
 export default function SignInPage() {
   return (
-    <div className="relative min-h-screen flex items-center justify-center bg-black text-white">
+    <div className="min-h-screen flex items-center justify-center bg-black text-white relative">
       {/* Simple dark blue to black gradient background */}
       <div className="absolute inset-0 bg-gradient-to-b from-[#0a1933] to-black" />
 
-      {/* Centered container with a max width */}
-      <div className="relative z-10 w-[460px] max-w-[95vw] mx-auto">
+      {/* Established container */}
+      <div className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[460px] max-w-[95vw] z-10">
         <div className="overflow-hidden rounded-2xl border border-gray-800">
           <SignIn
             appearance={{
               elements: {
-                // Make the dev banner match your card width and center it
-                devEnvironmentBanner: {
-                  margin: "0 auto",
-                  width: "100%",
-                  maxWidth: "460px",
-                  display: "flex",
-                  justifyContent: "center",
-                },
+                // Ensure the Clerk container fits the parent container
                 rootBox: {
                   width: "100%",
                   maxWidth: "100%",
                   margin: "0 auto",
                 },
                 card: {
+                  width: "100%",
+                  margin: "0",
                   backgroundColor: "#101726",
                   borderRadius: "0",
                   boxShadow: "none",
                   border: "none",
-                  width: "100%",
                   overflow: "hidden",
                 },
+                // You can leave the rest of your appearance overrides as is
                 headerTitle: {
                   fontSize: "24px",
                   fontWeight: "700",
@@ -50,8 +45,8 @@ export default function SignInPage() {
                   gap: "24px",
                   width: "100%",
                   padding: "0 32px",
-                  maxWidth: "396px", // Restrict width to keep contents aligned
-                  margin: "0 auto", // Center the form content
+                  maxWidth: "396px",
+                  margin: "0 auto",
                 },
                 formFieldLabel: {
                   color: "rgba(156, 163, 175, 1)",
@@ -76,6 +71,7 @@ export default function SignInPage() {
                   width: "100%",
                   marginTop: "6px",
                   marginBottom: "16px",
+                  display: "block",
                 },
                 footer: {
                   backgroundColor: "rgba(241, 245, 249, 1)",
@@ -165,6 +161,13 @@ export default function SignInPage() {
                 },
                 formFieldAction: {
                   color: "#3b82f6",
+                },
+                // Optionally, if you have a dev environment banner:
+                devEnvironmentBanner: {
+                  margin: "0 auto",
+                  width: "100%",
+                  maxWidth: "460px",
+                  textAlign: "center",
                 },
               },
               layout: {
