@@ -251,3 +251,96 @@ This helps with the centering issues
   width: 100% !important;
   max-width: 100% !important;
 }
+/* Add these styles to your globals.css file */
+
+/* Force OTP input boxes to use correct colors and styling */
+.cl-verificationCodeDigitsRow input,
+.cl-otpCodeInput,
+.cl-otpCodeContainer input {
+  background-color: #1a202c !important;
+  color: white !important;
+  border: 1px solid rgba(75, 85, 99, 0.6) !important;
+  border-radius: 6px !important;
+  width: 46px !important;
+  height: 46px !important;
+  font-size: 18px !important;
+  text-align: center !important;
+  margin: 0 4px !important;
+}
+
+/* Fix container overflow issues */
+.cl-card {
+  overflow: hidden !important;
+  max-width: 100% !important;
+}
+
+.cl-footer {
+  width: 100% !important;
+  max-width: 100% !important;
+  margin: 0 !important;
+  box-sizing: border-box !important;
+  border-radius: 0 !important;
+}
+
+/* Fix button alignment and prevent overflows */
+.cl-formButtonPrimary {
+  width: 100% !important;
+  max-width: 100% !important;
+  margin-bottom: 16px !important;
+  box-sizing: border-box !important;
+}
+
+/* Ensure proper centering of identity preview and button alignment */
+.cl-identityPreview {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+  margin-bottom: 16px !important;
+}
+
+/* Fix button and development mode alignment */
+.cl-footerAction {
+  width: 100% !important;
+  text-align: center !important;
+  justify-content: center !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+/* Fix form width and prevent horizontal scrolling */
+.cl-form {
+  width: 100% !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+  overflow: visible !important;
+}
+
+.cl-main {
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+/* Fix resend code link alignment */
+.cl-formResendCodeLink {
+  display: block !important;
+  text-align: center !important;
+  margin-top: 16px !important;
+}
+
+/* Fix input box border styles */
+.cl-formFieldInput:focus {
+  border-color: #3b82f6 !important;
+  outline: none !important;
+}
+
+/* Fix alert messages */
+.cl-alert {
+  width: 100% !important;
+  box-sizing: border-box !important;
+  margin: 16px 0 !important;
+}
