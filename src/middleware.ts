@@ -10,32 +10,26 @@ export default function middleware(req: NextRequest) {
 
     console.log(`Middleware for ${path}, userId: ${userId || 'not authenticated'}`);
 
-    // If already at sign-in and authenticated, redirect to dashboard
-    if (path === "/sign-in" && userId) {
+    // Define public paths that don't require authentication
+    const isPublicPath = path === "/" || path === "/sign-in";
+    
+    // If user is on a public path and authenticated, redirect to dashboard
+    if (isPublicPath && userId) {
       console.log("Redirecting authenticated user to dashboard");
       return NextResponse.redirect(new URL("/dashboard", req.url));
     }
 
-    // Allow unauthenticated access only to sign-in
-    if (path === "/sign-in") {
-      return NextResponse.next();
-    }
-
-    // For all other routes, redirect to sign-in if not authenticated
-    if (!userId) {
+    // If user is on a protected path and not authenticated, redirect to sign-in
+    if (!isPublicPath && !userId) {
       console.log(`No userId for path: ${path}, redirecting to sign-in`);
       return NextResponse.redirect(new URL("/sign-in", req.url));
     }
 
-    // Authenticated users can access all protected routes
+    // Otherwise, proceed normally
     return NextResponse.next();
   } catch (error) {
     console.error("Middleware error:", error);
-    const path = req.nextUrl.pathname;
-    if (path !== "/sign-in") {
-      return NextResponse.redirect(new URL("/sign-in", req.url));
-    }
-    return NextResponse.next();
+    return NextResponse.redirect(new URL("/sign-in", req.url));
   }
 }
 
