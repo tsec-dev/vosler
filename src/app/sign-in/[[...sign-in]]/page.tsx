@@ -11,7 +11,7 @@ export default function SignInPage() {
         <div className="absolute inset-0 bg-gradient-to-b from-[#0a1933] to-black"></div>
       </div>
       
-      {/* Force container to be truly centered by using fixed positioning and transform */}
+      {/* Centered container with custom styling */}
       <div className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[460px] max-w-[95vw] z-10">
         <div className="overflow-hidden rounded-2xl border border-gray-800">
           <SignIn 
@@ -44,7 +44,9 @@ export default function SignInPage() {
                 form: {
                   gap: "24px",
                   width: "100%",
-                  padding: "0 32px"
+                  padding: "0 32px", 
+                  maxWidth: "396px", // Restrict width to keep contents aligned
+                  margin: "0 auto" // Center the form content
                 },
                 formFieldLabel: {
                   color: "rgba(156, 163, 175, 1)",
@@ -89,34 +91,35 @@ export default function SignInPage() {
                   padding: "32px 0",
                   width: "100%"
                 },
-                // Improved MFA verification code input styling with better visibility
+                // MFA verification code input styling with white background
                 verificationCodeDigitsRow: {
                   display: "flex",
                   justifyContent: "center",
                   gap: "8px",
-                  margin: "24px 0"
+                  maxWidth: "396px", // Match form width
+                  margin: "24px auto" // Center horizontally
                 },
                 verificationCodeInput: {
-                  backgroundColor: "#2d3748",
-                  color: "white",
+                  backgroundColor: "white",
+                  color: "#1a202c",
                   border: "1px solid rgba(160, 174, 192, 0.6)",
                   borderRadius: "6px",
                   width: "46px",
                   height: "46px",
                   fontSize: "18px",
                   textAlign: "center",
-                  padding: "0",
-                  margin: "0 4px"
+                  padding: "0"
                 },
                 otpCodeContainer: {
                   display: "flex",
                   justifyContent: "center",
                   gap: "8px",
-                  margin: "24px 0"
+                  maxWidth: "396px", // Match form width
+                  margin: "24px auto" // Center horizontally
                 },
                 otpCodeInput: {
-                  backgroundColor: "#2d3748",
-                  color: "white",
+                  backgroundColor: "white",
+                  color: "#1a202c",
                   border: "1px solid rgba(160, 174, 192, 0.6)",
                   borderRadius: "6px",
                   width: "46px",

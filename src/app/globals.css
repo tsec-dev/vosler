@@ -42,353 +42,101 @@ body {
   @apply bg-gray-600;
 }
 
-/* Override Clerk UI for dark mode */
-.cl-formButtonPrimary {
-  background-color: #0033a0 !important;
-}
-
-.cl-formButtonPrimary:hover {
-  background-color: #002787 !important;
-}
-
-.cl-card {
-  @apply bg-gray-900 border-gray-800;
-}
-
-.cl-formFieldInput {
-  @apply bg-gray-800 border-gray-700 text-white;
-}
-
-.cl-formFieldLabel {
-  @apply text-gray-300;
-}
-
-.cl-footerActionLink {
-  @apply text-blue-400 hover:text-blue-300;
-}
-
-.cl-headerTitle {
-  @apply text-white;
-}
-
-.cl-headerSubtitle {
-  @apply text-gray-400;
-}
 /* 
-Add this to your globals.css file to override Clerk's styling more precisely
-This helps with the centering issues
+  Clerk Styling Overrides 
+  ----------------------
+  Comprehensive styles for proper appearance and alignment
 */
 
-/* Centering Clerk components */
+/* Basic container styling */
 .cl-rootBox,
 .cl-card,
 .cl-main {
   width: 100% !important;
   max-width: 100% !important;
   margin: 0 auto !important;
-  padding: 0 !important;
 }
 
-.cl-form {
-  margin: 0 auto !important;
-  width: 100% !important;
-  max-width: 100% !important;
-}
-
-.cl-formFieldRow {
-  margin: 0 auto !important;
-  width: 100% !important;
-  max-width: 100% !important;
-  display: flex !important;
-  justify-content: center !important;
-}
-
-.cl-formButtonPrimary {
-  width: 100% !important;
-  margin: 0 auto !important;
-  background-color: #0033a0 !important;
-}
-
-.cl-footerAction {
-  justify-content: center !important;
-  display: flex !important;
-}
-
-.cl-header {
-  text-align: center !important;
-}
-
-/* Background and colors */
 .cl-card {
-  background: transparent !important;
+  background: #101726 !important;
   box-shadow: none !important;
-}
-
-.cl-formFieldInput {
-  background-color: #1a2235 !important;
-  border-color: #2c3a4d !important;
-  color: white !important;
-}
-
-.cl-formFieldLabel {
-  color: #a0aec0 !important;
-}
-/* Add these styles to your globals.css file */
-
-/* Additional Clerk styling fixes */
-.cl-formButtonPrimary svg {
-  margin-left: 6px;
-}
-
-/* Fix MFA boxes layout */
-.cl-verificationCodeDigitsRow,
-.cl-otpCodeContainer {
-  display: flex;
-  justify-content: center;
-  gap: 10px;
-  margin: 20px 0;
-}
-
-.cl-verificationCodeDigitsRow input,
-.cl-otpCodeContainer input {
-  background-color: #1a202c !important;
-  color: white !important;
-  border: 1px solid rgba(75, 85, 99, 0.6) !important;
-  border-radius: 6px !important;
-  width: 50px !important;
-  height: 50px !important;
-  font-size: 20px !important;
-  text-align: center !important;
-}
-
-/* Fix identity preview */
-.cl-identityPreview {
-  background-color: #1a202c !important;
-  border: 1px solid rgba(75, 85, 99, 0.6) !important;
-  border-radius: 6px !important;
-  padding: 12px 16px !important;
-  display: flex !important;
-  align-items: center !important;
-  justify-content: space-between !important;
-}
-
-.cl-identityPreviewText {
-  color: white !important;
-}
-
-.cl-identityPreviewEditButton {
-  color: #3b82f6 !important;
-  background: transparent !important;
   border: none !important;
-  cursor: pointer !important;
-  padding: 4px 8px !important;
-  border-radius: 4px !important;
-}
-
-.cl-identityPreviewEditButton:hover {
-  background-color: rgba(59, 130, 246, 0.1) !important;
-}
-
-/* Fix spacing between elements */
-.cl-formFieldRow {
-  margin-bottom: 20px !important;
-}
-
-/* Fix alert boxes */
-.cl-alert {
-  background-color: #1a202c !important;
-  border: 1px solid rgba(75, 85, 99, 0.6) !important;
-  border-radius: 6px !important;
-  padding: 16px !important;
-  color: white !important;
-  margin: 16px 0 !important;
-}
-
-/* Fix the "Resend code" link */
-.cl-formResendCodeLink {
-  color: #3b82f6 !important;
-  display: block !important;
-  text-align: center !important;
-  margin-top: 16px !important;
-  text-decoration: none !important;
-}
-
-.cl-formResendCodeLink:hover {
-  text-decoration: underline !important;
-}
-
-/* Fix "Back" button */
-.cl-formFieldAction {
-  color: #3b82f6 !important;
-  text-decoration: none !important;
-}
-
-.cl-formFieldAction:hover {
-  text-decoration: underline !important;
-}
-
-/* Fix password field */
-.cl-formFieldInput[type="password"] {
-  background-color: #1a202c !important;
-  color: white !important;
-  border: 1px solid rgba(75, 85, 99, 0.6) !important;
-}
-
-/* Fix form sections */
-.cl-formSection {
-  padding: 0 !important;
-  margin-bottom: 20px !important;
-}
-
-/* Ensure content is centered inside the card */
-.cl-card {
+  border-radius: 0 !important;
+  overflow: hidden !important;
   display: flex !important;
   flex-direction: column !important;
   align-items: center !important;
 }
 
 .cl-main {
-  width: 100% !important;
-  max-width: 100% !important;
-}
-/* Add these styles to your globals.css file */
-
-/* Force OTP input boxes to use correct colors and styling */
-.cl-verificationCodeDigitsRow input,
-.cl-otpCodeInput,
-.cl-otpCodeContainer input {
-  background-color: #1a202c !important;
-  color: white !important;
-  border: 1px solid rgba(75, 85, 99, 0.6) !important;
-  border-radius: 6px !important;
-  width: 46px !important;
-  height: 46px !important;
-  font-size: 18px !important;
-  text-align: center !important;
-  margin: 0 4px !important;
-}
-
-/* Fix container overflow issues */
-.cl-card {
-  overflow: hidden !important;
-  max-width: 100% !important;
-}
-
-.cl-footer {
-  width: 100% !important;
-  max-width: 100% !important;
-  margin: 0 !important;
-  box-sizing: border-box !important;
-  border-radius: 0 !important;
-}
-
-/* Fix button alignment and prevent overflows */
-.cl-formButtonPrimary {
-  width: 100% !important;
-  max-width: 100% !important;
-  margin-bottom: 16px !important;
+  padding: 24px 0 !important;
   box-sizing: border-box !important;
 }
 
-/* Ensure proper centering of identity preview and button alignment */
-.cl-identityPreview {
-  display: flex !important;
-  align-items: center !important;
-  justify-content: space-between !important;
-  width: 100% !important;
-  box-sizing: border-box !important;
-  margin-bottom: 16px !important;
-}
-
-/* Fix button and development mode alignment */
-.cl-footerAction {
-  width: 100% !important;
-  text-align: center !important;
-  justify-content: center !important;
-  margin: 0 !important;
-  padding: 0 !important;
-}
-
-/* Fix form width and prevent horizontal scrolling */
+/* Form elements alignment */
 .cl-form {
+  margin: 0 auto !important;
   width: 100% !important;
-  max-width: 100% !important;
+  max-width: 396px !important;
+  padding: 0 24px !important;
   box-sizing: border-box !important;
   overflow: visible !important;
 }
 
-.cl-main {
-  padding-left: 0 !important;
-  padding-right: 0 !important;
+.cl-formFieldRow {
+  margin: 0 auto 16px auto !important;
   width: 100% !important;
   max-width: 100% !important;
-  box-sizing: border-box !important;
 }
 
-/* Fix resend code link alignment */
-.cl-formResendCodeLink {
-  display: block !important;
-  text-align: center !important;
-  margin-top: 16px !important;
+/* Input fields and labels */
+.cl-formFieldLabel {
+  color: #a0aec0 !important;
+  font-size: 14px !important;
+  margin-bottom: 8px !important;
 }
 
-/* Fix input box border styles */
-.cl-formFieldInput:focus {
-  border-color: #3b82f6 !important;
-  outline: none !important;
-}
-
-/* Fix alert messages */
-.cl-alert {
+.cl-formFieldInput {
+  background-color: #1a2235 !important;
+  border: 1px solid #2c3a4d !important;
+  color: white !important;
+  border-radius: 6px !important;
+  padding: 12px 16px !important;
   width: 100% !important;
-  box-sizing: border-box !important;
-  margin: 16px 0 !important;
 }
-/* Add these styles to your globals.css file to ensure proper rendering */
 
-/* Make MFA boxes clearly visible */
+.cl-formFieldInput:focus {
+  border-color: #4299e1 !important;
+  outline: none !important;
+  box-shadow: 0 0 0 2px rgba(66, 153, 225, 0.3) !important;
+}
+
+/* MFA verification code input boxes */
+.cl-verificationCodeDigitsRow,
+.cl-otpCodeContainer {
+  display: flex !important;
+  justify-content: center !important;
+  gap: 8px !important;
+  margin: 24px auto !important;
+  max-width: 396px !important;
+}
+
 .cl-verificationCodeInput,
 .cl-otpCodeInput,
 .cl-verificationCodeDigitsRow input,
 .cl-otpCodeContainer input {
-  background-color: #2d3748 !important;
-  color: white !important;
+  background-color: white !important;
+  color: #1a2235 !important;
   border: 1px solid rgba(160, 174, 192, 0.6) !important;
   border-radius: 6px !important;
   width: 46px !important;
   height: 46px !important;
   font-size: 18px !important;
   text-align: center !important;
-  margin: 0 4px !important;
+  margin: 0 !important;
   padding: 0 !important;
 }
 
-/* Ensure the footer stays within container boundaries */
-.cl-card {
-  overflow: hidden !important;
-  border-radius: 0 !important;
-  border: none !important;
-  box-shadow: none !important;
-}
-
-.cl-footer {
-  width: 100% !important;
-  max-width: 100% !important;
-  margin: 0 !important;
-  border-radius: 0 !important;
-}
-
-/* Ensure the "Development mode" text stays properly centered */
-.cl-footerAction {
-  width: 100% !important;
-  text-align: center !important;
-  justify-content: center !important;
-  display: flex !important;
-  padding: 0 !important;
-  margin: 0 !important;
-}
-
-/* Fix hover and focus styles for MFA input boxes */
 .cl-verificationCodeInput:focus,
 .cl-otpCodeInput:focus,
 .cl-verificationCodeDigitsRow input:focus,
@@ -398,14 +146,107 @@ This helps with the centering issues
   box-shadow: 0 0 0 2px rgba(66, 153, 225, 0.5) !important;
 }
 
-.cl-verificationCodeInput::placeholder,
-.cl-otpCodeInput::placeholder,
-.cl-verificationCodeDigitsRow input::placeholder,
-.cl-otpCodeContainer input::placeholder {
-  color: rgba(160, 174, 192, 0.5) !important;
+/* Header styling */
+.cl-header {
+  text-align: center !important;
+  margin-bottom: 24px !important;
 }
 
-/* Make the resend code link more visible */
+.cl-headerTitle {
+  color: white !important;
+  font-size: 24px !important;
+  font-weight: 700 !important;
+}
+
+.cl-headerSubtitle {
+  color: #a0aec0 !important;
+  margin-top: 4px !important;
+}
+
+/* Button styling */
+.cl-formButtonPrimary {
+  background-color: #0033a0 !important;
+  color: white !important;
+  border-radius: 6px !important;
+  padding: 12px 16px !important;
+  width: 100% !important;
+  max-width: 396px !important;
+  margin: 8px auto 16px auto !important;
+  font-weight: 500 !important;
+  box-sizing: border-box !important;
+  text-align: center !important;
+}
+
+.cl-formButtonPrimary:hover {
+  background-color: #002787 !important;
+}
+
+.cl-formButtonPrimary svg {
+  margin-left: 6px !important;
+}
+
+/* Footer styling */
+.cl-footer {
+  width: 100% !important;
+  max-width: 100% !important;
+  background-color: rgba(241, 245, 249, 1) !important;
+  border-top: 1px solid rgba(229, 231, 235, 1) !important;
+  margin: 0 !important;
+  padding: 16px !important;
+  box-sizing: border-box !important;
+  border-radius: 0 !important;
+}
+
+.cl-footerAction {
+  width: 100% !important;
+  text-align: center !important;
+  justify-content: center !important;
+  display: flex !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  color: #f97316 !important;
+}
+
+.cl-footerActionLink {
+  color: #4299e1 !important;
+}
+
+.cl-footerActionLink:hover {
+  color: #3182ce !important;
+}
+
+/* Identity preview (email display) */
+.cl-identityPreview {
+  background-color: #1a2235 !important;
+  border: 1px solid rgba(75, 85, 99, 0.6) !important;
+  border-radius: 6px !important;
+  padding: 12px 16px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  width: 100% !important;
+  margin-bottom: 16px !important;
+  box-sizing: border-box !important;
+}
+
+.cl-identityPreviewText {
+  color: white !important;
+}
+
+.cl-identityPreviewEditButton {
+  color: #4299e1 !important;
+  background: transparent !important;
+  border: none !important;
+  cursor: pointer !important;
+  padding: 4px 8px !important;
+  border-radius: 4px !important;
+}
+
+.cl-identityPreviewEditButton:hover {
+  background-color: rgba(66, 153, 225, 0.1) !important;
+}
+
+/* Resend code link */
 .cl-formResendCodeLink {
   color: #4299e1 !important;
   text-align: center !important;
@@ -416,4 +257,26 @@ This helps with the centering issues
 
 .cl-formResendCodeLink:hover {
   text-decoration: underline !important;
+}
+
+/* Back button */
+.cl-formFieldAction {
+  color: #4299e1 !important;
+  text-decoration: none !important;
+}
+
+.cl-formFieldAction:hover {
+  text-decoration: underline !important;
+}
+
+/* Alert messages */
+.cl-alert {
+  background-color: #1a2235 !important;
+  border: 1px solid rgba(75, 85, 99, 0.6) !important;
+  border-radius: 6px !important;
+  padding: 16px !important;
+  color: white !important;
+  width: 100% !important;
+  margin: 16px 0 !important;
+  box-sizing: border-box !important;
 }
