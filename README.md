@@ -1,1 +1,1 @@
-Vosler MVP
+Vosler MVP.
