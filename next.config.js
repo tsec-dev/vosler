@@ -1,8 +1,12 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Your configuration options here
-  reactStrictMode: true,
-  // Any other options...
+  webpack: (config, { isServer }) => {
+    if (isServer) {
+      // Add pdf-parse to externals
+      config.externals = [...(config.externals || []), 'pdf-parse'];
+    }
+    return config;
+  },
 };
 
 module.exports = nextConfig;
