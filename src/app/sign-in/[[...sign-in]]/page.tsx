@@ -1,26 +1,31 @@
-// src/app/sign-in/[[...sign-in]]/page.tsx
 "use client";
 
 import { SignIn } from "@clerk/nextjs";
 
 export default function SignInPage() {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-black text-white">
+    <div className="relative min-h-screen flex items-center justify-center bg-black text-white">
       {/* Simple dark blue to black gradient background */}
-      <div className="absolute inset-0">
-        <div className="absolute inset-0 bg-gradient-to-b from-[#0a1933] to-black"></div>
-      </div>
-      
-      {/* Centered container with custom styling */}
-      <div className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[460px] max-w-[95vw] z-10">
+      <div className="absolute inset-0 bg-gradient-to-b from-[#0a1933] to-black" />
+
+      {/* Centered container with a max width */}
+      <div className="relative z-10 w-[460px] max-w-[95vw] mx-auto">
         <div className="overflow-hidden rounded-2xl border border-gray-800">
-          <SignIn 
+          <SignIn
             appearance={{
               elements: {
+                // Make the dev banner match your card width and center it
+                devEnvironmentBanner: {
+                  margin: "0 auto",
+                  width: "100%",
+                  maxWidth: "460px",
+                  display: "flex",
+                  justifyContent: "center",
+                },
                 rootBox: {
                   width: "100%",
                   maxWidth: "100%",
-                  margin: "0 auto"
+                  margin: "0 auto",
                 },
                 card: {
                   backgroundColor: "#101726",
@@ -28,31 +33,31 @@ export default function SignInPage() {
                   boxShadow: "none",
                   border: "none",
                   width: "100%",
-                  overflow: "hidden"
+                  overflow: "hidden",
                 },
                 headerTitle: {
                   fontSize: "24px",
                   fontWeight: "700",
                   textAlign: "center",
                   color: "white",
-                  marginTop: "16px"
+                  marginTop: "16px",
                 },
                 headerSubtitle: {
                   textAlign: "center",
-                  color: "rgba(156, 163, 175, 1)"
+                  color: "rgba(156, 163, 175, 1)",
                 },
                 form: {
                   gap: "24px",
                   width: "100%",
-                  padding: "0 32px", 
+                  padding: "0 32px",
                   maxWidth: "396px", // Restrict width to keep contents aligned
-                  margin: "0 auto" // Center the form content
+                  margin: "0 auto", // Center the form content
                 },
                 formFieldLabel: {
                   color: "rgba(156, 163, 175, 1)",
                   fontSize: "14px",
                   fontWeight: "500",
-                  marginBottom: "8px"
+                  marginBottom: "8px",
                 },
                 formFieldInput: {
                   backgroundColor: "#1a202c",
@@ -60,7 +65,7 @@ export default function SignInPage() {
                   border: "1px solid rgba(75, 85, 99, 0.6)",
                   borderRadius: "6px",
                   padding: "14px 16px",
-                  width: "100%"
+                  width: "100%",
                 },
                 formButtonPrimary: {
                   backgroundColor: "#1d4ed8",
@@ -70,7 +75,7 @@ export default function SignInPage() {
                   padding: "14px 16px",
                   width: "100%",
                   marginTop: "6px",
-                  marginBottom: "16px"
+                  marginBottom: "16px",
                 },
                 footer: {
                   backgroundColor: "rgba(241, 245, 249, 1)",
@@ -78,26 +83,25 @@ export default function SignInPage() {
                   padding: "16px",
                   width: "100%",
                   boxSizing: "border-box",
-                  margin: "0"
+                  margin: "0",
                 },
                 footerAction: {
                   justifyContent: "center",
                   color: "#f97316",
                   fontSize: "14px",
                   width: "100%",
-                  textAlign: "center"
+                  textAlign: "center",
                 },
                 main: {
                   padding: "32px 0",
-                  width: "100%"
+                  width: "100%",
                 },
-                // MFA verification code input styling with white background
                 verificationCodeDigitsRow: {
                   display: "flex",
                   justifyContent: "center",
                   gap: "8px",
-                  maxWidth: "396px", // Match form width
-                  margin: "24px auto" // Center horizontally
+                  maxWidth: "396px",
+                  margin: "24px auto",
                 },
                 verificationCodeInput: {
                   backgroundColor: "white",
@@ -108,14 +112,14 @@ export default function SignInPage() {
                   height: "46px",
                   fontSize: "18px",
                   textAlign: "center",
-                  padding: "0"
+                  padding: "0",
                 },
                 otpCodeContainer: {
                   display: "flex",
                   justifyContent: "center",
                   gap: "8px",
-                  maxWidth: "396px", // Match form width
-                  margin: "24px auto" // Center horizontally
+                  maxWidth: "396px",
+                  margin: "24px auto",
                 },
                 otpCodeInput: {
                   backgroundColor: "white",
@@ -125,7 +129,7 @@ export default function SignInPage() {
                   width: "46px",
                   height: "46px",
                   fontSize: "18px",
-                  textAlign: "center"
+                  textAlign: "center",
                 },
                 identityPreview: {
                   backgroundColor: "#1a202c",
@@ -133,19 +137,19 @@ export default function SignInPage() {
                   border: "1px solid rgba(75, 85, 99, 0.6)",
                   borderRadius: "6px",
                   padding: "12px 16px",
-                  marginBottom: "16px"
+                  marginBottom: "16px",
                 },
                 identityPreviewText: {
-                  color: "white"
+                  color: "white",
                 },
                 identityPreviewEditButton: {
-                  color: "#3b82f6"
+                  color: "#3b82f6",
                 },
                 formResendCodeLink: {
                   color: "#3b82f6",
                   textAlign: "center",
                   display: "block",
-                  marginTop: "8px"
+                  marginTop: "8px",
                 },
                 alert: {
                   backgroundColor: "#1a202c",
@@ -153,34 +157,34 @@ export default function SignInPage() {
                   borderRadius: "6px",
                   padding: "16px",
                   color: "white",
-                  margin: "16px 0"
+                  margin: "16px 0",
                 },
                 formFieldRow: {
                   marginBottom: "16px",
-                  width: "100%"
+                  width: "100%",
                 },
                 formFieldAction: {
-                  color: "#3b82f6"
-                }
+                  color: "#3b82f6",
+                },
               },
               layout: {
                 socialButtonsPlacement: "bottom",
                 socialButtonsVariant: "iconButton",
                 helpPageUrl: "",
-                termsPageUrl: ""
+                termsPageUrl: "",
               },
               variables: {
                 colorPrimary: "#1d4ed8",
                 colorText: "white",
                 colorTextSecondary: "rgba(156, 163, 175, 1)",
-                borderRadius: "6px"
-              }
+                borderRadius: "6px",
+              },
             }}
             redirectUrl="/dashboard"
           />
         </div>
       </div>
-      
+
       {/* Footer */}
       <div className="fixed bottom-6 left-0 right-0 text-center text-xs text-gray-500">
         © {new Date().getFullYear()} Vosler | Team Development Demo • All rights reserved
