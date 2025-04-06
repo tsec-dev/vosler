@@ -349,3 +349,13 @@ body {
   width: 100% !important;
   max-width: 460px !important;
 }
+/* Forces the dev banner to fill the container width */
+.cl-devEnvironmentBanner {
+  display: block !important;
+  width: 100% !important;
+  max-width: none !important; /* or 460px if you prefer */
+  margin: 0 auto !important;
+  text-align: center !important;
+  border-radius: 0 !important; /* optional */
+  background-color: #101726 !important; /* optional */
+}
