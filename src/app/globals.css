@@ -20,12 +20,10 @@
   --ring: 224.3 76.3% 48%;
 }
 
-* {
-  @apply border-border;
-}
+/* Removed the problematic border-border class */
 
 body {
-  @apply bg-background text-foreground;
+  @apply bg-black text-white;
 }
 
 /* Custom scrollbar for dark mode */
