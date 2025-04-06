@@ -31,8 +31,7 @@ export default function Home() {
         <div className="bg-gray-900/80 backdrop-blur-sm rounded-xl shadow-2xl border border-gray-800 overflow-hidden">
           {/* Header */}
           <div className="px-8 pt-8 pb-4">
-            <h2 className="text-2xl font-bold text-gray-100">Sign In</h2>
-            <p className="text-gray-400 mt-1">Access your mission control center!</p>
+            <h2 className="text-2xl font-bold text-gray-100">Welcome!</h2>
           </div>
           
           {/* Sign In Component */}
@@ -41,18 +40,18 @@ export default function Home() {
               href="/sign-in" 
               className="block w-full py-3 px-4 bg-blue-600 hover:bg-blue-700 rounded-lg text-center font-medium transition-colors duration-200 shadow-lg shadow-blue-900/30"
             >
-              Sign In
+              Access the mission control center.
             </Link>
             
             <div className="mt-6 pt-6 border-t border-gray-800 text-center text-sm text-gray-500">
-              New to Vosler? Contact your leads for access.
+              New here? Contact your leads for access.
             </div>
           </div>
         </div>
         
         {/* Footer */}
         <div className="mt-12 text-center text-sm text-gray-500">
-          © {new Date().getFullYear()} Vosler | Team Development • All rights reserved
+          © {new Date().getFullYear()} Vosler | Team Development Demo • All rights reserved
         </div>
       </div>
     </div>
