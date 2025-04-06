@@ -1,3 +1,4 @@
+// src/app/sign-in/page.tsx (or wherever your sign-in page is located)
 "use client";
 import { SignIn } from "@clerk/nextjs";
 import Image from "next/image";
@@ -60,7 +61,6 @@ export default function SignInPage() {
           }}
           path="/sign-in"
           routing="path"
-          signUpUrl="/sign-up"
           redirectUrl="/dashboard" // Redirect to dashboard after successful sign-in
           afterSignInUrl="/dashboard" // Alternative way to specify redirect
         />
