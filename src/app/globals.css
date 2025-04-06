@@ -73,7 +73,7 @@ body {
   box-sizing: border-box !important;
 }
 
-/* Form elements alignment */
+/* Form container - force children centering */
 .cl-form {
   margin: 0 auto !important;
   width: 100% !important;
@@ -81,6 +81,9 @@ body {
   padding: 0 24px !important;
   box-sizing: border-box !important;
   overflow: visible !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
 }
 
 .cl-formFieldRow {
@@ -175,6 +178,7 @@ body {
   font-weight: 500 !important;
   box-sizing: border-box !important;
   text-align: center !important;
+  display: block !important;
 }
 
 .cl-formButtonPrimary:hover {
@@ -334,4 +338,14 @@ body {
 .cl-card > div {
   width: 100% !important;
   background-color: #101726 !important;
+}
+
+/* -----------------------------------------------------------------------------
+   New rule: Center the Developer Banner (if applicable)
+----------------------------------------------------------------------------- */
+.cl-devEnvironmentBanner {
+  margin: 0 auto !important;
+  text-align: center !important;
+  width: 100% !important;
+  max-width: 460px !important;
 }
