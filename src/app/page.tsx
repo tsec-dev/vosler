@@ -31,7 +31,7 @@ export default function Home() {
         <div className="bg-gray-900/80 backdrop-blur-sm rounded-xl shadow-2xl border border-gray-800 overflow-hidden">
           {/* Header */}
           <div className="px-8 pt-8 pb-4">
-            <h2 className="text-2xl font-bold text-gray-100">Welcome!</h2>
+            <center><h2 className="text-2xl font-bold text-gray-100">Welcome!</h2></center>
           </div>
           
           {/* Sign In Component */}
