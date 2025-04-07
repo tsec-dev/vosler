@@ -13,61 +13,65 @@ export default function Dashboard() {
     <div className="min-h-screen bg-gray-100">
       {/* Header */}
       <header className="bg-white shadow">
-        <div className="max-w-7xl mx-auto px-4 py-4 sm:px-6 lg:px-8 flex justify-between items-center">
+        <div className="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
           <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
           <UserButton afterSignOutUrl="/" />
         </div>
       </header>
 
-      {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 py-6 sm:px-6 lg:px-8">
-        <div className="bg-white shadow rounded-lg p-6">
-          <h2 className="text-xl font-semibold mb-4">
-            Welcome, {user.firstName || user.emailAddresses[0]?.emailAddress}!
-          </h2>
-          <p>Your dashboard content goes here.</p>
+      {/* Main Dashboard Layout */}
+      <main className="max-w-7xl mx-auto px-4 py-8">
+        <h2 className="text-xl font-semibold mb-6 text-gray-800">
+          Welcome, {user.firstName || user.emailAddresses[0]?.emailAddress} 👋
+        </h2>
 
-          {/* Upload Section */}
-          <div className="mt-8">
-            <h3 className="text-lg font-semibold mb-2">Upload Your Reports</h3>
-            <div className="grid gap-4 grid-cols-1 md:grid-cols-2">
-              {/* Strengths PDF */}
-              <div className="border border-gray-200 rounded-lg p-4 bg-gray-50">
-                <p className="text-sm text-gray-700 mb-2">Gallup Strengths PDF</p>
-                <input
-                  type="file"
-                  accept="application/pdf"
-                  className="block w-full text-sm text-gray-500
-                    file:mr-4 file:py-2 file:px-4
-                    file:rounded-md file:border-0
-                    file:text-sm file:font-semibold
-                    file:bg-indigo-50 file:text-indigo-700
-                    hover:file:bg-indigo-100"
-                />
-              </div>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Left Column: Upload Section */}
+          <div className="lg:col-span-2 space-y-6">
+            {/* Upload Section Title */}
+            <h3 className="text-lg font-semibold text-gray-700">📤 Upload Your Reports</h3>
 
-              {/* EQ PDF */}
-              <div className="border border-gray-200 rounded-lg p-4 bg-gray-50">
-                <p className="text-sm text-gray-700 mb-2">EQ-i 2.0 PDF</p>
-                <input
-                  type="file"
-                  accept="application/pdf"
-                  className="block w-full text-sm text-gray-500
-                    file:mr-4 file:py-2 file:px-4
-                    file:rounded-md file:border-0
-                    file:text-sm file:font-semibold
-                    file:bg-indigo-50 file:text-indigo-700
-                    hover:file:bg-indigo-100"
-                />
-              </div>
+            {/* Gallup Upload Card */}
+            <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-6">
+              <p className="text-sm font-medium text-gray-800 mb-2">Gallup Strengths PDF</p>
+              <input
+                type="file"
+                accept="application/pdf"
+                className="block w-full text-sm text-gray-500
+                  file:mr-4 file:py-2 file:px-4
+                  file:rounded-md file:border-0
+                  file:text-sm file:font-semibold
+                  file:bg-indigo-50 file:text-indigo-700
+                  hover:file:bg-indigo-100"
+              />
+            </div>
+
+            {/* EQ Upload Card */}
+            <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-6">
+              <p className="text-sm font-medium text-gray-800 mb-2">EQ-i 2.0 PDF</p>
+              <input
+                type="file"
+                accept="application/pdf"
+                className="block w-full text-sm text-gray-500
+                  file:mr-4 file:py-2 file:px-4
+                  file:rounded-md file:border-0
+                  file:text-sm file:font-semibold
+                  file:bg-indigo-50 file:text-indigo-700
+                  hover:file:bg-indigo-100"
+              />
             </div>
           </div>
 
-          {/* My Team Section */}
-          <div className="mt-12">
-            <h3 className="text-lg font-semibold mb-2">My Team</h3>
-            <div className="p-4 border border-gray-200 rounded-lg bg-gray-50 text-sm text-gray-500 text-center">
-              Team data will appear here once assigned.
+          {/* Right Column: Team Card */}
+          <div>
+            <h3 className="text-lg font-semibold text-gray-700 mb-2">👥 My Team</h3>
+            <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-6 h-full">
+              <p className="text-sm text-gray-600 mb-2">
+                View your assigned teammates here. Instructors can assign permanent or breakout teams.
+              </p>
+              <div className="text-center text-sm text-gray-400 py-4">
+                Team data will appear here once assigned.
+              </div>
             </div>
           </div>
         </div>
