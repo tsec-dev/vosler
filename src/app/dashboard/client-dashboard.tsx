@@ -15,6 +15,16 @@ interface StudentProps {
   last_name: string;
 }
 
+interface UploadData {
+  id: string;
+  report_type: string;
+  parsed_data: {
+    top_strengths?: string[];
+    eq_weaknesses?: string[];
+    snippet?: string;
+  };
+}
+
 interface Props {
   user: UserProps;
   student: StudentProps;
@@ -26,22 +36,24 @@ export default function ClientDashboard({ user, student }: Props) {
       ? `${student.first_name} ${student.last_name}`
       : user.email || "User";
 
-  // Dark mode and menu state
   const [darkMode, setDarkMode] = useState(true);
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
-  // Upload state for Gallup PDF
+  // States for Gallup upload handling
   const [gallupUploadResult, setGallupUploadResult] = useState<any>(null);
   const [gallupUploading, setGallupUploading] = useState(false);
   const [gallupFileName, setGallupFileName] = useState("");
 
-  // Toggle dark mode on document element
+  // Persistent upload data state (as an array)
+  const [persistentData, setPersistentData] = useState<UploadData[]>([]);
+
+  // Toggle dark mode
   useEffect(() => {
     document.documentElement.classList.toggle("dark", darkMode);
   }, [darkMode]);
 
-  // Close hamburger menu if clicking outside
+  // Close hamburger menu on outside click
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
@@ -50,13 +62,31 @@ export default function ClientDashboard({ user, student }: Props) {
     }
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [menuRef]);
+  }, []);
+
+  // Fetch persistent upload data on component mount
+  useEffect(() => {
+    async function fetchUploads() {
+      try {
+        const res = await fetch("/api/uploads");
+        const result = await res.json();
+        console.log("Fetched uploads:", result.data);
+        if (result.data) {
+          setPersistentData(result.data);
+        }
+      } catch (error) {
+        console.error("Error fetching uploads:", error);
+      }
+    }
+    fetchUploads();
+  }, []);
 
   // Handler for Gallup PDF upload
   async function handleGallupUpload(file: File) {
     setGallupUploading(true);
     const formData = new FormData();
     formData.append("file", file);
+    formData.append("reportType", "gallup");
     try {
       const res = await fetch("/api/upload", {
         method: "POST",
@@ -64,12 +94,23 @@ export default function ClientDashboard({ user, student }: Props) {
       });
       const data = await res.json();
       setGallupUploadResult(data);
+      // Refresh persistent data after successful upload
+      const uploadRes = await fetch("/api/uploads");
+      const uploadResult = await uploadRes.json();
+      console.log("Uploaded data refreshed:", uploadResult.data);
+      if (uploadResult.data) {
+        setPersistentData(uploadResult.data);
+      }
     } catch (error) {
       console.error("Upload error:", error);
     } finally {
       setGallupUploading(false);
     }
   }
+
+  // Filter for the latest Gallup upload if available
+  const gallupData = persistentData.find((upload) => upload.report_type === "gallup");
+  console.log("Filtered Gallup Data:", gallupData);
 
   return (
     <div className="min-h-screen bg-gray-100 dark:bg-gray-950 text-gray-900 dark:text-white">
@@ -78,27 +119,15 @@ export default function ClientDashboard({ user, student }: Props) {
         <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
           {/* Hamburger Menu */}
           <div className="relative">
-            <button
-              onClick={() => setMenuOpen(!menuOpen)}
-              className="p-2 focus:outline-none"
-            >
+            <button onClick={() => setMenuOpen(!menuOpen)} className="p-2 focus:outline-none">
               <FiMenu className="w-6 h-6 text-gray-900 dark:text-white" />
             </button>
             {menuOpen && (
-              <div
-                ref={menuRef}
-                className="absolute left-0 mt-2 w-48 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded shadow-md z-50"
-              >
-                <a
-                  href="/admin"
-                  className="block px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
-                >
+              <div ref={menuRef} className="absolute left-0 mt-2 w-48 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded shadow-md z-50">
+                <a href="/admin" className="block px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
                   Admin Panel
                 </a>
-                <a
-                  href="/profile"
-                  className="block px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
-                >
+                <a href="/profile" className="block px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
                   Profile
                 </a>
               </div>
@@ -106,10 +135,7 @@ export default function ClientDashboard({ user, student }: Props) {
           </div>
           {/* Right Side: Dark Mode Toggle & User Button */}
           <div className="flex items-center space-x-4">
-            <button
-              onClick={() => setDarkMode(!darkMode)}
-              className="bg-gray-800 text-white text-xs px-3 py-1 rounded focus:outline-none"
-            >
+            <button onClick={() => setDarkMode(!darkMode)} className="bg-gray-800 text-white text-xs px-3 py-1 rounded focus:outline-none">
               {darkMode ? "Light" : "Dark"}
             </button>
             <UserButton afterSignOutUrl="/" />
@@ -127,21 +153,17 @@ export default function ClientDashboard({ user, student }: Props) {
           <div className="lg:col-span-2 space-y-6">
             <h3 className="text-lg font-semibold">📤 Upload Your Reports</h3>
             {/* Gallup Upload Card */}
-            {gallupUploadResult ? (
+            {gallupData ? (
               <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm p-6">
                 <p className="text-sm font-medium mb-2">Gallup Strengths:</p>
-                {gallupUploadResult.data?.parsed_data?.top_strengths ? (
+                {gallupData.parsed_data.top_strengths && gallupData.parsed_data.top_strengths.length > 0 ? (
                   <ul className="list-disc list-inside">
-                    {gallupUploadResult.data.parsed_data.top_strengths.map(
-                      (str: string, idx: number) => (
-                        <li key={idx}>{str}</li>
-                      )
-                    )}
+                    {gallupData.parsed_data.top_strengths.map((str, idx) => (
+                      <li key={idx}>{str}</li>
+                    ))}
                   </ul>
                 ) : (
-                  <p className="text-sm text-gray-500 dark:text-gray-400">
-                    No strengths detected.
-                  </p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">No strengths detected.</p>
                 )}
               </div>
             ) : (
@@ -163,14 +185,12 @@ export default function ClientDashboard({ user, student }: Props) {
                   {gallupUploading ? "Uploading..." : "Choose PDF File"}
                 </label>
                 <p className="mt-4 text-sm text-gray-400">
-                  {gallupFileName
-                    ? `📄 ${gallupFileName}`
-                    : "No file uploaded yet"}
+                  {gallupFileName ? `📄 ${gallupFileName}` : "No file uploaded yet"}
                 </p>
               </div>
             )}
 
-            {/* EQ Upload Card (for now, just the upload input) */}
+            {/* EQ Upload Card */}
             <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm p-6">
               <p className="text-sm font-medium mb-2">EQ-i 2.0 PDF</p>
               <input
@@ -190,9 +210,7 @@ export default function ClientDashboard({ user, student }: Props) {
             <div>
               <h3 className="text-lg font-semibold mb-2">👥 Assigned Team</h3>
               <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm p-6 h-full">
-                <p className="text-sm mb-2">
-                  This is your permanent instructor-assigned team.
-                </p>
+                <p className="text-sm mb-2">This is your permanent instructor-assigned team.</p>
                 <div className="text-center text-sm text-gray-500 dark:text-gray-400 py-4">
                   Team data will appear here once assigned.
                 </div>
@@ -213,7 +231,7 @@ export default function ClientDashboard({ user, student }: Props) {
           </div>
         </div>
 
-        {/* Bottom Grid: Team Generator & 360 Feedback */}
+        {/* Bottom Grid: Team Generator & Feedback */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-10">
           {/* Team Generator Card */}
           <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm p-6">
@@ -221,9 +239,7 @@ export default function ClientDashboard({ user, student }: Props) {
             <p className="text-sm mb-4">
               Automatically build balanced teams using EQ and Gallup data.
             </p>
-            <label className="text-sm font-medium block mb-1">
-              Number of Teams
-            </label>
+            <label className="text-sm font-medium block mb-1">Number of Teams</label>
             <input
               type="number"
               min="1"
@@ -244,9 +260,7 @@ export default function ClientDashboard({ user, student }: Props) {
             <p className="text-sm mb-4">
               Submit anonymous feedback on teammates, instructors, or the course.
             </p>
-            <label className="text-sm font-medium block mb-1">
-              Feedback Target
-            </label>
+            <label className="text-sm font-medium block mb-1">Feedback Target</label>
             <select className="w-full border border-gray-300 dark:border-gray-700 dark:bg-gray-800 dark:text-white rounded-md px-3 py-2 mb-4 text-sm">
               <option>Teammate: Bob A.</option>
               <option>Instructor: TSgt Taylor</option>
@@ -258,21 +272,14 @@ export default function ClientDashboard({ user, student }: Props) {
                 <div className="flex space-x-2">
                   {[1, 2, 3, 4, 5].map((num) => (
                     <label key={num} className="flex items-center space-x-1 text-sm">
-                      <input
-                        type="radio"
-                        name={`rating-${trait.toLowerCase().replace(" ", "-")}`}
-                        value={num}
-                        required
-                      />
+                      <input type="radio" name={`rating-${trait.toLowerCase().replace(" ", "-")}`} value={num} required />
                       <span>{num}</span>
                     </label>
                   ))}
                 </div>
               </div>
             ))}
-            <label className="text-sm font-medium block mb-1">
-              Comments (optional)
-            </label>
+            <label className="text-sm font-medium block mb-1">Comments (optional)</label>
             <textarea
               className="w-full border border-gray-300 dark:border-gray-700 dark:bg-gray-800 dark:text-white rounded-md px-3 py-2 text-sm mb-4"
               rows={3}

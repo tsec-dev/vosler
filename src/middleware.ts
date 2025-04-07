@@ -3,10 +3,14 @@ import { clerkMiddleware } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
+// Use Clerk's middleware to protect routes
 export default clerkMiddleware();
 
+// Configure the matcher to apply middleware to all routes EXCEPT those that:
+// - Contain a dot (static files)
+// - Include _next (Next.js internal routes)
+// - Are sign-in, sign-up, or complete-profile routes
 export const config = {
-  // This matcher protects all routes EXCEPT those that contain a dot, _next, sign-in, sign-up, or complete-profile.
   matcher: [
     "/((?!.*\\..*|_next|sign-in|sign-up|complete-profile).*)",
     "/dashboard(.*)",
