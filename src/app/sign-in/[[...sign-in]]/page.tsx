@@ -11,6 +11,7 @@ export default function SignInPage() {
         <div className="absolute inset-0 bg-gradient-to-b from-[#0a1933] to-[#101726]" />
         {/* Centered SignIn widget */}
         <div className="relative z-10">
+          <SignIn appearance={{ baseTheme: dark }} />
           <SignIn redirectUrl="/dashboard" />
         </div>
       </div>
