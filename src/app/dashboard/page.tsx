@@ -122,50 +122,57 @@ export default function Dashboard() {
             </button>
           </div>
 
-          {/* Feedback Form */}
-          <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-6">
-            <h3 className="text-lg font-semibold mb-2">🔁 Weekly 360 Feedback</h3>
-            <p className="text-sm text-gray-600 mb-4">
-              Submit anonymous feedback on your teammates, the course, or instructors.
-            </p>
+        {/* Feedback Form */}
+        <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm p-6">
+          <h3 className="text-lg font-semibold mb-2 text-gray-900 dark:text-white">🔁 Weekly 360 Feedback</h3>
+          <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+            Submit anonymous feedback on teammates, instructors, or the course.
+          </p>
 
-            <label className="text-sm font-medium text-gray-700 block mb-1">
-              Feedback Target
-            </label>
-            <select className="w-full border border-gray-300 rounded-md px-3 py-2 mb-4 text-sm">
-              <option>Teammate: Bob A.</option>
-              <option>Instructor: TSgt Taylor</option>
-              <option>Course Material</option>
-            </select>
+          <label className="text-sm font-medium text-gray-700 dark:text-gray-300 block mb-1">
+            Feedback Target
+          </label>
+          <select className="w-full border border-gray-300 dark:border-gray-700 dark:bg-gray-800 dark:text-white rounded-md px-3 py-2 mb-4 text-sm">
+            <option>Teammate: Bob A.</option>
+            <option>Instructor: TSgt Taylor</option>
+            <option>Course Material</option>
+          </select>
 
-            <label className="text-sm font-medium text-gray-700 block mb-1">
-              Rating (1–5)
-            </label>
-            <div className="flex items-center space-x-2 mb-4">
-              {[1, 2, 3, 4, 5].map((num) => (
-                <label key={num} className="flex items-center space-x-1 text-sm text-gray-600">
-                  <input type="radio" name="rating" value={num} />
-                  <span>{num}</span>
-                </label>
-              ))}
+          {["Communication", "Social Awareness", "Boldness", "Leadership"].map((trait) => (
+            <div key={trait} className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{trait}</label>
+              <div className="flex space-x-2">
+                {[1, 2, 3, 4, 5].map((num) => (
+                  <label key={num} className="flex items-center space-x-1 text-sm text-gray-600 dark:text-gray-300">
+                    <input
+                      type="radio"
+                      name={`rating-${trait.toLowerCase().replace(" ", "-")}`}
+                      value={num}
+                      required
+                    />
+                    <span>{num}</span>
+                  </label>
+                ))}
+              </div>
             </div>
+          ))}
 
-            <label className="text-sm font-medium text-gray-700 block mb-1">
-              Comments (optional)
-            </label>
-            <textarea
-              className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm mb-4"
-              rows={3}
-              placeholder="Write your feedback..."
-            />
+          <label className="text-sm font-medium text-gray-700 dark:text-gray-300 block mb-1">
+            Comments (optional)
+          </label>
+          <textarea
+            className="w-full border border-gray-300 dark:border-gray-700 dark:bg-gray-800 dark:text-white rounded-md px-3 py-2 text-sm mb-4"
+            rows={3}
+            placeholder="Anything else you'd like to share?"
+          />
 
-            <button
-              className="bg-green-600 hover:bg-green-500 text-white font-medium py-2 px-4 rounded-md text-sm transition"
-              onClick={() => alert("Feedback submitted!")}
-            >
-              Submit Feedback
-            </button>
-          </div>
+          <button
+            className="bg-green-600 hover:bg-green-500 text-white font-medium py-2 px-4 rounded-md text-sm transition"
+            onClick={() => alert("Feedback submitted anonymously!")}
+          >
+            Submit Feedback
+          </button>
+        </div>
         </div>
       </main>
     </div>
