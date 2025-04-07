@@ -5,7 +5,7 @@ import { UserButton, useUser } from "@clerk/nextjs";
 export default function Dashboard() {
   const { isLoaded, isSignedIn, user } = useUser();
 
-  if (!isLoaded || !isSignedIn) {
+  if (! !isLoaded || !isSignedIn) {
     return <div>Loading...</div>;
   }
 
@@ -25,7 +25,6 @@ export default function Dashboard() {
           Welcome, {user.firstName || user.emailAddresses[0]?.emailAddress} 👋
         </h2>
 
-        {/* Main Grid: Uploads + Team */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Left Column: Uploads */}
           <div className="lg:col-span-2 space-y-6">
@@ -62,15 +61,31 @@ export default function Dashboard() {
             </div>
           </div>
 
-          {/* Right Column: Team View */}
-          <div>
-            <h3 className="text-lg font-semibold text-gray-700 mb-2">👥 My Team</h3>
-            <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-6 h-full">
-              <p className="text-sm text-gray-600 mb-2">
-                View your assigned teammates here. Instructors can assign permanent or breakout teams.
-              </p>
-              <div className="text-center text-sm text-gray-400 py-4">
-                Team data will appear here once assigned.
+          {/* Right Column: Assigned + Breakout Team */}
+          <div className="space-y-6 lg:space-y-0 lg:grid lg:grid-cols-2 lg:gap-4">
+            {/* Assigned Team */}
+            <div>
+              <h3 className="text-lg font-semibold text-gray-700 mb-2">👥 Assigned Team</h3>
+              <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-6 h-full">
+                <p className="text-sm text-gray-600 mb-2">
+                  This is your permanent instructor-assigned team.
+                </p>
+                <div className="text-center text-sm text-gray-400 py-4">
+                  Team data will appear here once assigned.
+                </div>
+              </div>
+            </div>
+
+            {/* Breakout Team */}
+            <div>
+              <h3 className="text-lg font-semibold text-gray-700 mb-2">⚡ Breakout Team</h3>
+              <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-6 h-full">
+                <p className="text-sm text-gray-600 mb-2">
+                  Temporarily generated based on strengths, EQ, and survey input.
+                </p>
+                <div className="text-center text-sm text-gray-400 py-4">
+                  Breakout pairing will appear here once generated.
+                </div>
               </div>
             </div>
           </div>
