@@ -25,13 +25,13 @@ export default function Dashboard() {
           Welcome, {user.firstName || user.emailAddresses[0]?.emailAddress} 👋
         </h2>
 
+        {/* Main Grid: Uploads + Team */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Left Column: Upload Section */}
+          {/* Left Column: Uploads */}
           <div className="lg:col-span-2 space-y-6">
-            {/* Upload Section Title */}
             <h3 className="text-lg font-semibold text-gray-700">📤 Upload Your Reports</h3>
 
-            {/* Gallup Upload Card */}
+            {/* Gallup Upload */}
             <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-6">
               <p className="text-sm font-medium text-gray-800 mb-2">Gallup Strengths PDF</p>
               <input
@@ -46,7 +46,7 @@ export default function Dashboard() {
               />
             </div>
 
-            {/* EQ Upload Card */}
+            {/* EQ Upload */}
             <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-6">
               <p className="text-sm font-medium text-gray-800 mb-2">EQ-i 2.0 PDF</p>
               <input
@@ -62,7 +62,7 @@ export default function Dashboard() {
             </div>
           </div>
 
-          {/* Right Column: Team Card */}
+          {/* Right Column: Team View */}
           <div>
             <h3 className="text-lg font-semibold text-gray-700 mb-2">👥 My Team</h3>
             <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-6 h-full">
@@ -73,6 +73,79 @@ export default function Dashboard() {
                 Team data will appear here once assigned.
               </div>
             </div>
+          </div>
+        </div>
+
+        {/* Bottom Grid: Admin + Feedback */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-10">
+          {/* Team Generator */}
+          <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-6">
+            <h3 className="text-lg font-semibold mb-2">🧠 Generate Teams</h3>
+            <p className="text-sm text-gray-600 mb-4">
+              Automatically build balanced teams using EQ and Gallup data.
+            </p>
+
+            <label className="text-sm font-medium text-gray-700 block mb-1">
+              Number of Teams
+            </label>
+            <input
+              type="number"
+              min="1"
+              className="w-full border border-gray-300 rounded-md px-3 py-2 mb-4 text-sm"
+              placeholder="e.g. 4"
+            />
+
+            <button
+              className="bg-indigo-600 hover:bg-indigo-500 text-white font-medium py-2 px-4 rounded-md text-sm transition"
+              onClick={() => alert("Generating teams... (placeholder)")}
+            >
+              Generate Teams
+            </button>
+          </div>
+
+          {/* Feedback Form */}
+          <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-6">
+            <h3 className="text-lg font-semibold mb-2">🔁 Weekly 360 Feedback</h3>
+            <p className="text-sm text-gray-600 mb-4">
+              Submit anonymous feedback on your teammates, the course, or instructors.
+            </p>
+
+            <label className="text-sm font-medium text-gray-700 block mb-1">
+              Feedback Target
+            </label>
+            <select className="w-full border border-gray-300 rounded-md px-3 py-2 mb-4 text-sm">
+              <option>Teammate: Bob A.</option>
+              <option>Instructor: TSgt Taylor</option>
+              <option>Course Material</option>
+            </select>
+
+            <label className="text-sm font-medium text-gray-700 block mb-1">
+              Rating (1–5)
+            </label>
+            <div className="flex items-center space-x-2 mb-4">
+              {[1, 2, 3, 4, 5].map((num) => (
+                <label key={num} className="flex items-center space-x-1 text-sm text-gray-600">
+                  <input type="radio" name="rating" value={num} />
+                  <span>{num}</span>
+                </label>
+              ))}
+            </div>
+
+            <label className="text-sm font-medium text-gray-700 block mb-1">
+              Comments (optional)
+            </label>
+            <textarea
+              className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm mb-4"
+              rows={3}
+              placeholder="Write your feedback..."
+            />
+
+            <button
+              className="bg-green-600 hover:bg-green-500 text-white font-medium py-2 px-4 rounded-md text-sm transition"
+              onClick={() => alert("Feedback submitted!")}
+            >
+              Submit Feedback
+            </button>
           </div>
         </div>
       </main>
