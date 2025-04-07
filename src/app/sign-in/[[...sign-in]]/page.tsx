@@ -12,7 +12,6 @@ export default function SignInPage() {
         {/* Centered SignIn widget */}
         <div className="relative z-10">
           <SignIn appearance={{ baseTheme: dark }} />
-          <SignIn redirectUrl="/dashboard" />
         </div>
       </div>
     </ClerkProvider>
