@@ -5,9 +5,13 @@ import { UserButton, useUser } from "@clerk/nextjs";
 export default function Dashboard() {
   const { isLoaded, isSignedIn, user } = useUser();
 
-  if (! !isLoaded || !isSignedIn) {
+  if (!isLoaded || !isSignedIn) {
     return <div>Loading...</div>;
   }
+
+  const displayName = user?.firstName && user?.lastName
+    ? `${user.firstName} ${user.lastName}`
+    : user?.emailAddresses?.[0]?.emailAddress || "User";
 
   return (
     <div className="min-h-screen bg-gray-100">
@@ -22,7 +26,7 @@ export default function Dashboard() {
       {/* Main Dashboard Layout */}
       <main className="max-w-7xl mx-auto px-4 py-8">
         <h2 className="text-xl font-semibold mb-6 text-gray-800">
-          Welcome, {user.firstName || user.emailAddresses[0]?.emailAddress} 👋
+          Welcome, {displayName} 👋
         </h2>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
