@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { UserButton } from "@clerk/nextjs";
 
 const peerFeedback = [
   {
@@ -25,16 +26,23 @@ export default function AdminPanel() {
 
   return (
     <div className="min-h-screen bg-gray-100 dark:bg-gray-950 text-gray-900 dark:text-white p-6">
-      <div className="flex justify-between mb-4">
-        <button className="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-500 text-sm font-medium">
-          Send Feedback
-        </button>
+      {/* Header Buttons */}
+      <div className="flex justify-between mb-6 items-start">
         <div className="flex flex-col gap-2">
-          <button className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-500 text-sm font-medium">
-            Export
+          <a
+            href="/dashboard"
+            className="bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded text-sm font-medium"
+          >
+            ← Return to Dashboard
+          </a>
+        </div>
+        <div className="flex flex-col items-end gap-2">
+          <UserButton afterSignOutUrl="/" />
+          <button className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded text-sm font-medium">
+            Export to PDF
           </button>
-          <button className="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-500 text-sm font-medium">
-            Reset
+          <button className="bg-red-600 hover:bg-red-500 text-white px-4 py-2 rounded text-sm font-medium">
+            Reset for next class
           </button>
         </div>
       </div>
@@ -60,20 +68,20 @@ export default function AdminPanel() {
 
           <div className="bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 p-4 rounded-md shadow">
             <h2 className="text-lg font-semibold mb-2">📈 Growth Tracker</h2>
-            <div className="mb-2">
+            <div className="mb-3">
               <p className="font-medium text-sm mb-1">Top Improvers</p>
-              <ul className="text-sm list-decimal list-inside">
-                <li>Jamie Chhn</li>
-                <li>Jamie Walker</li>
-                <li>Sam Nguyen</li>
+              <ul className="text-sm list-disc list-inside">
+                <li>Jamie Chhn – Excels in Communication</li>
+                <li>Jamie Walker – Excels in Integrity</li>
+                <li>Sam Nguyen – Excels in Boldness</li>
               </ul>
             </div>
             <div>
               <p className="font-medium text-sm mb-1">Needs Support</p>
-              <ul className="text-sm list-decimal list-inside">
-                <li>Chris Dean</li>
-                <li>Aliyah Stone</li>
-                <li>Mike Ferris</li>
+              <ul className="text-sm list-disc list-inside">
+                <li>Chris Dean – Needs support in EQ</li>
+                <li>Aliyah Stone – Needs support in Communication</li>
+                <li>Mike Ferris – Needs support in Leadership</li>
               </ul>
             </div>
           </div>
