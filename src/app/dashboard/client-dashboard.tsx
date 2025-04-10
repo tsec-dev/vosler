@@ -1,9 +1,6 @@
-"use client";
-
 import { useState } from "react";
 import { UserButton } from "@clerk/nextjs";
 
-// === Props & Types ===
 interface UserProps {
   firstName: string;
   lastName: string;
@@ -25,14 +22,22 @@ interface DashboardProps {
 const traits = ["Communication", "Leadership", "EQ", "Adaptability", "Integrity", "Boldness"];
 const weekThemes = ["Architect", "Foundation", "Reflection", "Execution"];
 
+const fakeBarData = [
+  { trait: "Communication", self: 4, peer: 3 },
+  { trait: "Leadership", self: 5, peer: 4 },
+  { trait: "EQ", self: 3, peer: 4 },
+  { trait: "Adaptability", self: 4, peer: 3 },
+  { trait: "Integrity", self: 5, peer: 5 },
+  { trait: "Boldness", self: 2, peer: 3 },
+];
+
 export default function StudentDashboard({ user, student, week = 2 }: DashboardProps) {
   const [selfAssessment, setSelfAssessment] = useState<Record<string, number>>({});
   const [journalEntry, setJournalEntry] = useState("");
 
-  const displayName =
-    student?.first_name && student?.last_name
-      ? `${student.first_name} ${student.last_name}`
-      : user.firstName;
+  const displayName = student?.first_name && student?.last_name
+    ? `${student.first_name} ${student.last_name}`
+    : user.firstName;
 
   const weekTheme = weekThemes[week - 1] || "Growth";
 
@@ -40,9 +45,14 @@ export default function StudentDashboard({ user, student, week = 2 }: DashboardP
     <div className="min-h-screen bg-gray-100 dark:bg-gray-950 text-gray-900 dark:text-white p-6">
       {/* Top Bar */}
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">
-          Welcome, {displayName}, to Week {week}: {weekTheme}
-        </h1>
+        <div>
+          <h1 className="text-2xl font-bold">
+            Welcome, {displayName}, to Week {week}: {weekTheme}
+          </h1>
+          <p className="text-sm italic text-gray-600 dark:text-gray-400 mt-1">
+            “Leadership is not about being in charge. It is about taking care of those in your charge.” – Simon Sinek
+          </p>
+        </div>
         <div className="flex gap-4 items-center">
           {user?.isAdmin && (
             <a href="/admin" className="text-sm text-blue-500 underline">
@@ -55,28 +65,58 @@ export default function StudentDashboard({ user, student, week = 2 }: DashboardP
 
       {/* Growth Snapshot */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-        <div className="p-4 bg-white dark:bg-gray-900 rounded shadow">
-          <h2 className="text-lg font-semibold mb-2">📈 Self-Assessment</h2>
-          <div className="h-40 bg-gray-200 dark:bg-gray-800 rounded" />
+        <div className="p-6 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-lg shadow">
+          <h2 className="text-lg font-semibold mb-4">📈 Self-Assessment</h2>
+          <div className="space-y-2">
+            {fakeBarData.map(({ trait, self }) => (
+              <div key={trait}>
+                <label className="block text-sm font-medium mb-1">{trait}</label>
+                <div className="bg-gray-200 dark:bg-gray-800 h-4 rounded">
+                  <div
+                    className="bg-green-500 h-4 rounded"
+                    style={{ width: `${(self / 5) * 100}%` }}
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
-        <div className="p-4 bg-white dark:bg-gray-900 rounded shadow">
-          <h2 className="text-lg font-semibold mb-2">👥 Peer Feedback</h2>
-          <div className="h-40 bg-gray-200 dark:bg-gray-800 rounded" />
+        <div className="p-6 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-lg shadow">
+          <h2 className="text-lg font-semibold mb-4">👥 Peer Feedback</h2>
+          <div className="space-y-2">
+            {fakeBarData.map(({ trait, peer }) => (
+              <div key={trait}>
+                <label className="block text-sm font-medium mb-1">{trait}</label>
+                <div className="bg-gray-200 dark:bg-gray-800 h-4 rounded">
+                  <div
+                    className="bg-blue-500 h-4 rounded"
+                    style={{ width: `${(peer / 5) * 100}%` }}
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
 
       {/* Feedback To-Do */}
-      <div className="bg-white dark:bg-gray-900 rounded shadow p-6 mb-8">
-        <h2 className="text-lg font-semibold mb-2">📝 Feedback To-Do</h2>
-        <ul className="list-disc list-inside text-sm space-y-2">
-          <li>Teammate: Jamie Chen <a href="#" className="text-blue-500 ml-2 underline">Give Feedback</a></li>
-          <li>Instructor: TSgt Taylor <a href="#" className="text-blue-500 ml-2 underline">Give Feedback</a></li>
+      <div className="bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-lg shadow p-6 mb-8">
+        <h2 className="text-lg font-semibold mb-4">📝 Feedback To-Do</h2>
+        <ul className="space-y-3">
+          <li className="flex items-center justify-between">
+            <span>Teammate: Jamie Chen</span>
+            <a href="#" className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-500 text-sm font-medium">Go to Feedback</a>
+          </li>
+          <li className="flex items-center justify-between">
+            <span>Instructor: TSgt Taylor</span>
+            <a href="#" className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-500 text-sm font-medium">Go to Feedback</a>
+          </li>
         </ul>
       </div>
 
       {/* Self-Assessment Form */}
-      <div className="bg-white dark:bg-gray-900 rounded shadow p-6 mb-8">
-        <h2 className="text-lg font-semibold mb-2">🔁 Weekly Self-Assessment</h2>
+      <div className="bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-lg shadow p-6 mb-8">
+        <h2 className="text-lg font-semibold mb-4">🔁 Weekly Self-Assessment</h2>
         {traits.map((trait) => (
           <div key={trait} className="mb-4">
             <label className="block text-sm font-medium mb-1">{trait}</label>
@@ -108,11 +148,6 @@ export default function StudentDashboard({ user, student, week = 2 }: DashboardP
         <button className="bg-green-600 hover:bg-green-500 text-white font-medium py-2 px-4 rounded-md text-sm transition">
           Submit Self-Assessment
         </button>
-      </div>
-
-      {/* Quote of the Week */}
-      <div className="text-center text-sm italic text-gray-600 dark:text-gray-400">
-        “Leadership is not about being in charge. It is about taking care of those in your charge.” – Simon Sinek
       </div>
     </div>
   );
