@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import { UserButton } from "@clerk/nextjs";
-
+import { motion } from "framer-motion";
+import { FaStar } from "react-icons/fa";
 
 interface UserProps {
   firstName: string;
@@ -52,9 +53,6 @@ export default function StudentDashboard({ user, student, week = 2 }: DashboardP
           <h1 className="text-2xl font-bold">
             Welcome, {displayName}, to Week {week}: {weekTheme}
           </h1>
-          <p className="text-sm italic text-gray-600 dark:text-gray-400 mt-1">
-            “Leadership is not about being in charge. It is about taking care of those in your charge.” – Simon Sinek
-          </p>
         </div>
         <div className="flex gap-4 items-center">
           {user?.isAdmin && (
@@ -66,35 +64,59 @@ export default function StudentDashboard({ user, student, week = 2 }: DashboardP
         </div>
       </div>
 
+      {/* Quote */}
+      <div className="text-center text-sm italic text-gray-600 dark:text-gray-400 mb-8">
+        “Leadership is not about being in charge. It is about taking care of those in your charge.” – Simon Sinek
+      </div>
+
       {/* Growth Snapshot */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-        <div className="p-6 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-lg shadow">
+        {/* Self-Assessment Bar Chart */}
+        <div className="p-6 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-lg shadow relative">
           <h2 className="text-lg font-semibold mb-4">📈 Self-Assessment</h2>
-          <div className="space-y-2">
+          <div className="space-y-4">
             {fakeBarData.map(({ trait, self }) => (
               <div key={trait}>
-                <label className="block text-sm font-medium mb-1">{trait}</label>
-                <div className="bg-gray-200 dark:bg-gray-800 h-4 rounded">
-                  <div
-                    className="bg-green-500 h-4 rounded"
-                    style={{ width: `${(self / 5) * 100}%` }}
+                <div className="flex justify-between mb-1">
+                  <span className="text-sm font-medium">{trait}</span>
+                  <span className="text-sm text-gray-500">{self}/5</span>
+                </div>
+                <div className="bg-gray-200 dark:bg-gray-800 h-5 rounded relative group">
+                  <motion.div
+                    className="bg-green-500 h-5 rounded"
+                    initial={{ width: 0 }}
+                    animate={{ width: `${(self / 5) * 100}%` }}
+                    transition={{ duration: 0.6 }}
                   />
+                  <span className="absolute inset-0 flex items-center justify-center text-xs text-white opacity-0 group-hover:opacity-100 transition">
+                    View feedback in {trait}
+                  </span>
                 </div>
               </div>
             ))}
           </div>
         </div>
-        <div className="p-6 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-lg shadow">
+
+        {/* Peer Feedback Bar Chart */}
+        <div className="p-6 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-lg shadow relative">
           <h2 className="text-lg font-semibold mb-4">👥 Peer Feedback</h2>
-          <div className="space-y-2">
+          <div className="space-y-4">
             {fakeBarData.map(({ trait, peer }) => (
               <div key={trait}>
-                <label className="block text-sm font-medium mb-1">{trait}</label>
-                <div className="bg-gray-200 dark:bg-gray-800 h-4 rounded">
-                  <div
-                    className="bg-blue-500 h-4 rounded"
-                    style={{ width: `${(peer / 5) * 100}%` }}
+                <div className="flex justify-between mb-1">
+                  <span className="text-sm font-medium">{trait}</span>
+                  <span className="text-sm text-gray-500">{peer}/5</span>
+                </div>
+                <div className="bg-gray-200 dark:bg-gray-800 h-5 rounded relative group">
+                  <motion.div
+                    className="bg-blue-500 h-5 rounded"
+                    initial={{ width: 0 }}
+                    animate={{ width: `${(peer / 5) * 100}%` }}
+                    transition={{ duration: 0.6 }}
                   />
+                  <span className="absolute inset-0 flex items-center justify-center text-xs text-white opacity-0 group-hover:opacity-100 transition">
+                    View feedback in {trait}
+                  </span>
                 </div>
               </div>
             ))}
@@ -105,37 +127,43 @@ export default function StudentDashboard({ user, student, week = 2 }: DashboardP
       {/* Feedback To-Do */}
       <div className="bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-lg shadow p-6 mb-8">
         <h2 className="text-lg font-semibold mb-4">📝 Feedback To-Do</h2>
-        <ul className="space-y-3">
-          <li className="flex items-center justify-between">
-            <span>Teammate: Jamie Chen</span>
-            <a href="#" className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-500 text-sm font-medium">Go to Feedback</a>
-          </li>
-          <li className="flex items-center justify-between">
-            <span>Instructor: TSgt Taylor</span>
-            <a href="#" className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-500 text-sm font-medium">Go to Feedback</a>
-          </li>
-        </ul>
+        <div className="space-y-4">
+          {["Jamie Chen", "TSgt Taylor"].map((name, index) => (
+            <div
+              key={index}
+              className="border border-gray-300 dark:border-gray-700 rounded-lg p-4 flex flex-col md:flex-row justify-between items-center"
+            >
+              <span className="text-sm font-medium">{name}</span>
+              <a
+                href="#"
+                className="mt-3 md:mt-0 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-500 text-sm font-medium"
+              >
+                Go to Feedback
+              </a>
+            </div>
+          ))}
+        </div>
       </div>
 
-      {/* Self-Assessment Form */}
+      {/* Weekly Self-Assessment */}
       <div className="bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-lg shadow p-6 mb-8">
         <h2 className="text-lg font-semibold mb-4">🔁 Weekly Self-Assessment</h2>
         {traits.map((trait) => (
           <div key={trait} className="mb-4">
             <label className="block text-sm font-medium mb-1">{trait}</label>
-            <div className="flex space-x-2">
+            <div className="flex space-x-1">
               {[1, 2, 3, 4, 5].map((num) => (
-                <label key={num} className="flex items-center space-x-1 text-sm">
-                  <input
-                    type="radio"
-                    name={`self-${trait}`}
-                    value={num}
-                    onChange={() =>
-                      setSelfAssessment((prev) => ({ ...prev, [trait]: num }))
-                    }
-                  />
-                  <span>{num}</span>
-                </label>
+                <FaStar
+                  key={num}
+                  className={`cursor-pointer ${
+                    (selfAssessment[trait] || 0) >= num
+                      ? "text-yellow-400"
+                      : "text-gray-400"
+                  }`}
+                  onClick={() =>
+                    setSelfAssessment((prev) => ({ ...prev, [trait]: num }))
+                  }
+                />
               ))}
             </div>
           </div>
