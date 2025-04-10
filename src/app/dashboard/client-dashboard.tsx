@@ -56,9 +56,12 @@ export default function StudentDashboard({ user, student, week = 2 }: DashboardP
         </div>
         <div className="flex gap-4 items-center">
           {user?.isAdmin && (
-            <a href="/admin" className="text-sm text-blue-500 underline">
-              Instructor Panel
-            </a>
+          <a
+            href="/admin"
+            className="bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded text-sm font-medium transition"
+          >
+            Instructor Panel
+          </a>
           )}
           <UserButton afterSignOutUrl="/" />
         </div>
