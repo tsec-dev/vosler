@@ -1,5 +1,8 @@
+"use client";
+
 import { useState } from "react";
 import { UserButton } from "@clerk/nextjs";
+
 
 interface UserProps {
   firstName: string;
