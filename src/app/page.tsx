@@ -2,24 +2,18 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import ConstellationCanvas from "@/components/ConstellationCanvas"; // Make sure this exists and is client-side
+import ConstellationCanvas from "@/components/ConstellationCanvas";
 
 export default function Home() {
   return (
     <div className="min-h-screen flex items-center justify-center relative bg-black text-white overflow-hidden">
-      {/* 🌌 Background gradient and noise */}
+      {/* 🌌 Constellation Animation Only */}
       <div className="absolute inset-0 z-0">
-        <div className="absolute inset-0 bg-gradient-to-b from-[#0a1933] to-black"></div>
-        <div className="absolute inset-0 bg-[url('/noise.png')] opacity-10 mix-blend-overlay"></div>
-      </div>
-
-      {/* 🌠 Starfield Animation Layer */}
-      <div className="absolute inset-0 z-10">
         <ConstellationCanvas />
       </div>
 
       {/* 🧭 Main Content */}
-      <div className="w-full max-w-lg px-6 py-12 relative z-20">
+      <div className="w-full max-w-lg px-6 py-12 relative z-10">
         {/* Logo */}
         <div className="text-center mb-10">
           <div className="flex justify-center">
@@ -38,7 +32,9 @@ export default function Home() {
         <div className="bg-gray-900/70 backdrop-blur-sm rounded-xl shadow-2xl border border-gray-800 overflow-hidden">
           {/* Header */}
           <div className="px-8 pt-8 pb-4">
-            <center><h2 className="text-2xl font-bold text-gray-100">Welcome!</h2></center>
+            <center>
+              <h2 className="text-2xl font-bold text-gray-100">Welcome!</h2>
+            </center>
           </div>
 
           {/* Sign In Button */}
