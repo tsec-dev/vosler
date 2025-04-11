@@ -33,6 +33,9 @@ export default function AdminPanel() {
     setStudentEmail("");
   };
 
+  const inputStyles =
+    "w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md text-sm bg-white dark:bg-gray-800 text-black dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-400";
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100 dark:bg-gray-950 text-gray-900 dark:text-white px-6 py-12">
       <AnimatePresence>
@@ -50,32 +53,32 @@ export default function AdminPanel() {
             <div className="space-y-4">
               <input
                 placeholder="Class Name"
-                className="input text-black dark:text-white"
+                className={inputStyles}
                 value={className}
                 onChange={(e) => setClassName(e.target.value)}
               />
               <input
                 type="number"
                 placeholder="Number of Students"
-                className="input text-black dark:text-white"
+                className={inputStyles}
                 value={numStudents}
                 onChange={(e) => setNumStudents(Number(e.target.value))}
               />
               <input
                 type="date"
-                className="input text-black dark:text-white"
+                className={inputStyles}
                 value={startDate}
                 onChange={(e) => setStartDate(e.target.value)}
               />
               <input
                 type="date"
-                className="input text-black dark:text-white"
+                className={inputStyles}
                 value={endDate}
                 onChange={(e) => setEndDate(e.target.value)}
               />
               <input
                 placeholder="Instructor Name"
-                className="input text-black dark:text-white"
+                className={inputStyles}
                 value={instructor}
                 onChange={(e) => setInstructor(e.target.value)}
               />
@@ -123,7 +126,7 @@ export default function AdminPanel() {
                 type="email"
                 value={studentEmail}
                 onChange={(e) => setStudentEmail(e.target.value)}
-                className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md text-sm dark:bg-gray-800 dark:text-white"
+                className={inputStyles}
                 placeholder="Enter student email"
               />
               <button
