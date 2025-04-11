@@ -1,9 +1,8 @@
 "use client";
 
+import { useState } from "react";
 import BaseLayout from "@/components/BaseLayout";
 import { FaStar } from "react-icons/fa";
-import { useState } from "react";
-
 
 const sessions = [
   "Risk Analysis and Mitigation",
@@ -82,7 +81,9 @@ export default function CourseSurveyPage() {
         <textarea
           rows={3}
           value={formData.finalComments || ""}
-          onChange={(e) => setFormData((prev) => ({ ...prev, finalComments: e.target.value }))}
+          onChange={(e) =>
+            setFormData((prev) => ({ ...prev, finalComments: e.target.value }))
+          }
           className="w-full border border-gray-300 dark:border-gray-700 dark:bg-gray-800 dark:text-white rounded-md px-3 py-2 text-sm"
           placeholder="Any additional suggestions or takeaways?"
         />
