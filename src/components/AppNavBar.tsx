@@ -6,9 +6,10 @@ import { UserButton, useUser } from "@clerk/nextjs";
 
 interface AppNavBarProps {
   isAdmin?: boolean;
+  showBackToDashboard?: boolean;
 }
 
-export default function AppNavBar({ isAdmin }: AppNavBarProps) {
+export default function AppNavBar({ isAdmin, showBackToDashboard }: AppNavBarProps) {
   const pathname = usePathname();
   const { user } = useUser();
 
@@ -21,8 +22,15 @@ export default function AppNavBar({ isAdmin }: AppNavBarProps) {
 
   return (
     <nav className="flex items-center justify-between px-6 py-4 bg-white dark:bg-gray-900 border-b border-gray-300 dark:border-gray-700 shadow-sm">
-      {/* Left Nav Links */}
-      <div className="flex gap-4">
+      <div className="flex gap-4 items-center">
+        {showBackToDashboard && (
+          <Link
+            href="/dashboard"
+            className="px-4 py-2 rounded-md text-sm font-medium bg-gray-700 text-white hover:bg-gray-600 transition"
+          >
+            ← Return to Dashboard
+          </Link>
+        )}
         {navLinks.map(
           (link) =>
             (!link.adminOnly || isAdmin) && (
@@ -41,7 +49,6 @@ export default function AppNavBar({ isAdmin }: AppNavBarProps) {
         )}
       </div>
 
-      {/* Right Buttons */}
       <div className="flex items-center gap-4">
         {isAdmin && (
           <>
