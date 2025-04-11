@@ -6,6 +6,7 @@ import { UserButton } from "@clerk/nextjs";
 
 export default function AdminPanel() {
   const [classCreated, setClassCreated] = useState(false);
+  const [doneInviting, setDoneInviting] = useState(false);
   const [className, setClassName] = useState("");
   const [numStudents, setNumStudents] = useState<number | "">("");
   const [startDate, setStartDate] = useState("");
@@ -33,14 +34,14 @@ export default function AdminPanel() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-100 dark:bg-gray-950 text-gray-900 dark:text-white px-6 py-12">
+    <div className="min-h-screen flex items-center justify-center bg-gray-100 dark:bg-gray-950 text-gray-900 dark:text-white px-6 py-12">
       <AnimatePresence>
         {!classCreated && (
           <motion.div
             initial={{ opacity: 0, y: 50 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
-            className="max-w-md mx-auto bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-lg shadow-lg p-8"
+            className="w-full max-w-md bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-lg shadow-lg p-8"
           >
             <h2 className="text-xl font-semibold text-center mb-4">🎓 Create Your Class</h2>
             <p className="text-sm text-center text-gray-500 dark:text-gray-400 mb-6">
@@ -49,34 +50,32 @@ export default function AdminPanel() {
             <div className="space-y-4">
               <input
                 placeholder="Class Name"
-                className="input"
+                className="input text-black dark:text-white"
                 value={className}
                 onChange={(e) => setClassName(e.target.value)}
               />
               <input
                 type="number"
                 placeholder="Number of Students"
-                className="input"
+                className="input text-black dark:text-white"
                 value={numStudents}
                 onChange={(e) => setNumStudents(Number(e.target.value))}
               />
               <input
                 type="date"
-                placeholder="Start Date"
-                className="input"
+                className="input text-black dark:text-white"
                 value={startDate}
                 onChange={(e) => setStartDate(e.target.value)}
               />
               <input
                 type="date"
-                placeholder="End Date"
-                className="input"
+                className="input text-black dark:text-white"
                 value={endDate}
                 onChange={(e) => setEndDate(e.target.value)}
               />
               <input
                 placeholder="Instructor Name"
-                className="input"
+                className="input text-black dark:text-white"
                 value={instructor}
                 onChange={(e) => setInstructor(e.target.value)}
               />
@@ -91,13 +90,13 @@ export default function AdminPanel() {
         )}
       </AnimatePresence>
 
-      {classCreated && (
+      {classCreated && !doneInviting && (
         <motion.div
           initial={{ opacity: 0, y: 50 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
+          className="w-full max-w-3xl"
         >
-          {/* Top Bar */}
+          {/* Top Nav */}
           <div className="flex justify-between mb-6 items-start">
             <a
               href="/dashboard"
@@ -142,10 +141,25 @@ export default function AdminPanel() {
                 {invitedEmails.map((email, idx) => <li key={idx}>{email}</li>)}
               </ul>
             )}
+            <div className="text-right mt-4">
+              <button
+                onClick={() => setDoneInviting(true)}
+                className="bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-md text-sm font-medium"
+              >
+                ✅ Done Inviting
+              </button>
+            </div>
           </div>
+        </motion.div>
+      )}
 
-          {/* Placeholder for full dashboard */}
-          <div className="text-center text-sm text-gray-400">✨ Dashboard content coming next…</div>
+      {doneInviting && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="text-center text-gray-500 dark:text-gray-400 text-sm"
+        >
+          🎉 Class created and students invited. You're ready to manage the course.
         </motion.div>
       )}
     </div>
