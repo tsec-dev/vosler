@@ -17,6 +17,11 @@ interface StudentProps {
   last_name: string;
 }
 
+function capitalizeFirstName(name?: string) {
+  if (!name) return "";
+  return name.charAt(0).toUpperCase() + name.slice(1).toLowerCase();
+}
+
 interface DashboardProps {
   user: UserProps;
   student: StudentProps;
@@ -50,9 +55,9 @@ export default function StudentDashboard({ user, student, week = 2 }: DashboardP
       {/* Top Bar */}
       <div className="flex justify-between items-center mb-6">
         <div>
-          <h1 className="text-2xl font-bold mb-6">
-          👋 Welcome, {student.first_name || user.firstName}, to Week {week}: {weekTheme}
-          </h1>
+        <h1 className="text-2xl font-bold mb-6">
+          👋 Welcome, {capitalizeFirstName(student.first_name || user.firstName)}, to Week {week}: {weekTheme}
+        </h1>
         </div>
       </div>
 
