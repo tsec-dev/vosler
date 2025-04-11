@@ -1,6 +1,9 @@
+"use client";
+
 import BaseLayout from "@/components/BaseLayout";
 import { FaStar } from "react-icons/fa";
 import { useState } from "react";
+
 
 const traits = ["Communication", "Leadership", "EQ", "Adaptability", "Integrity", "Boldness"];
 
