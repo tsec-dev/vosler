@@ -64,8 +64,6 @@ export default function AdminPanel() {
             </motion.div>
           )}
         </AnimatePresence>
-
-        {/* You can leave the rest of your classCreated & invite code below unchanged */}
       </div>
     </BaseLayout>
   );
