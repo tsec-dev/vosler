@@ -1,3 +1,9 @@
+"use client";
+
+import { ReactNode } from "react";
+import AppNavBar from "@/components/AppNavBar";
+
+
 interface BaseLayoutProps {
   children: ReactNode;
   isAdmin?: boolean;
