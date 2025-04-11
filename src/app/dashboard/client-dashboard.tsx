@@ -1,9 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { UserButton } from "@clerk/nextjs";
 import { motion } from "framer-motion";
-import { FaStar } from "react-icons/fa";
 
 interface UserProps {
   firstName: string;
@@ -17,15 +15,15 @@ interface StudentProps {
   last_name: string;
 }
 
-function capitalizeFirstName(name?: string) {
-  if (!name) return "";
-  return name.charAt(0).toUpperCase() + name.slice(1).toLowerCase();
-}
-
 interface DashboardProps {
   user: UserProps;
   student: StudentProps;
   week?: number;
+}
+
+function capitalizeFirstName(name?: string) {
+  if (!name) return "";
+  return name.charAt(0).toUpperCase() + name.slice(1).toLowerCase();
 }
 
 const traits = ["Communication", "Leadership", "EQ", "Adaptability", "Integrity", "Boldness"];
@@ -40,26 +38,16 @@ const fakeBarData = [
   { trait: "Boldness", self: 2, peer: 3 },
 ];
 
-export default function StudentDashboard({ user, student, week = 2 }: DashboardProps) {
-  const [selfAssessment, setSelfAssessment] = useState<Record<string, number>>({});
-  const [journalEntry, setJournalEntry] = useState("");
-
-  const displayName = student?.first_name && student?.last_name
-    ? `${student.first_name} ${student.last_name}`
-    : user.firstName;
-
+export default function ClientDashboard({ user, student, week = 2 }: DashboardProps) {
+  const displayName = capitalizeFirstName(student.first_name || user.firstName);
   const weekTheme = weekThemes[week - 1] || "Growth";
 
   return (
     <div className="min-h-screen bg-gray-100 dark:bg-gray-950 text-gray-900 dark:text-white p-6">
-      {/* Top Bar */}
-      <div className="flex justify-between items-center mb-6">
-        <div>
-        <h1 className="text-2xl font-bold mb-6">
-          👋 Welcome, {capitalizeFirstName(student.first_name || user.firstName)}, to Week {week}: {weekTheme}
-        </h1>
-        </div>
-      </div>
+      {/* Welcome Title */}
+      <h1 className="text-2xl font-bold mb-6">
+        👋 Welcome, {displayName}, to Week {week}: {weekTheme}
+      </h1>
 
       {/* Quote */}
       <div className="text-center text-sm italic text-gray-600 dark:text-gray-400 mb-8">
@@ -76,10 +64,9 @@ export default function StudentDashboard({ user, student, week = 2 }: DashboardP
         </ul>
       </div>
 
-
       {/* Growth Snapshot */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-        {/* Self-Assessment Bar Chart */}
+        {/* Self-Assessment Chart */}
         <div className="p-6 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-lg shadow relative">
           <h2 className="text-lg font-semibold mb-4">📈 Self-Assessment</h2>
           <div className="space-y-4">
@@ -105,7 +92,7 @@ export default function StudentDashboard({ user, student, week = 2 }: DashboardP
           </div>
         </div>
 
-        {/* Peer Feedback Bar Chart */}
+        {/* Peer Feedback Chart */}
         <div className="p-6 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-lg shadow relative">
           <h2 className="text-lg font-semibold mb-4">👥 Peer Feedback</h2>
           <div className="space-y-4">
@@ -151,42 +138,6 @@ export default function StudentDashboard({ user, student, week = 2 }: DashboardP
             </div>
           ))}
         </div>
-      </div>
-
-      {/* Weekly Self-Assessment */}
-      <div className="bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-lg shadow p-6 mb-8">
-        <h2 className="text-lg font-semibold mb-4">🔁 Weekly Self-Assessment</h2>
-        {traits.map((trait) => (
-          <div key={trait} className="mb-4">
-            <label className="block text-sm font-medium mb-1">{trait}</label>
-            <div className="flex space-x-1">
-              {[1, 2, 3, 4, 5].map((num) => (
-                <FaStar
-                  key={num}
-                  className={`cursor-pointer ${
-                    (selfAssessment[trait] || 0) >= num
-                      ? "text-yellow-400"
-                      : "text-gray-400"
-                  }`}
-                  onClick={() =>
-                    setSelfAssessment((prev) => ({ ...prev, [trait]: num }))
-                  }
-                />
-              ))}
-            </div>
-          </div>
-        ))}
-        <label className="block text-sm font-medium mb-1 mt-4">🪞 Reflection Prompt</label>
-        <textarea
-          className="w-full border border-gray-300 dark:border-gray-700 dark:bg-gray-800 dark:text-white rounded-md px-3 py-2 text-sm mb-4"
-          rows={3}
-          placeholder="What’s one leadership moment you had this week?"
-          value={journalEntry}
-          onChange={(e) => setJournalEntry(e.target.value)}
-        ></textarea>
-        <button className="bg-green-600 hover:bg-green-500 text-white font-medium py-2 px-4 rounded-md text-sm transition">
-          Submit Self-Assessment
-        </button>
       </div>
     </div>
   );
