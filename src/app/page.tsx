@@ -2,24 +2,24 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import ConstellationCanvas from "@/components/ConstellationCanvas"; // make sure this file exists
+import ConstellationCanvas from "@/components/ConstellationCanvas"; // Make sure this exists and is client-side
 
 export default function Home() {
   return (
     <div className="min-h-screen flex items-center justify-center relative bg-black text-white overflow-hidden">
-      {/* Background gradient and noise */}
-      <div className="absolute inset-0">
+      {/* 🌌 Background gradient and noise */}
+      <div className="absolute inset-0 z-0">
         <div className="absolute inset-0 bg-gradient-to-b from-[#0a1933] to-black"></div>
         <div className="absolute inset-0 bg-[url('/noise.png')] opacity-10 mix-blend-overlay"></div>
       </div>
 
-      {/* 🌌 Starfield Animation */}
-      <div className="absolute inset-0 z-0">
+      {/* 🌠 Starfield Animation Layer */}
+      <div className="absolute inset-0 z-10">
         <ConstellationCanvas />
       </div>
 
-      {/* Content */}
-      <div className="w-full max-w-lg px-6 py-12 relative z-10">
+      {/* 🧭 Main Content */}
+      <div className="w-full max-w-lg px-6 py-12 relative z-20">
         {/* Logo */}
         <div className="text-center mb-10">
           <div className="flex justify-center">
