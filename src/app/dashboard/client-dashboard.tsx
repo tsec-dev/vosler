@@ -66,6 +66,17 @@ export default function StudentDashboard({ user, student, week = 2 }: DashboardP
         “Leadership is not about being in charge. It is about taking care of those in your charge.” – Simon Sinek
       </div>
 
+      {/* Course Announcements */}
+      <div className="bg-yellow-50 dark:bg-yellow-900 border border-yellow-300 dark:border-yellow-600 text-yellow-800 dark:text-yellow-100 rounded-lg shadow p-4 mb-8">
+        <h2 className="text-md font-semibold mb-2">📣 Course Announcements</h2>
+        <ul className="list-disc list-inside text-sm space-y-1">
+          <li>Reminder: Guest speaker Friday at 1500 in Bldg 321.</li>
+          <li>Group PT moved to Thursday morning, 0600.</li>
+          <li>Don’t forget to submit your Week 2 survey by Sunday!</li>
+        </ul>
+      </div>
+
+
       {/* Growth Snapshot */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
         {/* Self-Assessment Bar Chart */}
