@@ -2,53 +2,50 @@
 
 import { useCallback } from "react";
 import Particles from "react-tsparticles";
-import { loadFull } from "tsparticles";
-
+import { Engine } from "tsparticles-engine";
+import { loadSlim } from "tsparticles-slim";
 
 export default function ConstellationCanvas() {
-  const particlesInit = useCallback(async (engine: any) => {
-    await loadFull(engine);
+  const particlesInit = useCallback(async (engine: Engine) => {
+    await loadSlim(engine);
   }, []);
 
   return (
     <Particles
-      id="tsparticles"
       init={particlesInit}
-      className="absolute inset-0 z-0"
+      className="absolute inset-0"
       options={{
-        fullScreen: { enable: false },
-        background: { color: "transparent" },
+        fullScreen: false,
+        background: {
+          color: { value: "#000000" }
+        },
         particles: {
-          number: { value: 35 },
+          number: { value: 60 },
           color: { value: "#ffffff" },
-          shape: { type: "circle" },
-          opacity: { value: 0.6 },
-          size: { value: 2 },
-          move: {
-            enable: true,
-            speed: 0.4,
-            direction: "none",
-            random: true,
-            straight: false,
-            outModes: { default: "out" },
-          },
           links: {
             enable: true,
+            color: "#ffffff",
             distance: 120,
-            color: "#aaa",
             opacity: 0.4,
-            width: 1,
+            width: 1
           },
+          move: {
+            enable: true,
+            speed: 1.2,
+            outModes: { default: "bounce" }
+          },
+          size: { value: 2 },
+          opacity: { value: 0.5 }
         },
         interactivity: {
           events: {
             onHover: { enable: true, mode: "repulse" },
-            resize: true,
+            resize: true
           },
           modes: {
-            repulse: { distance: 70, duration: 0.4 },
-          },
-        },
+            repulse: { distance: 100, duration: 0.4 }
+          }
+        }
       }}
     />
   );
