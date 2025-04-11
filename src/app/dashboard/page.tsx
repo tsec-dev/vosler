@@ -1,8 +1,8 @@
-// src/app/dashboard/page.tsx
 import { currentUser } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import ClientDashboard from "./client-dashboard";
+import BaseLayout from "@/components/BaseLayout";
 
 // Type interfaces
 interface UserProps {
@@ -39,8 +39,12 @@ export default async function DashboardPage() {
     firstName: user.firstName || "",
     lastName: user.lastName || "",
     email: user.emailAddresses?.[0]?.emailAddress || "",
-    isAdmin: user.publicMetadata?.role === "admin", // assuming you're using Clerk roles
+    isAdmin: user.publicMetadata?.role === "admin",
   };
 
-  return <ClientDashboard user={plainUser} student={plainStudent} />;
+  return (
+    <BaseLayout isAdmin={plainUser.isAdmin}>
+      <ClientDashboard user={plainUser} student={plainStudent} />
+    </BaseLayout>
+  );
 }
