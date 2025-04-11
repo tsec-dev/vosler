@@ -1,37 +1,45 @@
-
-"use client";
-
-import Link from "next/link";
-import { UserButton } from "@clerk/nextjs";
-
 interface AppNavBarProps {
   isAdmin?: boolean;
+  showBackToDashboard?: boolean;
 }
 
-export default function AppNavBar({ isAdmin = false }: AppNavBarProps) {
+export default function AppNavBar({ isAdmin = false, showBackToDashboard = false }: AppNavBarProps) {
   return (
-    <nav className="flex justify-between items-center px-6 py-4 bg-gray-900 text-white">
+    <nav className="bg-gray-800 text-white px-4 py-3 flex justify-between items-center">
       <div className="flex gap-4 items-center">
-        <Link href="/dashboard" className="bg-gray-700 hover:bg-gray-600 px-4 py-2 rounded text-sm font-medium">
-          ← Return to Dashboard
-        </Link>
-        {!isAdmin && (
+        {showBackToDashboard && (
+          <a
+            href="/dashboard"
+            className="bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded text-sm font-medium"
+          >
+            ← Return to Dashboard
+          </a>
+        )}
+        {!isAdmin && !showBackToDashboard && (
           <>
-            <Link href="/self-assessment" className="bg-indigo-600 hover:bg-indigo-500 px-4 py-2 rounded text-sm font-medium">
+            <a
+              href="/self-assessment"
+              className="bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded text-sm font-medium"
+            >
               Self Survey
-            </Link>
-            <Link href="/course-survey" className="bg-indigo-600 hover:bg-indigo-500 px-4 py-2 rounded text-sm font-medium">
+            </a>
+            <a
+              href="/course-survey"
+              className="bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded text-sm font-medium"
+            >
               Course Survey
-            </Link>
+            </a>
           </>
         )}
-        {isAdmin && (
-          <Link href="/admin" className="bg-indigo-600 hover:bg-indigo-500 px-4 py-2 rounded text-sm font-medium">
+        {isAdmin && !showBackToDashboard && (
+          <a
+            href="/admin"
+            className="bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded text-sm font-medium"
+          >
             Instructor Panel
-          </Link>
+          </a>
         )}
       </div>
-      <UserButton afterSignOutUrl="/" />
     </nav>
   );
 }
