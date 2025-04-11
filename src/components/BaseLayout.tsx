@@ -1,8 +1,7 @@
 "use client";
 
 import { ReactNode } from "react";
-import AppNavBar from "@/components/AppNavBar";
-
+import AppNavBar from "./AppNavBar";
 
 interface BaseLayoutProps {
   children: ReactNode;

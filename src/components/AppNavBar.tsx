@@ -1,3 +1,5 @@
+"use client";
+
 import Link from "next/link";
 import { UserButton } from "@clerk/nextjs";
 
@@ -8,25 +10,39 @@ interface AppNavBarProps {
 
 export default function AppNavBar({ isAdmin = false, showBackToDashboard = false }: AppNavBarProps) {
   return (
-    <nav className="w-full flex justify-between items-center p-4 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700">
+    <nav className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 px-4 py-3 flex justify-between items-center">
       <div className="flex gap-4 items-center">
-        {showBackToDashboard && (
-          <Link
-            href="/dashboard"
-            className="bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded text-sm font-medium"
-          >
+        {showBackToDashboard ? (
+          <Link href="/dashboard" className="text-sm font-medium text-gray-700 dark:text-white hover:underline">
             ← Return to Dashboard
           </Link>
+        ) : (
+          <>
+            <Link href="/dashboard" className="text-sm font-medium text-gray-700 dark:text-white hover:underline">
+              📊 Self Survey
+            </Link>
+            <Link href="/course-survey" className="text-sm font-medium text-gray-700 dark:text-white hover:underline">
+              📋 Course Survey
+            </Link>
+            {isAdmin && (
+              <Link href="/admin" className="text-sm font-medium text-indigo-600 hover:underline">
+                Instructor Panel
+              </Link>
+            )}
+          </>
         )}
       </div>
-      <div className="flex items-center gap-4">
-        {isAdmin && (
-          <Link
-            href="/admin"
-            className="text-sm text-blue-600 hover:underline font-medium"
-          >
-            Instructor Panel
-          </Link>
+
+      <div className="flex gap-3 items-center">
+        {showBackToDashboard && (
+          <>
+            <button className="bg-blue-600 hover:bg-blue-500 text-white px-3 py-1 rounded text-xs font-medium">
+              Export to PDF
+            </button>
+            <button className="bg-red-600 hover:bg-red-500 text-white px-3 py-1 rounded text-xs font-medium">
+              Reset Class
+            </button>
+          </>
         )}
         <UserButton afterSignOutUrl="/" />
       </div>
