@@ -31,14 +31,13 @@ export default function AdminPanel() {
 
   const [studentEmail, setStudentEmail] = useState("");
   const [invitedEmails, setInvitedEmails] = useState<string[]>([]);
+  const [selectedWeek, setSelectedWeek] = useState("Week 1: Architect");
 
   const handleCreateClass = () => {
     if (!className || !numStudents || !startDate || !endDate || !instructor) {
       alert("Please fill out all fields.");
       return;
     }
-
-    // Placeholder logic
     setClassCreated(true);
     alert("Class created!");
   };
@@ -48,7 +47,6 @@ export default function AdminPanel() {
       alert("Enter a valid email.");
       return;
     }
-
     setInvitedEmails((prev) => [...prev, studentEmail]);
     setStudentEmail("");
     alert(`Invitation sent to ${studentEmail}`);
@@ -157,7 +155,8 @@ export default function AdminPanel() {
 
         {/* RIGHT SIDE */}
         <div className="space-y-6">
-          <div className="bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 p-4 rounded shadow">
+          {/* Peer Feedback Review */}
+          <div className={`${!classCreated ? "opacity-50 pointer-events-none" : ""} bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 p-4 rounded shadow`}>
             <h2 className="text-lg font-semibold mb-4">🧾 Peer Feedback to Review</h2>
             <div className="space-y-4">
               {peerFeedback.map((item, idx) => (
@@ -166,9 +165,7 @@ export default function AdminPanel() {
                     <span>{item.student}</span>
                     <span className="text-gray-500 dark:text-gray-400">{item.trait}</span>
                   </div>
-                  <p className="italic text-sm text-gray-700 dark:text-gray-300 my-2">
-                    {item.comment}
-                  </p>
+                  <p className="italic text-sm text-gray-700 dark:text-gray-300 my-2">{item.comment}</p>
                   <div className="flex gap-2">
                     <button className="px-4 py-2 bg-green-600 hover:bg-green-500 text-white text-sm rounded-md">Approve</button>
                     <button className="px-4 py-2 bg-gray-300 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-sm rounded-md">Skip</button>
@@ -176,6 +173,41 @@ export default function AdminPanel() {
                 </div>
               ))}
             </div>
+          </div>
+
+          {/* Survey Manager */}
+          <div className={`${!classCreated ? "opacity-50 pointer-events-none" : ""} bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 p-4 rounded shadow`}>
+            <h2 className="text-lg font-semibold mb-4">📋 Weekly Survey Manager</h2>
+            <label className="text-sm font-medium block mb-2">Select Week</label>
+            <select
+              className="w-full border border-gray-300 dark:border-gray-700 rounded-md px-3 py-2 mb-4 text-sm dark:bg-gray-800 dark:text-white"
+              value={selectedWeek}
+              onChange={(e) => setSelectedWeek(e.target.value)}
+            >
+              <option>Week 1: Architect</option>
+              <option>Week 2: Foundation</option>
+              <option>Week 3: Reflection</option>
+              <option>Week 4: Execution</option>
+            </select>
+            <button className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded text-sm font-medium mb-2">
+              Edit This Survey
+            </button>
+            <button className="bg-gray-300 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-sm rounded-md px-4 py-2 text-gray-800 dark:text-white">
+              + Create New Survey
+            </button>
+          </div>
+
+          {/* Announcements */}
+          <div className={`${!classCreated ? "opacity-50 pointer-events-none" : ""} bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 p-4 rounded shadow`}>
+            <h2 className="text-lg font-semibold mb-4">📣 Course Announcements</h2>
+            <textarea
+              rows={3}
+              className="w-full border border-gray-300 dark:border-gray-700 dark:bg-gray-800 dark:text-white rounded-md px-3 py-2 text-sm mb-3"
+              placeholder="Enter announcement..."
+            />
+            <button className="bg-yellow-600 hover:bg-yellow-500 text-white text-sm font-medium px-4 py-2 rounded-md">
+              Post Announcement
+            </button>
           </div>
         </div>
       </div>
