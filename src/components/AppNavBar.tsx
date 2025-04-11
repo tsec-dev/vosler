@@ -1,43 +1,35 @@
-"use client";
-
 import Link from "next/link";
-import { usePathname } from "next/navigation";
 import { UserButton } from "@clerk/nextjs";
 
-export default function AppNavBar({ isAdmin = false }: { isAdmin?: boolean }) {
-  const pathname = usePathname();
+interface AppNavBarProps {
+  isAdmin?: boolean;
+  showBackToDashboard?: boolean;
+}
 
-  const navItems = [
-    { name: "Dashboard", href: "/dashboard" },
-    { name: "Self-Assessment", href: "/self-assessment" },
-    { name: "Course Survey", href: "/course-survey" },
-  ];
-
-  if (isAdmin) {
-    navItems.push({ name: "Instructor Panel", href: "/admin" });
-  }
-
+export default function AppNavBar({ isAdmin = false, showBackToDashboard = false }: AppNavBarProps) {
   return (
-    <nav className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 shadow-sm px-6 py-4 flex items-center justify-between">
-      <div className="flex space-x-6">
-        {navItems.map((item) => {
-          const isActive = pathname === item.href;
-          return (
-            <Link
-              key={item.name}
-              href={item.href}
-              className={`text-sm font-medium ${
-                isActive
-                  ? "text-indigo-600 dark:text-indigo-400"
-                  : "text-gray-600 dark:text-gray-300 hover:text-indigo-500"
-              }`}
-            >
-              {item.name}
-            </Link>
-          );
-        })}
+    <nav className="w-full flex justify-between items-center p-4 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700">
+      <div className="flex gap-4 items-center">
+        {showBackToDashboard && (
+          <Link
+            href="/dashboard"
+            className="bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded text-sm font-medium"
+          >
+            ← Return to Dashboard
+          </Link>
+        )}
       </div>
-      <UserButton afterSignOutUrl="/" />
+      <div className="flex items-center gap-4">
+        {isAdmin && (
+          <Link
+            href="/admin"
+            className="text-sm text-blue-600 hover:underline font-medium"
+          >
+            Instructor Panel
+          </Link>
+        )}
+        <UserButton afterSignOutUrl="/" />
+      </div>
     </nav>
   );
 }
