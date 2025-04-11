@@ -50,8 +50,8 @@ export default function StudentDashboard({ user, student, week = 2 }: DashboardP
       {/* Top Bar */}
       <div className="flex justify-between items-center mb-6">
         <div>
-          <h1 className="text-2xl font-bold">
-            Welcome, {displayName}, to Week {week}: {weekTheme}
+          <h1 className="text-2xl font-bold mb-6">
+          👋 Welcome, {student.first_name || user.firstName}, to Week {week}: {weekTheme}
           </h1>
         </div>
       </div>
