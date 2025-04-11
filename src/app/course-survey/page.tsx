@@ -1,7 +1,9 @@
 "use client";
 
-import { useState } from "react";
 import BaseLayout from "@/components/BaseLayout";
+import { FaStar } from "react-icons/fa";
+import { useState } from "react";
+
 
 const sessions = [
   "Risk Analysis and Mitigation",
