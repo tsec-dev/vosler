@@ -10,8 +10,15 @@ interface Instructor {
   email: string;
 }
 
+interface ClassTemplate {
+  id: string;
+  name: string;
+}
+
 export default function ClassManagementPage() {
   const [instructors, setInstructors] = useState<Instructor[]>([]);
+  const [classTemplates, setClassTemplates] = useState<ClassTemplate[]>([]);
+
   const [className, setClassName] = useState("");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
@@ -21,13 +28,17 @@ export default function ClassManagementPage() {
   const [message, setMessage] = useState("");
 
   useEffect(() => {
-    const fetchInstructors = async () => {
-      const { data, error } = await supabase.from("instructors").select("*").order("full_name");
-      if (error) console.error("Failed to fetch instructors:", error);
-      else setInstructors(data || []);
+    const fetchData = async () => {
+      const [inst, templates] = await Promise.all([
+        supabase.from("instructors").select("*").order("full_name"),
+        supabase.from("class_templates").select("*").order("name"),
+      ]);
+
+      if (inst.data) setInstructors(inst.data);
+      if (templates.data) setClassTemplates(templates.data);
     };
 
-    fetchInstructors();
+    fetchData();
   }, []);
 
   const handleSubmit = async () => {
@@ -64,13 +75,20 @@ export default function ClassManagementPage() {
         <h1 className="text-3xl font-bold mb-6">📚 Create New Class</h1>
 
         <div className="space-y-4">
-          <input
-            type="text"
-            placeholder="Class Name"
+          <select
             value={className}
             onChange={(e) => setClassName(e.target.value)}
             className="w-full p-2 border border-gray-300 dark:border-gray-700 dark:bg-gray-800 dark:text-white rounded"
-          />
+          >
+            <option value="" disabled>
+              Select Class Name
+            </option>
+            {classTemplates.map((t) => (
+              <option key={t.id} value={t.name}>
+                {t.name}
+              </option>
+            ))}
+          </select>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <input
@@ -93,11 +111,11 @@ export default function ClassManagementPage() {
             className="w-full p-2 border border-gray-300 dark:border-gray-700 dark:bg-gray-800 dark:text-white rounded"
           >
             <option value="" disabled>
-              Select Instructor
+              Assign Instructor
             </option>
-            {instructors.map((instructor) => (
-              <option key={instructor.id} value={instructor.id}>
-                {instructor.full_name || instructor.email}
+            {instructors.map((inst) => (
+              <option key={inst.id} value={inst.id}>
+                {inst.full_name || inst.email}
               </option>
             ))}
           </select>
