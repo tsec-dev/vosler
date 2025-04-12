@@ -2,13 +2,13 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import GoatConstellation from "@/components/GoatConstellation";
+import ConstellationCanvas from "@/components/ConstellationCanvas";
 
 export default function Home() {
   return (
     <div className="min-h-screen flex items-center justify-center relative bg-black text-white overflow-hidden">
-      {/* 🌌 Floating Goat Constellation */}
-      <GoatConstellation />
+      {/* ✨ Custom Constellation Background */}
+      <ConstellationCanvas />
 
       {/* Content */}
       <div className="w-full max-w-lg px-6 py-12 relative z-10">
@@ -27,10 +27,12 @@ export default function Home() {
         </div>
 
         {/* Sign-in Card */}
-        <div className="bg-gray-900/70 backdrop-blur-sm rounded-xl shadow-2xl border border-gray-800 overflow-hidden">
+        <div className="bg-gray-900/80 backdrop-blur-sm rounded-xl shadow-2xl border border-gray-800 overflow-hidden">
           {/* Header */}
           <div className="px-8 pt-8 pb-4">
-            <center><h2 className="text-2xl font-bold text-gray-100">Welcome!</h2></center>
+            <center>
+              <h2 className="text-2xl font-bold text-gray-100">Welcome!</h2>
+            </center>
           </div>
 
           {/* Sign In Button */}
