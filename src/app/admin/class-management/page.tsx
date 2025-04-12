@@ -132,15 +132,12 @@ export default function ClassManagementPage() {
 
     const result = await response.json();
 
-    if (result.success) {
+    if (response.ok && result.success) {
       alert("✅ Invitation sent!");
-      setInviteEmail("");
-      const { data } = await supabase.from("class_students").select("*");
-      setInvites(data || []);
     } else {
-      alert("❌ Failed to invite student.");
+      console.error("❌ Invite failed:", result);
+      alert("❌ Failed to invite student: " + (result?.error || "Unknown error"));
     }
-  };
 
   const handleMassUpload = async (file: File, classId: string) => {
     const text = await file.text();
@@ -322,4 +319,5 @@ export default function ClassManagementPage() {
       </div>
     </BaseLayout>
   );
+}
 }
