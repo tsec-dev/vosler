@@ -45,7 +45,6 @@ export default function IntegratedBackground() {
     const handleMouseMove = (e: MouseEvent) => {
       const offsetX = (e.clientX - window.innerWidth / 2) * 0.05;
       const offsetY = (e.clientY - window.innerHeight / 2) * 0.05;
-      console.log("Mouse Offset:", offsetX, offsetY); // Debug logging
       setMouseOffset({ x: offsetX, y: offsetY });
     };
     window.addEventListener("mousemove", handleMouseMove);
@@ -88,7 +87,7 @@ export default function IntegratedBackground() {
   }, []);
 
   return (
-    <div className="absolute inset-0 overflow-hidden">
+    <div className="absolute inset-0 overflow-hidden pointer-events-none z-[-1]">
       {/* Particles background */}
       <Particles
         id="tsparticles"
@@ -128,7 +127,7 @@ export default function IntegratedBackground() {
         }}
       />
 
-      {/* Mouse-reactive wrapper */}
+      {/* Mouse-reactive wrapper for stars and goats */}
       <div
         style={{
           transform: `translate(${mouseOffset.x}px, ${mouseOffset.y}px)`,
