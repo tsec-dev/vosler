@@ -15,7 +15,6 @@ export default function AppNavBar({ isAdmin, showBackToDashboard }: AppNavBarPro
 
   const navLinks = [
     { name: "Dashboard", href: "/dashboard" },
-    { name: "Self Survey", href: "/self-assessment" },
     { name: "Course Survey", href: "/course-survey" },
     { name: "Instructor Panel", href: "/admin", adminOnly: true },
   ];
