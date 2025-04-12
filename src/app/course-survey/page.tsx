@@ -4,6 +4,25 @@ import { useEffect, useState } from "react";
 import BaseLayout from "@/components/BaseLayout";
 import { supabase } from "@/lib/supabaseClient";
 
+// Simple star rating component
+function StarRating({ value = 0, onChange }: { value: number; onChange: (v: number) => void }) {
+  return (
+    <div className="flex space-x-1">
+      {[1, 2, 3, 4, 5].map((star) => (
+        <span
+          key={star}
+          onClick={() => onChange(star)}
+          className={`cursor-pointer text-2xl ${
+            star <= value ? "text-yellow-400" : "text-gray-300"
+          }`}
+        >
+          ★
+        </span>
+      ))}
+    </div>
+  );
+}
+
 export default function CourseSurveyPage() {
   const [surveys, setSurveys] = useState<any[]>([]);
   const [selectedSurvey, setSelectedSurvey] = useState<any | null>(null);
@@ -42,20 +61,26 @@ export default function CourseSurveyPage() {
 
   const handleSubmit = async () => {
     if (!selectedSurvey) return;
+
+    const missingRequired = questions.some(
+      (q) => q.required && (responses[q.id] === undefined || responses[q.id] === "")
+    );
+    if (missingRequired) {
+      alert("❗ Please fill out all required questions before submitting.");
+      return;
+    }
+
     setSubmitting(true);
 
     const { data: responseData, error: responseError } = await supabase
       .from("survey_responses")
-      .insert({
-        survey_id: selectedSurvey.id,
-        user_id: null, // Optional: replace with Clerk ID if desired
-      })
+      .insert({ survey_id: selectedSurvey.id })
       .select()
       .single();
 
     if (responseError) {
-      console.error("Failed to submit response", responseError);
-      alert("Error submitting survey.");
+      console.error("Response insert failed", responseError);
+      alert("Submission failed. Please try again.");
       setSubmitting(false);
       return;
     }
@@ -63,14 +88,14 @@ export default function CourseSurveyPage() {
     const answers = questions.map((q) => ({
       response_id: responseData.id,
       question_id: q.id,
-      answer_text: responses[q.id] || "",
+      answer_text: String(responses[q.id] ?? ""),
     }));
 
     const { error: answersError } = await supabase.from("survey_answers").insert(answers);
 
     if (answersError) {
-      console.error("Failed to save answers", answersError);
-      alert("Some answers may not have saved.");
+      console.error("Answer insert failed", answersError);
+      alert("Some answers failed to save.");
     } else {
       alert("✅ Survey submitted successfully!");
       setSelectedSurvey(null);
@@ -101,7 +126,9 @@ export default function CourseSurveyPage() {
             }}
             defaultValue=""
           >
-            <option value="" disabled>Select one...</option>
+            <option value="" disabled>
+              Select one...
+            </option>
             {surveys.map((s) => (
               <option key={s.id} value={s.id}>
                 {s.name}
@@ -174,6 +201,13 @@ export default function CourseSurveyPage() {
                     value={responses[q.id] || "3"}
                     onChange={(e) => handleChange(q.id, e.target.value)}
                     className="w-full"
+                  />
+                )}
+
+                {q.question_type === "stars" && (
+                  <StarRating
+                    value={Number(responses[q.id] || 0)}
+                    onChange={(val) => handleChange(q.id, val)}
                   />
                 )}
               </div>
