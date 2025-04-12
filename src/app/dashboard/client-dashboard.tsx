@@ -46,7 +46,7 @@ export default function ClientDashboard({ user, student, week = 2 }: DashboardPr
   // (Your actual dashboard UI goes here)
   return (
     <div>
-      <h1 className="text-2xl font-bold">Welcome, {displayName}. Week {week}: {weekTheme}</h1>
+      <h1 className="text-2xl font-bold">Welcome, {displayName}, to Week {week}: {weekTheme}</h1>
       {/* Additional dashboard content */}
     </div>
   );
