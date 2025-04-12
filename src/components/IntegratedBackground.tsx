@@ -16,12 +16,12 @@ const GOATS = [
 ];
 
 export default function IntegratedBackground() {
-  // For the Particles initialization
+  // Particles initialization
   const particlesInit = useCallback(async (engine: Engine) => {
     await loadSlim(engine);
   }, []);
 
-  // State for animated stars (separate from particles)
+  // State for decorative stars
   const [stars, setStars] = useState<
     Array<{ x: number; y: number; size: number; opacity: number }>
   >([]);
@@ -29,7 +29,7 @@ export default function IntegratedBackground() {
   // State for mouse offset for parallax effect
   const [mouseOffset, setMouseOffset] = useState({ x: 0, y: 0 });
 
-  // Create random stars on first render
+  // Generate random stars on first render
   useEffect(() => {
     const randomStars = Array.from({ length: 50 }, () => ({
       x: Math.random() * 100,
@@ -40,20 +40,21 @@ export default function IntegratedBackground() {
     setStars(randomStars);
   }, []);
 
-  // Mousemove event listener for parallax effect
+  // Mousemove listener for parallax effect
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
-      // Calculate offset relative to the center of the window
       const offsetX = (e.clientX - window.innerWidth / 2) * 0.05;
       const offsetY = (e.clientY - window.innerHeight / 2) * 0.05;
+      console.log("Mouse Offset:", offsetX, offsetY); // Debug logging
       setMouseOffset({ x: offsetX, y: offsetY });
     };
-
     window.addEventListener("mousemove", handleMouseMove);
-    return () => window.removeEventListener("mousemove", handleMouseMove);
+    return () => {
+      window.removeEventListener("mousemove", handleMouseMove);
+    };
   }, []);
 
-  // Add the same animation styles (if not already added by the parent)
+  // Append animation styles if not already present
   useEffect(() => {
     const style = document.createElement("style");
     style.textContent = `
@@ -70,15 +71,14 @@ export default function IntegratedBackground() {
         50% { opacity: 0.5; }
       }
       .floating {
-        animation: float 20s ease-in-out infinite;
+        animation: float 15s ease-in-out infinite;
       }
       .floating-sideways {
-        animation: floatSideways 18s ease-in-out infinite;
+        animation: floatSideways 12s ease-in-out infinite;
       }
-      .floating-combo {
-        animation: 
-          float 20s ease-in-out infinite,
-          floatSideways 23s ease-in-out infinite;
+      .floating-2 {
+        animation: float 15s ease-in-out infinite, floatSideways 17s ease-in-out infinite;
+        animation-delay: 2s, 0s;
       }
     `;
     document.head.appendChild(style);
@@ -89,14 +89,12 @@ export default function IntegratedBackground() {
 
   return (
     <div className="absolute inset-0 overflow-hidden">
-      {/* Base particle system for constellation lines */}
+      {/* Particles background */}
       <Particles
         id="tsparticles"
         init={particlesInit}
         options={{
-          background: {
-            color: { value: "#000000" },
-          },
+          background: { color: { value: "#000000" } },
           fullScreen: { enable: true, zIndex: -1 },
           particles: {
             number: { value: 80, density: { enable: true, value_area: 800 } },
@@ -124,22 +122,20 @@ export default function IntegratedBackground() {
               onHover: { enable: true, mode: "grab" },
               resize: true,
             },
-            modes: {
-              grab: { distance: 180, links: { opacity: 0.7 } },
-            },
+            modes: { grab: { distance: 180, links: { opacity: 0.7 } } },
           },
           detectRetina: true,
         }}
       />
 
-      {/* Wrapper for stars and goats with mouse-reactive transform */}
+      {/* Mouse-reactive wrapper */}
       <div
         style={{
           transform: `translate(${mouseOffset.x}px, ${mouseOffset.y}px)`,
           transition: "transform 0.1s ease-out",
         }}
       >
-        {/* Additional decorative stars with pulsing animation */}
+        {/* Decorative stars */}
         {stars.map((star, idx) => (
           <div
             key={`star-${idx}`}
@@ -156,15 +152,14 @@ export default function IntegratedBackground() {
           />
         ))}
 
-        {/* Floating goat constellations */}
+        {/* Goat elements */}
         {GOATS.map((goat, idx) => {
-          // Choose a different animation type for each goat
           const animationClass =
             idx % 3 === 0
               ? "floating"
               : idx % 3 === 1
               ? "floating-sideways"
-              : "floating-combo";
+              : "floating-2";
 
           return (
             <div
