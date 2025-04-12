@@ -224,9 +224,7 @@ export default function ClassManagementPage() {
           >
             <option value="" disabled>Select Class Name</option>
             {classTemplates.map((t) => (
-              <option key={t.id} value={t.name}>
-                {t.name}
-              </option>
+              <option key={t.id} value={t.name}>{t.name}</option>
             ))}
           </select>
 
@@ -272,10 +270,7 @@ export default function ClassManagementPage() {
         {/* Class List */}
         <div className="space-y-6">
           {classes.map((cls) => (
-            <div
-              key={cls.id}
-              className="p-6 border rounded bg-white dark:bg-gray-900 shadow space-y-4"
-            >
+            <div key={cls.id} className="p-6 border rounded bg-white dark:bg-gray-900 shadow space-y-4">
               <div className="flex justify-between items-center">
                 <div>
                   <h2 className="text-lg font-bold">{cls.name}</h2>
@@ -287,6 +282,18 @@ export default function ClassManagementPage() {
                   </p>
                 </div>
                 <div className="flex gap-2">
+                  <label className="text-sm bg-yellow-500 hover:bg-yellow-400 text-white px-3 py-1 rounded cursor-pointer">
+                    📁 Mass Invite
+                    <input
+                      type="file"
+                      accept=".csv"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) handleMassUpload(file, cls.id);
+                      }}
+                      className="hidden"
+                    />
+                  </label>
                   <button
                     onClick={() => handleViewClass(cls)}
                     className="text-sm bg-blue-600 text-white px-3 py-1 rounded"
@@ -302,7 +309,7 @@ export default function ClassManagementPage() {
                 </div>
               </div>
 
-              {/* Invite UI */}
+              {/* Single Invite */}
               <div className="border-t pt-4">
                 <h3 className="font-semibold mb-2">📨 Invite Students</h3>
                 <div className="flex gap-2 mb-2">
@@ -323,16 +330,6 @@ export default function ClassManagementPage() {
                     Invite
                   </button>
                 </div>
-
-                <input
-                  type="file"
-                  accept=".csv"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    if (file) handleMassUpload(file, cls.id);
-                  }}
-                  className="text-sm"
-                />
               </div>
             </div>
           ))}
