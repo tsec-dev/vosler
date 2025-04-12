@@ -132,7 +132,10 @@ export default function ClassManagementPage() {
       });
 
       const result = await response.json();
-
+      if (response.status === 409) {
+        alert("⚠️ This student is already invited to this class.");
+        return;
+      }
       if (response.ok && result.success) {
         alert("✅ Invitation sent!");
         setInviteEmail("");
