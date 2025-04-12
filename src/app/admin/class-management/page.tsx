@@ -132,10 +132,7 @@ export default function ClassManagementPage() {
       });
 
       const result = await response.json();
-      if (response.status === 409) {
-        alert("⚠️ This student is already invited to this class.");
-        return;
-      }
+
       if (response.ok && result.success) {
         alert("✅ Invitation sent!");
         setInviteEmail("");
@@ -170,6 +167,40 @@ export default function ClassManagementPage() {
     }
 
     alert(`✅ Invited ${emails.length} students.`);
+    const { data } = await supabase.from("class_students").select("*");
+    setInvites(data || []);
+  };
+
+  const handleDeleteClass = async (classId: string) => {
+    const confirmDelete = confirm("Are you sure you want to delete this class?");
+    if (!confirmDelete) return;
+
+    const { error } = await supabase.from("classes").delete().eq("id", classId);
+    if (error) {
+      alert("❌ Failed to delete class.");
+      console.error(error);
+      return;
+    }
+
+    const { data } = await supabase
+      .from("classes")
+      .select("*, instructor:instructor_id (id, full_name, email)")
+      .order("created_at", { ascending: false });
+    setClasses(data || []);
+    setInvites((prev) => prev.filter((i) => i.class_id !== classId));
+  };
+
+  const handleDeleteStudent = async (inviteId: string) => {
+    const confirmRemove = confirm("Remove this student from the class?");
+    if (!confirmRemove) return;
+
+    const { error } = await supabase.from("class_students").delete().eq("id", inviteId);
+    if (error) {
+      alert("❌ Failed to remove student.");
+      console.error(error);
+      return;
+    }
+
     const { data } = await supabase.from("class_students").select("*");
     setInvites(data || []);
   };
@@ -255,12 +286,20 @@ export default function ClassManagementPage() {
                     {cls.start_date} → {cls.end_date}
                   </p>
                 </div>
-                <button
-                  onClick={() => handleViewClass(cls)}
-                  className="text-sm bg-blue-600 text-white px-3 py-1 rounded"
-                >
-                  👁️ View Class
-                </button>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => handleViewClass(cls)}
+                    className="text-sm bg-blue-600 text-white px-3 py-1 rounded"
+                  >
+                    👁️ View Class
+                  </button>
+                  <button
+                    onClick={() => handleDeleteClass(cls.id)}
+                    className="text-sm bg-red-600 text-white px-3 py-1 rounded"
+                  >
+                    🗑️ Delete
+                  </button>
+                </div>
               </div>
 
               {/* Invite UI */}
@@ -311,11 +350,19 @@ export default function ClassManagementPage() {
                 {invites
                   .filter((inv) => inv.class_id === viewingClass?.id)
                   .map((inv) => (
-                    <li key={inv.id} className="flex justify-between">
-                      <span>{inv.email}</span>
-                      <span className={`text-xs font-medium ${userEmails.includes(inv.email.toLowerCase()) ? "text-green-600" : "text-yellow-500"}`}>
-                        {userEmails.includes(inv.email.toLowerCase()) ? "Signed Up" : "Pending"}
-                      </span>
+                    <li key={inv.id} className="flex justify-between items-center">
+                      <div>
+                        <span>{inv.email}</span>
+                        <span className={`ml-3 text-xs font-medium ${userEmails.includes(inv.email.toLowerCase()) ? "text-green-600" : "text-yellow-500"}`}>
+                          {userEmails.includes(inv.email.toLowerCase()) ? "Signed Up" : "Pending"}
+                        </span>
+                      </div>
+                      <button
+                        onClick={() => handleDeleteStudent(inv.id)}
+                        className="text-red-600 hover:text-red-400 text-xs"
+                      >
+                        ❌ Remove
+                      </button>
                     </li>
                   ))}
               </ul>
