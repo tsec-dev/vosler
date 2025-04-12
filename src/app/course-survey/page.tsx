@@ -1,102 +1,160 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import BaseLayout from "@/components/BaseLayout";
-import { FaStar } from "react-icons/fa";
-
-const sessions = [
-  "Risk Analysis and Mitigation",
-  "Introduction to Joint Planning",
-  "Operational Design",
-  "Guest Speaker: CMSgt (Ret) Vosler",
-  "Leadership in Complex Environments",
-];
+import { supabase } from "@/lib/supabaseClient";
 
 export default function CourseSurveyPage() {
-  const [formData, setFormData] = useState<Record<string, any>>({});
+  const [surveys, setSurveys] = useState<any[]>([]);
+  const [selectedSurvey, setSelectedSurvey] = useState<any | null>(null);
+  const [questions, setQuestions] = useState<any[]>([]);
+  const [responses, setResponses] = useState<Record<string, any>>({});
 
-  const updateField = (session: string, field: string, value: any) => {
-    setFormData((prev) => ({
-      ...prev,
-      [session]: {
-        ...prev[session],
-        [field]: value,
-      },
-    }));
+  useEffect(() => {
+    const fetchSurveys = async () => {
+      const { data, error } = await supabase.from("surveys").select("*").order("created_at", { ascending: false });
+      if (error) console.error("Failed to load surveys", error);
+      else setSurveys(data);
+    };
+    fetchSurveys();
+  }, []);
+
+  useEffect(() => {
+    if (!selectedSurvey) return;
+
+    const fetchQuestions = async () => {
+      const { data, error } = await supabase
+        .from("survey_questions")
+        .select("*")
+        .eq("survey_id", selectedSurvey.id)
+        .order("position", { ascending: true });
+
+      if (error) console.error("Failed to load questions", error);
+      else setQuestions(data);
+    };
+    fetchQuestions();
+  }, [selectedSurvey]);
+
+  const handleChange = (id: string, value: any) => {
+    setResponses((prev) => ({ ...prev, [id]: value }));
+  };
+
+  const handleSubmit = async () => {
+    alert("Survey submitted! (submission integration coming next)");
+    console.log("Responses:", responses);
   };
 
   return (
     <BaseLayout>
-      <h1 className="text-2xl font-bold mb-6">📋 Course Survey</h1>
-      <p className="text-sm text-gray-600 dark:text-gray-400 mb-8">
-        Please provide feedback on the lessons and guest sessions. Your input helps us improve future courses.
-      </p>
+      <div className="max-w-4xl mx-auto p-6">
+        <h1 className="text-2xl font-bold mb-6">📋 Course Survey</h1>
+        <p className="text-sm text-gray-600 dark:text-gray-400 mb-8">
+          Please select a survey and share your feedback. Your input helps us improve future sessions.
+        </p>
 
-      <div className="space-y-8">
-        {sessions.map((session) => (
-          <div
-            key={session}
-            className="p-6 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-lg shadow space-y-4"
+        {/* Survey Selector */}
+        <div className="mb-8">
+          <label className="block text-sm font-medium mb-2">Select a Survey</label>
+          <select
+            className="w-full border border-gray-300 dark:border-gray-700 rounded-md px-3 py-2 text-sm dark:bg-gray-800 dark:text-white"
+            onChange={(e) => {
+              const survey = surveys.find((s) => s.id === e.target.value);
+              setSelectedSurvey(survey || null);
+              setResponses({});
+            }}
+            defaultValue=""
           >
-            <h2 className="text-md font-semibold">{session}</h2>
+            <option value="" disabled>Select one...</option>
+            {surveys.map((s) => (
+              <option key={s.id} value={s.id}>
+                {s.name}
+              </option>
+            ))}
+          </select>
+        </div>
 
-            <div className="flex items-center space-x-4">
-              <input
-                type="checkbox"
-                checked={formData[session]?.present || false}
-                onChange={(e) => updateField(session, "present", e.target.checked)}
-              />
-              <label className="text-sm">Were you present?</label>
-            </div>
+        {/* Questions */}
+        {selectedSurvey && questions.length > 0 && (
+          <div className="space-y-6">
+            {questions.map((q) => (
+              <div
+                key={q.id}
+                className="p-6 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-lg shadow space-y-4"
+              >
+                <label className="block text-sm font-semibold">
+                  {q.question_text} {q.required ? "*" : ""}
+                </label>
 
-            <div>
-              <label className="block text-sm font-medium mb-1">Rate this session (1–10)</label>
-              <input
-                type="number"
-                min="1"
-                max="10"
-                value={formData[session]?.rating || ""}
-                onChange={(e) => updateField(session, "rating", Number(e.target.value))}
-                className="w-24 border border-gray-300 dark:border-gray-700 dark:bg-gray-800 dark:text-white rounded px-3 py-1 text-sm"
-              />
-            </div>
+                {q.question_type === "text" && (
+                  <textarea
+                    rows={3}
+                    value={responses[q.id] || ""}
+                    onChange={(e) => handleChange(q.id, e.target.value)}
+                    className="w-full border border-gray-300 dark:border-gray-700 dark:bg-gray-800 dark:text-white rounded-md px-3 py-2 text-sm"
+                    placeholder="Your answer..."
+                  />
+                )}
 
-            <div>
-              <label className="block text-sm font-medium mb-1">Comments (optional)</label>
-              <textarea
-                rows={2}
-                value={formData[session]?.comments || ""}
-                onChange={(e) => updateField(session, "comments", e.target.value)}
-                className="w-full border border-gray-300 dark:border-gray-700 dark:bg-gray-800 dark:text-white rounded-md px-3 py-2 text-sm"
-                placeholder="Your feedback here..."
-              />
-            </div>
+                {q.question_type === "number" && (
+                  <input
+                    type="number"
+                    value={responses[q.id] || ""}
+                    onChange={(e) => handleChange(q.id, e.target.value)}
+                    className="w-24 border border-gray-300 dark:border-gray-700 dark:bg-gray-800 dark:text-white rounded px-3 py-1 text-sm"
+                  />
+                )}
+
+                {q.question_type === "boolean" && (
+                  <div className="flex items-center gap-6">
+                    <label className="flex items-center gap-2">
+                      <input
+                        type="radio"
+                        name={q.id}
+                        value="true"
+                        checked={responses[q.id] === "true"}
+                        onChange={(e) => handleChange(q.id, e.target.value)}
+                      />
+                      Yes
+                    </label>
+                    <label className="flex items-center gap-2">
+                      <input
+                        type="radio"
+                        name={q.id}
+                        value="false"
+                        checked={responses[q.id] === "false"}
+                        onChange={(e) => handleChange(q.id, e.target.value)}
+                      />
+                      No
+                    </label>
+                  </div>
+                )}
+
+                {q.question_type === "scale" && (
+                  <input
+                    type="range"
+                    min="1"
+                    max="5"
+                    value={responses[q.id] || "3"}
+                    onChange={(e) => handleChange(q.id, e.target.value)}
+                    className="w-full"
+                  />
+                )}
+              </div>
+            ))}
           </div>
-        ))}
-      </div>
+        )}
 
-      {/* Final Comments */}
-      <div className="mt-10 p-6 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-lg shadow space-y-4">
-        <h2 className="text-md font-semibold">📝 Final Comments</h2>
-        <textarea
-          rows={3}
-          value={formData.finalComments || ""}
-          onChange={(e) =>
-            setFormData((prev) => ({ ...prev, finalComments: e.target.value }))
-          }
-          className="w-full border border-gray-300 dark:border-gray-700 dark:bg-gray-800 dark:text-white rounded-md px-3 py-2 text-sm"
-          placeholder="Any additional suggestions or takeaways?"
-        />
-      </div>
-
-      {/* Submit */}
-      <div className="mt-6">
-        <button
-          onClick={() => alert("Survey submitted! (placeholder)")}
-          className="bg-green-600 hover:bg-green-500 text-white font-medium py-2 px-6 rounded-md text-sm transition"
-        >
-          Submit Course Survey
-        </button>
+        {/* Submit */}
+        {selectedSurvey && questions.length > 0 && (
+          <div className="mt-10">
+            <button
+              onClick={handleSubmit}
+              className="bg-green-600 hover:bg-green-500 text-white font-medium py-2 px-6 rounded-md text-sm transition"
+            >
+              Submit Survey
+            </button>
+          </div>
+        )}
       </div>
     </BaseLayout>
   );
