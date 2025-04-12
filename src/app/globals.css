@@ -54,3 +54,67 @@ body {
 .animate-fade-slow {
   animation: fadeInOut 18s ease-in-out infinite;
 }
+/* CSS Animation for Floating Effect */
+
+@keyframes float {
+  0%, 100% { 
+    transform: translateY(0px); 
+  }
+  50% { 
+    transform: translateY(-20px); 
+  }
+}
+
+@keyframes floatSideways {
+  0%, 100% { 
+    transform: translateX(0px); 
+  }
+  50% { 
+    transform: translateX(15px); 
+  }
+}
+
+@keyframes pulse {
+  0%, 100% { 
+    opacity: 0.3; 
+  }
+  50% { 
+    opacity: 0.5; 
+  }
+}
+
+.floating {
+  animation: float 15s ease-in-out infinite;
+}
+
+.floating-slow {
+  animation: float 20s ease-in-out infinite;
+}
+
+.floating-sideways {
+  animation: floatSideways 12s ease-in-out infinite;
+}
+
+.pulsing {
+  animation: pulse 8s ease-in-out infinite;
+}
+
+/* Combined animations */
+.floating-1 {
+  animation: float 20s ease-in-out infinite, pulse 8s ease-in-out infinite;
+}
+
+.floating-2 {
+  animation: float 15s ease-in-out infinite, floatSideways 17s ease-in-out infinite;
+  animation-delay: 2s, 0s;
+}
+
+.floating-3 {
+  animation: float 18s ease-in-out infinite, pulse 10s ease-in-out infinite;
+  animation-delay: 4s, 2s;
+}
+
+.floating-4 {
+  animation: floatSideways 16s ease-in-out infinite, pulse 12s ease-in-out infinite;
+  animation-delay: 1s, 3s;
+}

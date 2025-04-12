@@ -35,6 +35,40 @@ export default function IntegratedBackground() {
     setStars(randomStars);
   }, []);
 
+  // Add animation styles
+  useEffect(() => {
+    const style = document.createElement('style');
+    style.textContent = `
+      @keyframes float {
+        0%, 100% { transform: translateY(0); }
+        50% { transform: translateY(-20px); }
+      }
+      @keyframes floatSideways {
+        0%, 100% { transform: translateX(0); }
+        50% { transform: translateX(15px); }
+      }
+      @keyframes pulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.5; }
+      }
+      .floating {
+        animation: float 20s ease-in-out infinite;
+      }
+      .floating-sideways {
+        animation: floatSideways 18s ease-in-out infinite;
+      }
+      .floating-combo {
+        animation: 
+          float 20s ease-in-out infinite,
+          floatSideways 23s ease-in-out infinite;
+      }
+    `;
+    document.head.appendChild(style);
+    return () => {
+      document.head.removeChild(style);
+    };
+  }, []);
+
   return (
     <div className="absolute inset-0 overflow-hidden">
       {/* Base particle system for constellation lines */}
@@ -127,28 +161,33 @@ export default function IntegratedBackground() {
       ))}
 
       {/* Floating goat constellations */}
-      {GOATS.map((goat, idx) => (
-        <div
-          key={`goat-${idx}`}
-          className="absolute animate-float-slow pointer-events-none z-20"
-          style={{
-            top: goat.top,
-            left: goat.left,
-            opacity: goat.opacity,
-            animationDelay: `${goat.delay}s`,
-            animationDuration: "20s"
-          }}
-        >
-          <Image
-            src="/image.png"
-            alt={`Goat Constellation ${idx}`}
-            width={goat.size}
-            height={goat.size}
-            className="object-contain"
-            unoptimized={true}
-          />
-        </div>
-      ))}
+      {GOATS.map((goat, idx) => {
+        // Choose a different animation type for each goat
+        const animationClass = idx % 3 === 0 ? "floating" : 
+                               idx % 3 === 1 ? "floating-sideways" : "floating-combo";
+        
+        return (
+          <div
+            key={`goat-${idx}`}
+            className={`absolute ${animationClass} pointer-events-none z-20`}
+            style={{
+              top: goat.top,
+              left: goat.left,
+              opacity: goat.opacity,
+              animationDelay: `${goat.delay}s`,
+            }}
+          >
+            <Image
+              src="/image.png"
+              alt={`Goat Constellation ${idx}`}
+              width={goat.size}
+              height={goat.size}
+              className="object-contain"
+              unoptimized={true}
+            />
+          </div>
+        );
+      })}
     </div>
   );
 }
