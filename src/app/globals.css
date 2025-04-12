@@ -41,3 +41,16 @@ body {
 ::-webkit-scrollbar-thumb:hover {
   @apply bg-gray-600;
 }
+
+@keyframes fadeInOut {
+  0%, 100% { opacity: 0.05; }
+  50% { opacity: 0.15; }
+}
+
+.animate-fade {
+  animation: fadeInOut 12s ease-in-out infinite;
+}
+
+.animate-fade-slow {
+  animation: fadeInOut 18s ease-in-out infinite;
+}
