@@ -124,20 +124,29 @@ export default function ClassManagementPage() {
   const handleInvite = async (classId: string) => {
     if (!inviteEmail.trim()) return;
 
-    const response = await fetch("/api/invite-student", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email: inviteEmail, class_id: classId }),
-    });
+    try {
+      const response = await fetch("/api/invite-student", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: inviteEmail, class_id: classId }),
+      });
 
-    const result = await response.json();
+      const result = await response.json();
 
-    if (response.ok && result.success) {
-      alert("✅ Invitation sent!");
-    } else {
-      console.error("❌ Invite failed:", result);
-      alert("❌ Failed to invite student: " + (result?.error || "Unknown error"));
+      if (response.ok && result.success) {
+        alert("✅ Invitation sent!");
+        setInviteEmail("");
+        const { data } = await supabase.from("class_students").select("*");
+        setInvites(data || []);
+      } else {
+        console.error("❌ Invite failed:", result);
+        alert("❌ Failed to invite student: " + (result?.error || "Unknown error"));
+      }
+    } catch (err) {
+      console.error("🚨 Invite request error:", err);
+      alert("❌ An unexpected error occurred while inviting.");
     }
+  };
 
   const handleMassUpload = async (file: File, classId: string) => {
     const text = await file.text();
@@ -319,5 +328,4 @@ export default function ClassManagementPage() {
       </div>
     </BaseLayout>
   );
-}
 }
