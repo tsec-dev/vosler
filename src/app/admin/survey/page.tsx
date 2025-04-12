@@ -72,6 +72,7 @@ export default function SurveyBuilderPage() {
         question_text: "",
         question_type: "text",
         required: false,
+        options: "",
         isNew: true,
       },
     ]);
@@ -85,6 +86,7 @@ export default function SurveyBuilderPage() {
       question_text: q.question_text,
       question_type: q.question_type,
       required: q.required,
+      options: q.options || null,
       position: i,
       ...(q.isNew ? {} : { id: q.id }),
     }));
@@ -103,7 +105,6 @@ export default function SurveyBuilderPage() {
       <div className="max-w-5xl mx-auto p-8">
         <h1 className="text-3xl font-bold mb-8">🧱 Build a Survey</h1>
 
-        {/* Create Survey */}
         <div className="mb-8">
           <h2 className="text-lg font-semibold mb-2">Create New Survey</h2>
           <div className="flex gap-4">
@@ -123,7 +124,6 @@ export default function SurveyBuilderPage() {
           </div>
         </div>
 
-        {/* Survey Selector */}
         <div className="mb-10">
           <h2 className="text-lg font-semibold mb-2">Select a Survey</h2>
           <div className="flex flex-wrap gap-3">
@@ -147,7 +147,6 @@ export default function SurveyBuilderPage() {
           </div>
         </div>
 
-        {/* Question Builder */}
         {selectedSurvey && (
           <div className="space-y-6">
             <h2 className="text-lg font-semibold">Edit Questions for: {selectedSurvey.name}</h2>
@@ -179,7 +178,24 @@ export default function SurveyBuilderPage() {
                   <option value="boolean">Yes / No</option>
                   <option value="scale">1–5 Scale</option>
                   <option value="stars">Star Rating (1–5)</option>
+                  <option value="multiple">Multiple Choice (Radio)</option>
                 </select>
+
+                {q.question_type === "multiple" && (
+                  <input
+                    type="text"
+                    value={q.options || ""}
+                    onChange={(e) =>
+                      setQuestions((prev) =>
+                        prev.map((item, index) =>
+                          index === i ? { ...item, options: e.target.value } : item
+                        )
+                      )
+                    }
+                    placeholder="Comma-separated options (e.g. Red, Blue, Green)"
+                    className="w-full p-2 border border-gray-300 dark:border-gray-700 dark:bg-gray-800 dark:text-white rounded"
+                  />
+                )}
 
                 <label className="flex items-center gap-2 text-sm">
                   <input

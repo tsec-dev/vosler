@@ -192,6 +192,23 @@ export default function CourseSurveyPage() {
                     </label>
                   </div>
                 )}
+                
+                {q.question_type === "multiple" && q.options && (
+                <div className="flex flex-col gap-2">
+                  {q.options.split(",").map((opt: string) => (
+                    <label key={opt.trim()} className="flex items-center gap-2">
+                      <input
+                        type="radio"
+                        name={q.id}
+                        value={opt.trim()}
+                        checked={responses[q.id] === opt.trim()}
+                        onChange={(e) => handleChange(q.id, e.target.value)}
+                      />
+                      {opt.trim()}
+                    </label>
+                  ))}
+                </div>
+              )}
 
                 {q.question_type === "scale" && (
                   <input
