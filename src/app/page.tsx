@@ -1,4 +1,3 @@
-// src/app/page.tsx
 "use client";
 
 import Link from "next/link";
@@ -7,23 +6,29 @@ import ConstellationCanvas from "@/components/ConstellationCanvas";
 
 export default function Home() {
   return (
-    <div className="relative min-h-screen flex items-center justify-center bg-black text-white overflow-hidden">
-      {/* Star Canvas */}
-      <div className="absolute inset-0 z-0 pointer-events-none">
+    <div className="min-h-screen flex items-center justify-center relative bg-black text-white overflow-hidden">
+      {/* Constellation Background */}
+      <div className="absolute inset-0 z-0">
         <ConstellationCanvas />
       </div>
 
-      {/* 🐐 Faded Constellation Goat */}
-      <div className="absolute inset-0 z-0 flex items-center justify-center opacity-10">
+      {/* Floating Goat Constellations */}
+      {Array.from({ length: 4 }).map((_, i) => (
         <Image
-          src="/image.png" // Make sure this file is inside /public
+          key={i}
+          src="/image.png" // make sure your image is named 'image.png' in public folder
           alt="Goat Constellation"
-          width={800}
-          height={800}
-          className="object-contain"
-          priority
+          width={300}
+          height={300}
+          className={`absolute opacity-10 animate-float-slow pointer-events-none`}
+          style={{
+            top: `${Math.random() * 90}%`,
+            left: `${Math.random() * 90}%`,
+            transform: `translate(-50%, -50%) scale(${0.6 + Math.random() * 0.4})`,
+            animationDelay: `${i * 4}s`,
+          }}
         />
-      </div>
+      ))}
 
       {/* Content */}
       <div className="w-full max-w-lg px-6 py-12 relative z-10">
@@ -42,19 +47,17 @@ export default function Home() {
         </div>
 
         {/* Sign-in Card */}
-        <div className="bg-gray-900/70 backdrop-blur-sm rounded-xl shadow-2xl border border-gray-800 overflow-hidden">
+        <div className="bg-gray-900/80 backdrop-blur-md rounded-xl shadow-2xl border border-gray-800 overflow-hidden">
           <div className="px-8 pt-8 pb-4 text-center">
             <h2 className="text-2xl font-bold text-gray-100">Welcome!</h2>
           </div>
-
           <div className="px-8 pb-8">
             <Link
               href="/sign-in"
-              className="block w-full py-3 px-4 bg-[#0033a0] hover:bg-[#002787] rounded-lg text-center font-medium transition-colors duration-200 shadow-lg shadow-blue-900/30"
+              className="block w-full py-3 px-4 bg-blue-700 hover:bg-blue-600 rounded-lg text-center font-medium transition-colors duration-200 shadow-lg shadow-blue-900/30"
             >
               Access the mission control center.
             </Link>
-
             <div className="mt-6 pt-6 border-t border-gray-800 text-center text-sm text-gray-500">
               New here? Contact your leads for access.
             </div>

@@ -8,11 +8,11 @@ module.exports = {
   theme: {
     extend: {
       animation: {
-        'float-slow': 'float 20s ease-in-out infinite',
+        'float-slow': 'float 30s ease-in-out infinite',
       },
       keyframes: {
         float: {
-          '0%, 100%': { transform: 'translateY(0) translateX(0)' },
+          '0%, 100%': { transform: 'translateY(0px) translateX(0px)' },
           '50%': { transform: 'translateY(-20px) translateX(10px)' },
         },
       },
