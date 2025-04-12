@@ -16,28 +16,46 @@ const GOATS = [
 ];
 
 export default function IntegratedBackground() {
-  // Particles initialization function
+  // For the Particles initialization
   const particlesInit = useCallback(async (engine: Engine) => {
     await loadSlim(engine);
   }, []);
 
   // State for animated stars (separate from particles)
-  const [stars, setStars] = useState<Array<{x: number, y: number, size: number, opacity: number}>>([]);
-  
+  const [stars, setStars] = useState<
+    Array<{ x: number; y: number; size: number; opacity: number }>
+  >([]);
+
+  // State for mouse offset for parallax effect
+  const [mouseOffset, setMouseOffset] = useState({ x: 0, y: 0 });
+
   // Create random stars on first render
   useEffect(() => {
     const randomStars = Array.from({ length: 50 }, () => ({
       x: Math.random() * 100,
       y: Math.random() * 100,
       size: 1 + Math.random() * 3,
-      opacity: 0.4 + Math.random() * 0.6
+      opacity: 0.4 + Math.random() * 0.6,
     }));
     setStars(randomStars);
   }, []);
 
-  // Add animation styles
+  // Mousemove event listener for parallax effect
   useEffect(() => {
-    const style = document.createElement('style');
+    const handleMouseMove = (e: MouseEvent) => {
+      // Calculate offset relative to the center of the window
+      const offsetX = (e.clientX - window.innerWidth / 2) * 0.05;
+      const offsetY = (e.clientY - window.innerHeight / 2) * 0.05;
+      setMouseOffset({ x: offsetX, y: offsetY });
+    };
+
+    window.addEventListener("mousemove", handleMouseMove);
+    return () => window.removeEventListener("mousemove", handleMouseMove);
+  }, []);
+
+  // Add the same animation styles (if not already added by the parent)
+  useEffect(() => {
+    const style = document.createElement("style");
     style.textContent = `
       @keyframes float {
         0%, 100% { transform: translateY(0); }
@@ -77,117 +95,100 @@ export default function IntegratedBackground() {
         init={particlesInit}
         options={{
           background: {
-            color: {
-              value: "#000000"
-            }
+            color: { value: "#000000" },
           },
-          fullScreen: {
-            enable: true,
-            zIndex: -1
-          },
+          fullScreen: { enable: true, zIndex: -1 },
           particles: {
-            number: {
-              value: 80, // Increased for more visible constellations
-              density: {
-                enable: true,
-                value_area: 800
-              }
-            },
-            color: {
-              value: "#ffffff"
-            },
-            shape: {
-              type: "circle"
-            },
-            opacity: {
-              value: 0.6, // Increased opacity
-              random: true
-            },
-            size: {
-              value: 2.5, // Slightly larger particles
-              random: true
-            },
+            number: { value: 80, density: { enable: true, value_area: 800 } },
+            color: { value: "#ffffff" },
+            shape: { type: "circle" },
+            opacity: { value: 0.6, random: true },
+            size: { value: 2.5, random: true },
             move: {
               enable: true,
-              speed: 0.3, // Slow movement for better visibility
+              speed: 0.3,
               direction: "none",
               random: true,
-              outModes: "out"
+              outModes: "out",
             },
             links: {
               enable: true,
-              distance: 180, // Increased connection distance
+              distance: 180,
               color: "#ffffff",
-              opacity: 0.4, // Increased link opacity
-              width: 1.2 // Slightly thicker links
-            }
+              opacity: 0.4,
+              width: 1.2,
+            },
           },
           interactivity: {
             events: {
-              onHover: {
-                enable: true,
-                mode: "grab"
-              },
-              resize: true
+              onHover: { enable: true, mode: "grab" },
+              resize: true,
             },
             modes: {
-              grab: {
-                distance: 180,
-                links: {
-                  opacity: 0.7 // More visible hover effect
-                }
-              }
-            }
+              grab: { distance: 180, links: { opacity: 0.7 } },
+            },
           },
-          detectRetina: true
+          detectRetina: true,
         }}
       />
 
-      {/* Additional decorative stars with pulsing animation */}
-      {stars.map((star, idx) => (
-        <div
-          key={`star-${idx}`}
-          className="absolute rounded-full bg-white animate-pulse"
-          style={{
-            top: `${star.y}%`,
-            left: `${star.x}%`,
-            width: `${star.size}px`,
-            height: `${star.size}px`,
-            opacity: star.opacity,
-            animationDuration: `${3 + Math.random() * 5}s`,
-            animationDelay: `${Math.random() * 5}s`
-          }}
-        />
-      ))}
-
-      {/* Floating goat constellations */}
-      {GOATS.map((goat, idx) => {
-        // Choose a different animation type for each goat
-        const animationClass = idx % 3 === 0 ? "floating" : 
-                               idx % 3 === 1 ? "floating-sideways" : "floating-combo";
-        
-        return (
+      {/* Wrapper for stars and goats with mouse-reactive transform */}
+      <div
+        style={{
+          transform: `translate(${mouseOffset.x}px, ${mouseOffset.y}px)`,
+          transition: "transform 0.1s ease-out",
+        }}
+      >
+        {/* Additional decorative stars with pulsing animation */}
+        {stars.map((star, idx) => (
           <div
-            key={`goat-${idx}`}
-            className={`absolute ${animationClass} pointer-events-none z-20`}
+            key={`star-${idx}`}
+            className="absolute rounded-full bg-white animate-pulse"
             style={{
-              top: goat.top,
-              left: goat.left,
-              opacity: goat.opacity,
-              animationDelay: `${goat.delay}s`,
+              top: `${star.y}%`,
+              left: `${star.x}%`,
+              width: `${star.size}px`,
+              height: `${star.size}px`,
+              opacity: star.opacity,
+              animationDuration: `${3 + Math.random() * 5}s`,
+              animationDelay: `${Math.random() * 5}s`,
             }}
-          >
-            <Image
-              src="/image.png"
-              alt={`Goat Constellation ${idx}`}
-              width={goat.size}
-              height={goat.size}
-              className="object-contain"
-              unoptimized={true}
-            />
-          </div>
-        );
-      })}
+          />
+        ))}
+
+        {/* Floating goat constellations */}
+        {GOATS.map((goat, idx) => {
+          // Choose a different animation type for each goat
+          const animationClass =
+            idx % 3 === 0
+              ? "floating"
+              : idx % 3 === 1
+              ? "floating-sideways"
+              : "floating-combo";
+
+          return (
+            <div
+              key={`goat-${idx}`}
+              className={`absolute ${animationClass} pointer-events-none z-20`}
+              style={{
+                top: goat.top,
+                left: goat.left,
+                opacity: goat.opacity,
+                animationDelay: `${goat.delay}s`,
+              }}
+            >
+              <Image
+                src="/image.png"
+                alt={`Goat Constellation ${idx}`}
+                width={goat.size}
+                height={goat.size}
+                className="object-contain"
+                unoptimized={true}
+              />
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }
