@@ -2,33 +2,13 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import ConstellationCanvas from "@/components/ConstellationCanvas";
+import IntegratedBackground from "@/components/IntegratedBackground";
 
 export default function Home() {
   return (
     <div className="min-h-screen flex items-center justify-center relative bg-black text-white overflow-hidden">
-      {/* Constellation Background */}
-      <div className="absolute inset-0 z-0">
-        <ConstellationCanvas />
-      </div>
-
-      {/* Floating Goat Constellations */}
-      {Array.from({ length: 4 }).map((_, i) => (
-        <Image
-          key={i}
-          src="/image.png" // make sure your image is named 'image.png' in public folder
-          alt="Goat Constellation"
-          width={300}
-          height={300}
-          className={`absolute opacity-10 animate-float-slow pointer-events-none`}
-          style={{
-            top: `${Math.random() * 90}%`,
-            left: `${Math.random() * 90}%`,
-            transform: `translate(-50%, -50%) scale(${0.6 + Math.random() * 0.4})`,
-            animationDelay: `${i * 4}s`,
-          }}
-        />
-      ))}
+      {/* Integrated Background with both particles and goats */}
+      <IntegratedBackground />
 
       {/* Content */}
       <div className="w-full max-w-lg px-6 py-12 relative z-10">
