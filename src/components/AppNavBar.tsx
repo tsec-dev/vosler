@@ -15,9 +15,10 @@ export default function AppNavBar({ isAdmin, showBackToDashboard }: AppNavBarPro
 
   const navLinks = [
     { name: "Dashboard", href: "/dashboard" },
+    { name: "Self Survey", href: "/self-survey" },
     { name: "Course Survey", href: "/course-survey" },
     { name: "Instructor Panel", href: "/admin", adminOnly: true },
-  ];
+  ];  
 
   return (
     <nav className="flex items-center justify-between px-6 py-4 bg-white dark:bg-gray-900 border-b border-gray-300 dark:border-gray-700 shadow-sm">
