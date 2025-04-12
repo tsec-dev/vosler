@@ -8,11 +8,11 @@ import Image from "next/image";
 
 // Define goat positions with more variety
 const GOATS = [
-  { top: "15%", left: "10%", size: 100, delay: 0, opacity: 0.12 },
-  { top: "25%", left: "75%", size: 120, delay: 2, opacity: 0.15 },
-  { top: "65%", left: "20%", size: 90, delay: 4, opacity: 0.1 },
-  { top: "70%", left: "80%", size: 130, delay: 6, opacity: 0.13 },
-  { top: "40%", left: "50%", size: 140, delay: 8, opacity: 0.08 },
+  { top: "15%", left: "10%", size: 100, delay: 0, opacity: 0.3 },
+  { top: "25%", left: "75%", size: 120, delay: 2, opacity: 0.35 },
+  { top: "65%", left: "20%", size: 90, delay: 4, opacity: 0.3 },
+  { top: "70%", left: "80%", size: 130, delay: 6, opacity: 0.33 },
+  { top: "40%", left: "50%", size: 140, delay: 8, opacity: 0.28 },
 ];
 
 export default function IntegratedBackground() {
@@ -26,11 +26,11 @@ export default function IntegratedBackground() {
   
   // Create random stars on first render
   useEffect(() => {
-    const randomStars = Array.from({ length: 30 }, () => ({
+    const randomStars = Array.from({ length: 50 }, () => ({
       x: Math.random() * 100,
       y: Math.random() * 100,
-      size: 1 + Math.random() * 2,
-      opacity: 0.3 + Math.random() * 0.7
+      size: 1 + Math.random() * 3,
+      opacity: 0.4 + Math.random() * 0.6
     }));
     setStars(randomStars);
   }, []);
@@ -53,7 +53,7 @@ export default function IntegratedBackground() {
           },
           particles: {
             number: {
-              value: 45, // Reduced for better performance
+              value: 80, // Increased for more visible constellations
               density: {
                 enable: true,
                 value_area: 800
@@ -66,41 +66,41 @@ export default function IntegratedBackground() {
               type: "circle"
             },
             opacity: {
-              value: 0.5,
+              value: 0.6, // Increased opacity
               random: true
             },
             size: {
-              value: 2,
+              value: 2.5, // Slightly larger particles
               random: true
             },
             move: {
               enable: true,
-              speed: 0.4, // Slowed down for more subtle movement
+              speed: 0.3, // Slow movement for better visibility
               direction: "none",
               random: true,
               outModes: "out"
             },
             links: {
               enable: true,
-              distance: 150,
+              distance: 180, // Increased connection distance
               color: "#ffffff",
-              opacity: 0.3,
-              width: 1
+              opacity: 0.4, // Increased link opacity
+              width: 1.2 // Slightly thicker links
             }
           },
           interactivity: {
             events: {
               onHover: {
                 enable: true,
-                mode: "grab" // Changed to "grab" for more subtle interaction
+                mode: "grab"
               },
               resize: true
             },
             modes: {
               grab: {
-                distance: 150,
+                distance: 180,
                 links: {
-                  opacity: 0.5
+                  opacity: 0.7 // More visible hover effect
                 }
               }
             }
@@ -130,7 +130,7 @@ export default function IntegratedBackground() {
       {GOATS.map((goat, idx) => (
         <div
           key={`goat-${idx}`}
-          className="absolute animate-float-slow pointer-events-none"
+          className="absolute animate-float-slow pointer-events-none z-20"
           style={{
             top: goat.top,
             left: goat.left,
@@ -141,10 +141,11 @@ export default function IntegratedBackground() {
         >
           <Image
             src="/image.png"
-            alt="Goat Constellation"
+            alt={`Goat Constellation ${idx}`}
             width={goat.size}
             height={goat.size}
             className="object-contain"
+            unoptimized={true}
           />
         </div>
       ))}
