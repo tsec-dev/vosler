@@ -5,6 +5,7 @@ import BaseLayout from "@/components/BaseLayout";
 import { supabase } from "@/lib/supabaseClient";
 import { Dialog } from "@headlessui/react";
 import { clerkClient } from "@clerk/clerk-sdk-node";
+import * as XLSX from "xlsx";
 
 interface Instructor {
   id: string;
@@ -149,11 +150,32 @@ export default function ClassManagementPage() {
   };
 
   const handleMassUpload = async (file: File, classId: string) => {
-    const text = await file.text();
-    const emails = text
-      .split("\n")
-      .map((line) => line.trim())
-      .filter((line) => line.length > 0);
+    const ext = file.name.split(".").pop()?.toLowerCase();
+    let emails: string[] = [];
+
+    if (ext === "csv") {
+      const text = await file.text();
+      emails = text
+        .split("\n")
+        .map((line) => line.trim())
+        .filter((line) => line.length > 0);
+    } else if (ext === "xlsx") {
+      const data = await file.arrayBuffer();
+      const workbook = XLSX.read(data, { type: "array" });
+      const sheet = workbook.Sheets[workbook.SheetNames[0]];
+      const parsed = XLSX.utils.sheet_to_json<{ email: string }>(sheet);
+      emails = parsed
+        .map((row) => row.email?.trim())
+        .filter((email): email is string => !!email);
+    } else {
+      alert("Only .csv and .xlsx files are supported.");
+      return;
+    }
+
+    if (!emails.length) {
+      alert("No emails found in the file.");
+      return;
+    }
 
     const confirmed = confirm(`Invite ${emails.length} students to this class?`);
     if (!confirmed) return;
@@ -224,7 +246,9 @@ export default function ClassManagementPage() {
           >
             <option value="" disabled>Select Class Name</option>
             {classTemplates.map((t) => (
-              <option key={t.id} value={t.name}>{t.name}</option>
+              <option key={t.id} value={t.name}>
+                {t.name}
+              </option>
             ))}
           </select>
 
@@ -286,7 +310,7 @@ export default function ClassManagementPage() {
                     📁 Mass Invite
                     <input
                       type="file"
-                      accept=".csv"
+                      accept=".csv,.xlsx"
                       onChange={(e) => {
                         const file = e.target.files?.[0];
                         if (file) handleMassUpload(file, cls.id);
@@ -309,7 +333,6 @@ export default function ClassManagementPage() {
                 </div>
               </div>
 
-              {/* Single Invite */}
               <div className="border-t pt-4">
                 <h3 className="font-semibold mb-2">📨 Invite Students</h3>
                 <div className="flex gap-2 mb-2">
