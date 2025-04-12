@@ -1,3 +1,4 @@
+// src/app/page.tsx
 "use client";
 
 import Link from "next/link";
@@ -6,9 +7,23 @@ import ConstellationCanvas from "@/components/ConstellationCanvas";
 
 export default function Home() {
   return (
-    <div className="min-h-screen flex items-center justify-center relative bg-black text-white overflow-hidden">
-      {/* ✨ Custom Constellation Background */}
-      <ConstellationCanvas />
+    <div className="relative min-h-screen flex items-center justify-center bg-black text-white overflow-hidden">
+      {/* Star Canvas */}
+      <div className="absolute inset-0 z-0 pointer-events-none">
+        <ConstellationCanvas />
+      </div>
+
+      {/* 🐐 Faded Constellation Goat */}
+      <div className="absolute inset-0 z-0 flex items-center justify-center opacity-10">
+        <Image
+          src="/image.png" // Make sure this file is inside /public
+          alt="Goat Constellation"
+          width={800}
+          height={800}
+          className="object-contain"
+          priority
+        />
+      </div>
 
       {/* Content */}
       <div className="w-full max-w-lg px-6 py-12 relative z-10">
@@ -27,15 +42,11 @@ export default function Home() {
         </div>
 
         {/* Sign-in Card */}
-        <div className="bg-gray-900/80 backdrop-blur-sm rounded-xl shadow-2xl border border-gray-800 overflow-hidden">
-          {/* Header */}
-          <div className="px-8 pt-8 pb-4">
-            <center>
-              <h2 className="text-2xl font-bold text-gray-100">Welcome!</h2>
-            </center>
+        <div className="bg-gray-900/70 backdrop-blur-sm rounded-xl shadow-2xl border border-gray-800 overflow-hidden">
+          <div className="px-8 pt-8 pb-4 text-center">
+            <h2 className="text-2xl font-bold text-gray-100">Welcome!</h2>
           </div>
 
-          {/* Sign In Button */}
           <div className="px-8 pb-8">
             <Link
               href="/sign-in"
