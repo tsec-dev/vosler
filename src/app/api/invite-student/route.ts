@@ -1,52 +1,58 @@
 import { NextResponse } from "next/server";
 import { clerkClient } from "@clerk/clerk-sdk-node";
-import { supabase } from "@/lib/supabaseClient"; // using your already-exported instance
+import { supabase } from "@/lib/supabaseClient";
 
 export async function POST(req: Request) {
   const { email, class_id } = await req.json();
 
-  if (!email || !class_id) {
-    return NextResponse.json({ error: "Missing email or class ID" }, { status: 400 });
+  const cleanEmail = email?.toLowerCase().trim();
+
+  if (!cleanEmail || !cleanEmail.includes("@") || !class_id) {
+    return NextResponse.json({ error: "Missing or invalid email or class ID" }, { status: 400 });
+  }
+
+  if (!process.env.NEXT_PUBLIC_APP_URL) {
+    console.error("❌ Missing NEXT_PUBLIC_APP_URL in env");
+    return NextResponse.json({ error: "Server misconfiguration: redirect URL missing" }, { status: 500 });
   }
 
   try {
-    // ✅ Step 1: Add to class_students (ignore if already added)
+    // ✅ Step 1: Add student to class_students
     const { error: insertError } = await supabase
       .from("class_students")
-      .insert({ email: email.toLowerCase(), class_id });
+      .insert({ email: cleanEmail, class_id });
 
     if (insertError && insertError.code !== "23505") {
-      // 23505 = duplicate entry (unique violation)
-      console.error("Supabase insert error:", insertError);
+      console.error("❌ Supabase insert error:", insertError.message);
       throw insertError;
     }
 
-    // ✅ Step 2: Try to promote existing Clerk user OR invite new one
-    const users = await clerkClient.users.getUserList({ emailAddress: [email] });
+    // ✅ Step 2: Get Clerk user (if exists)
+    const users = await clerkClient.users.getUserList({ emailAddress: [cleanEmail] });
 
     if (users.length === 0) {
-      // 📨 Invite new student
+      // 📨 Invite new user
       await clerkClient.invitations.createInvitation({
-        emailAddress: email,
+        emailAddress: cleanEmail,
         redirectUrl: `${process.env.NEXT_PUBLIC_APP_URL}/sign-in`,
         publicMetadata: {
-          role: "student",
-          class_id,
+          invited: true,
+          class_id, // ✅ You can bring this back in now
         },
       });
     } else {
       // 👤 Update metadata if user already exists
       await clerkClient.users.updateUserMetadata(users[0].id, {
         publicMetadata: {
-          role: "student",
+          invited: true,
           class_id,
         },
       });
     }
 
     return NextResponse.json({ success: true });
-    } catch (err: any) {
-      console.error("❌ Error inviting student:", err?.message || err);
-      return NextResponse.json({ error: err?.message || "Unknown error" }, { status: 500 });
-    }
+  } catch (err: any) {
+    console.error("❌ Error inviting student:", err?.message || err);
+    return NextResponse.json({ error: err?.message || "Something went wrong" }, { status: 500 });
+  }
 }
