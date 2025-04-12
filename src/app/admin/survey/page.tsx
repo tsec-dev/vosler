@@ -6,7 +6,7 @@ import { supabase } from "@/lib/supabaseClient";
 export default function SurveyEditor() {
   const [title, setTitle] = useState("");
   const [questions, setQuestions] = useState([{ prompt: "", category: "" }]);
-  const [isPaired, setIsPaired] = useState(false);
+  const [surveyType, setSurveyType] = useState<"course" | "self" | "paired">("course");
 
   const handleAddQuestion = () => {
     setQuestions([...questions, { prompt: "", category: "" }]);
@@ -28,12 +28,18 @@ export default function SurveyEditor() {
       return;
     }
 
-    const surveyPayloads = isPaired
-      ? [
-          { title: `${title} (Self)`, is_self_survey: true, is_peer_survey: false },
-          { title: `${title} (Peer)`, is_self_survey: false, is_peer_survey: true }
-        ]
-      : [{ title, is_self_survey: false, is_peer_survey: false }];
+    let surveyPayloads;
+
+    if (surveyType === "paired") {
+      surveyPayloads = [
+        { title: `${title} (Self)`, is_self_survey: true, is_peer_survey: false },
+        { title: `${title} (Peer)`, is_self_survey: false, is_peer_survey: true }
+      ];
+    } else if (surveyType === "self") {
+      surveyPayloads = [{ title, is_self_survey: true, is_peer_survey: false }];
+    } else {
+      surveyPayloads = [{ title, is_self_survey: false, is_peer_survey: false }];
+    }
 
     for (const payload of surveyPayloads) {
       const { data: survey, error } = await supabase
@@ -51,7 +57,7 @@ export default function SurveyEditor() {
       const questionInserts = questions.map((q) => ({
         survey_id: survey.id,
         prompt: q.prompt,
-        category: q.category || "General"
+        category: q.category || "General",
       }));
 
       const { error: qError } = await supabase.from("survey_questions").insert(questionInserts);
@@ -66,12 +72,12 @@ export default function SurveyEditor() {
     alert("✅ Survey(s) created successfully!");
     setTitle("");
     setQuestions([{ prompt: "", category: "" }]);
-    setIsPaired(false);
+    setSurveyType("course");
   };
 
   return (
     <div className="max-w-3xl mx-auto p-6 space-y-6">
-      <h2 className="text-2xl font-bold">📝 Create New Survey</h2>
+      <h2 className="text-2xl font-bold text-gray-900 dark:text-white">📝 Create New Survey</h2>
 
       <input
         type="text"
@@ -81,14 +87,16 @@ export default function SurveyEditor() {
         onChange={(e) => setTitle(e.target.value)}
       />
 
-      <label className="flex items-center gap-2 text-sm">
-        <input
-          type="checkbox"
-          checked={isPaired}
-          onChange={(e) => setIsPaired(e.target.checked)}
-        />
-        Create paired self + peer surveys
-      </label>
+      <label className="block text-sm font-medium mt-4 mb-1 dark:text-white">Survey Type</label>
+      <select
+        value={surveyType}
+        onChange={(e) => setSurveyType(e.target.value as "course" | "self" | "paired")}
+        className="w-full p-2 border rounded dark:bg-gray-800 dark:text-white"
+      >
+        <option value="course">📋 Course Survey</option>
+        <option value="self">🧠 Self Reflection</option>
+        <option value="paired">👥 Paired (Self + Peer)</option>
+      </select>
 
       <div className="space-y-4">
         {questions.map((q, index) => (
