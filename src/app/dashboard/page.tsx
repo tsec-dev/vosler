@@ -1,60 +1,82 @@
 "use client";
 
+import { useUser } from "@clerk/nextjs";
+import { useEffect, useState } from "react";
 import Link from "next/link";
-import Image from "next/image";
 
-export default function Home() {
+export default function DashboardPage() {
+  const { user } = useUser();
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  useEffect(() => {
+    if (user?.publicMetadata?.role === "admin") {
+      setIsAdmin(true);
+    }
+  }, [user]);
+
+  const name = user?.firstName || "Student";
+
   return (
-    <div className="min-h-screen flex items-center justify-center relative bg-black text-white overflow-hidden">
-      {/* Simple dark blue to black gradient background */}
-      <div className="absolute inset-0">
-        <div className="absolute inset-0 bg-gradient-to-b from-[#0a1933] to-black"></div>
-        <div className="absolute inset-0 bg-[url('/noise.png')] opacity-10 mix-blend-overlay"></div>
+    <div className="space-y-8 max-w-4xl mx-auto py-10">
+      <div>
+        <h1 className="text-2xl font-bold">👋 Welcome, {name}, to Week 1: Architect</h1>
+        <p className="text-center italic text-gray-400 mt-2">
+          “Leadership is not about being in charge. It is about taking care of those in your charge.” — Simon Sinek
+        </p>
       </div>
-      
-      {/* Content */}
-      <div className="w-full max-w-lg px-6 py-12 relative z-10">
-        {/* Logo */}
-        <div className="text-center mb-10">
-          <div className="flex justify-center">
-            <Image 
-              src="/unit-logo.png" 
-              alt="Vosler Logo" 
-              width={200} 
-              height={80} 
-              className="h-auto" 
-              priority
-            />
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* Self Chart */}
+        <div className="p-4 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded shadow">
+          <h2 className="text-lg font-semibold mb-2">📊 Your Self Assessment</h2>
+          {/* Replace with real chart */}
+          <div className="h-48 flex items-center justify-center text-gray-500 dark:text-gray-400">
+            [Self Bar Chart Placeholder]
           </div>
         </div>
-        
-        {/* Sign-in Card */}
-        <div className="bg-gray-900/70 backdrop-blur-sm rounded-xl shadow-2xl border border-gray-800 overflow-hidden">
-          {/* Header */}
-          <div className="px-8 pt-8 pb-4">
-            <center><h2 className="text-2xl font-bold text-gray-100">Welcome!</h2></center>
+
+        {/* Peer Chart */}
+        <div className="p-4 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded shadow">
+          <h2 className="text-lg font-semibold mb-2">👥 Peer Feedback</h2>
+          {/* Replace with real chart */}
+          <div className="h-48 flex items-center justify-center text-gray-500 dark:text-gray-400">
+            [Peer Bar Chart Placeholder]
           </div>
-          
-          {/* Sign In Component */}
-          <div className="px-8 pb-8">
-            <Link 
-              href="/sign-in" 
-              className="block w-full py-3 px-4 bg-[#0033a0] hover:bg-[#002787] rounded-lg text-center font-medium transition-colors duration-200 shadow-lg shadow-blue-900/30"
+        </div>
+      </div>
+
+      {/* Feedback To-Dos */}
+      <div className="p-4 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded shadow">
+        <h2 className="text-lg font-semibold mb-4">📝 Feedback Tasks</h2>
+        <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3">
+          {["Teammate A", "Teammate B", "Instructor"].map((name, idx) => (
+            <div
+              key={idx}
+              className="border border-gray-300 dark:border-gray-700 p-3 rounded-md flex flex-col items-center justify-between"
             >
-              Access the mission control center.
-            </Link>
-            
-            <div className="mt-6 pt-6 border-t border-gray-800 text-center text-sm text-gray-500">
-              New here? Contact your leads for access.
+              <span className="text-sm">{name}</span>
+              <Link
+                href="#"
+                className="mt-2 px-3 py-1 bg-indigo-600 hover:bg-indigo-500 text-white text-sm rounded"
+              >
+                Go to Feedback
+              </Link>
             </div>
-          </div>
-        </div>
-        
-        {/* Footer */}
-        <div className="mt-12 text-center text-sm text-gray-500">
-          © {new Date().getFullYear()} Vosler | Team Development Demo • All rights reserved
+          ))}
         </div>
       </div>
+
+      {/* Instructor Panel Link */}
+      {isAdmin && (
+        <div className="text-right">
+          <Link
+            href="/admin"
+            className="inline-block bg-blue-600 hover:bg-blue-500 text-white text-sm px-4 py-2 rounded"
+          >
+            Instructor Panel
+          </Link>
+        </div>
+      )}
     </div>
   );
 }
