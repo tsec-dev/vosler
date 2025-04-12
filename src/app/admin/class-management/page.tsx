@@ -21,6 +21,7 @@ interface Class {
   start_date: string;
   end_date: string;
   instructor_id: string;
+  instructor?: Instructor;
 }
 
 interface StudentInvite {
@@ -49,9 +50,11 @@ export default function ClassManagementPage() {
   useEffect(() => {
     const fetchData = async () => {
       const [inst, templates, cls, invitesRes] = await Promise.all([
-        supabase.from("instructors").select("*").order("full_name"),
-        supabase.from("class_templates").select("*").order("name"),
-        supabase.from("classes").select("*").order("created_at", { ascending: false }),
+        supabase.from("instructors").select("*"),
+        supabase.from("class_templates").select("*"),
+        supabase.from("classes")
+          .select("*, instructor:instructor_id (id, full_name, email)")
+          .order("created_at", { ascending: false }),
         supabase.from("class_students").select("*"),
       ]);
 
@@ -87,8 +90,10 @@ export default function ClassManagementPage() {
       setStartDate("");
       setEndDate("");
       setInstructorId("");
-      // Refresh class list
-      const { data } = await supabase.from("classes").select("*").order("created_at", { ascending: false });
+      const { data } = await supabase
+        .from("classes")
+        .select("*, instructor:instructor_id (id, full_name, email)")
+        .order("created_at", { ascending: false });
       setClasses(data || []);
     }
 
@@ -116,12 +121,38 @@ export default function ClassManagementPage() {
     }
   };
 
+  const handleMassUpload = async (file: File, classId: string) => {
+    const text = await file.text();
+    const emails = text
+      .split("\n")
+      .map((line) => line.trim())
+      .filter((line) => line.length > 0);
+
+    const confirmed = confirm(`Invite ${emails.length} students to this class?`);
+    if (!confirmed) return;
+
+    for (const email of emails) {
+      await fetch("/api/invite-student", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, class_id: classId }),
+      });
+    }
+
+    alert(`✅ Invited ${emails.length} students.`);
+    const { data } = await supabase.from("class_students").select("*");
+    setInvites(data || []);
+  };
+
   const handleDeleteClass = async (classId: string) => {
     const confirmDelete = confirm("Are you sure you want to delete this class?");
     if (!confirmDelete) return;
 
     await supabase.from("classes").delete().eq("id", classId);
-    const { data } = await supabase.from("classes").select("*").order("created_at", { ascending: false });
+    const { data } = await supabase
+      .from("classes")
+      .select("*, instructor:instructor_id (id, full_name, email)")
+      .order("created_at", { ascending: false });
     setClasses(data || []);
   };
 
@@ -190,6 +221,9 @@ export default function ClassManagementPage() {
                 <div>
                   <h2 className="text-lg font-bold">{cls.name}</h2>
                   <p className="text-sm text-gray-500 dark:text-gray-400">
+                    Instructor: {cls.instructor?.full_name || cls.instructor?.email}
+                  </p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">
                     {cls.start_date} → {cls.end_date}
                   </p>
                 </div>
@@ -222,6 +256,18 @@ export default function ClassManagementPage() {
                     Invite
                   </button>
                 </div>
+
+                {/* Mass Upload */}
+                <input
+                  type="file"
+                  accept=".csv"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+                    handleMassUpload(file, cls.id);
+                  }}
+                  className="mt-2 text-sm"
+                />
 
                 {/* Invited student list */}
                 <ul className="mt-3 text-sm text-gray-700 dark:text-gray-300 space-y-1">
