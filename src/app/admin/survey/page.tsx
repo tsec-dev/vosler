@@ -1,243 +1,135 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
-import BaseLayout from "@/components/BaseLayout";
-import { PlusCircle, Trash2, Save, XCircle } from "lucide-react";
 
-export default function SurveyBuilderPage() {
-  const [surveys, setSurveys] = useState<any[]>([]);
-  const [selectedSurvey, setSelectedSurvey] = useState<any | null>(null);
-  const [questions, setQuestions] = useState<any[]>([]);
-  const [newSurveyName, setNewSurveyName] = useState("");
+export default function SurveyEditor() {
+  const [title, setTitle] = useState("");
+  const [questions, setQuestions] = useState([{ prompt: "", category: "" }]);
+  const [isPaired, setIsPaired] = useState(false);
 
-  useEffect(() => {
-    fetchSurveys();
-  }, []);
-
-  const fetchSurveys = async () => {
-    const { data, error } = await supabase.from("surveys").select("*").order("created_at", { ascending: false });
-    if (error) console.error(error);
-    else setSurveys(data);
+  const handleAddQuestion = () => {
+    setQuestions([...questions, { prompt: "", category: "" }]);
   };
 
-  useEffect(() => {
-    if (!selectedSurvey) return;
-    fetchQuestions();
-  }, [selectedSurvey]);
-
-  const fetchQuestions = async () => {
-    const { data, error } = await supabase
-      .from("survey_questions")
-      .select("*")
-      .eq("survey_id", selectedSurvey.id)
-      .order("position", { ascending: true });
-
-    if (error) console.error(error);
-    else setQuestions(data);
+  const handleRemoveQuestion = (index: number) => {
+    setQuestions(questions.filter((_, i) => i !== index));
   };
 
-  const createSurvey = async () => {
-    if (!newSurveyName.trim()) return;
-    const { data, error } = await supabase.from("surveys").insert({ name: newSurveyName }).select().single();
-    if (error) console.error(error);
-    else {
-      setSurveys([data, ...surveys]);
-      setSelectedSurvey(data);
-      setNewSurveyName("");
-      setQuestions([]);
+  const handleChange = (index: number, field: "prompt" | "category", value: string) => {
+    const updated = [...questions];
+    updated[index][field] = value;
+    setQuestions(updated);
+  };
+
+  const handleSubmit = async () => {
+    if (!title.trim() || questions.length === 0) {
+      alert("Please provide a title and at least one question.");
+      return;
     }
-  };
 
-  const deleteSurvey = async (surveyId: string) => {
-    const confirmed = confirm("Are you sure you want to delete this survey?");
-    if (!confirmed) return;
+    const surveyPayloads = isPaired
+      ? [
+          { title: `${title} (Self)`, is_self_survey: true, is_peer_survey: false },
+          { title: `${title} (Peer)`, is_self_survey: false, is_peer_survey: true }
+        ]
+      : [{ title, is_self_survey: false, is_peer_survey: false }];
 
-    const { error } = await supabase.from("surveys").delete().eq("id", surveyId);
-    if (error) console.error(error);
-    else {
-      setSurveys((prev) => prev.filter((s) => s.id !== surveyId));
-      if (selectedSurvey?.id === surveyId) {
-        setSelectedSurvey(null);
-        setQuestions([]);
+    for (const payload of surveyPayloads) {
+      const { data: survey, error } = await supabase
+        .from("surveys")
+        .insert(payload)
+        .select()
+        .single();
+
+      if (error || !survey) {
+        alert("Failed to create survey.");
+        console.error(error);
+        return;
+      }
+
+      const questionInserts = questions.map((q) => ({
+        survey_id: survey.id,
+        prompt: q.prompt,
+        category: q.category || "General"
+      }));
+
+      const { error: qError } = await supabase.from("survey_questions").insert(questionInserts);
+
+      if (qError) {
+        alert("Failed to insert questions.");
+        console.error(qError);
+        return;
       }
     }
-  };
 
-  const addQuestion = () => {
-    setQuestions((prev) => [
-      ...prev,
-      {
-        id: crypto.randomUUID(),
-        question_text: "",
-        question_type: "text",
-        required: false,
-        options: "",
-        isNew: true,
-      },
-    ]);
-  };
-
-  const saveQuestions = async () => {
-    if (!selectedSurvey) return;
-
-    const upserts = questions.map((q, i) => ({
-      survey_id: selectedSurvey.id,
-      question_text: q.question_text,
-      question_type: q.question_type,
-      required: q.required,
-      options: q.options || null,
-      position: i,
-      ...(q.isNew ? {} : { id: q.id }),
-    }));
-
-    const { error } = await supabase.from("survey_questions").upsert(upserts, { onConflict: "id" });
-    if (error) console.error(error);
-    else alert("Questions saved!");
-  };
-
-  const deleteQuestion = (id: string) => {
-    setQuestions((prev) => prev.filter((q) => q.id !== id));
+    alert("✅ Survey(s) created successfully!");
+    setTitle("");
+    setQuestions([{ prompt: "", category: "" }]);
+    setIsPaired(false);
   };
 
   return (
-    <BaseLayout isAdmin showBackToDashboard>
-      <div className="max-w-5xl mx-auto p-8">
-        <h1 className="text-3xl font-bold mb-8">🧱 Build a Survey</h1>
+    <div className="max-w-3xl mx-auto p-6 space-y-6">
+      <h2 className="text-2xl font-bold">📝 Create New Survey</h2>
 
-        <div className="mb-8">
-          <h2 className="text-lg font-semibold mb-2">Create New Survey</h2>
-          <div className="flex gap-4">
+      <input
+        type="text"
+        placeholder="Survey Title"
+        className="w-full p-2 border rounded dark:bg-gray-800 dark:text-white"
+        value={title}
+        onChange={(e) => setTitle(e.target.value)}
+      />
+
+      <label className="flex items-center gap-2 text-sm">
+        <input
+          type="checkbox"
+          checked={isPaired}
+          onChange={(e) => setIsPaired(e.target.checked)}
+        />
+        Create paired self + peer surveys
+      </label>
+
+      <div className="space-y-4">
+        {questions.map((q, index) => (
+          <div key={index} className="p-4 border rounded space-y-2 bg-white dark:bg-gray-900">
             <input
               type="text"
-              value={newSurveyName}
-              onChange={(e) => setNewSurveyName(e.target.value)}
-              placeholder="e.g. Week 2 Feedback"
-              className="p-2 border border-gray-300 dark:border-gray-700 dark:bg-gray-800 dark:text-white rounded w-full"
+              placeholder="Question Prompt"
+              className="w-full p-2 border rounded dark:bg-gray-800 dark:text-white"
+              value={q.prompt}
+              onChange={(e) => handleChange(index, "prompt", e.target.value)}
+            />
+            <input
+              type="text"
+              placeholder="Category (e.g. Communication)"
+              className="w-full p-2 border rounded dark:bg-gray-800 dark:text-white"
+              value={q.category}
+              onChange={(e) => handleChange(index, "category", e.target.value)}
             />
             <button
-              onClick={createSurvey}
-              className="bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded flex items-center gap-2"
+              className="text-red-500 text-sm"
+              onClick={() => handleRemoveQuestion(index)}
             >
-              <PlusCircle className="w-4 h-4" /> Add
+              ❌ Remove
             </button>
           </div>
-        </div>
-
-        <div className="mb-10">
-          <h2 className="text-lg font-semibold mb-2">Select a Survey</h2>
-          <div className="flex flex-wrap gap-3">
-            {surveys.map((s) => (
-              <div key={s.id} className="flex items-center gap-2">
-                <button
-                  onClick={() => setSelectedSurvey(s)}
-                  className={`px-4 py-2 rounded border ${
-                    selectedSurvey?.id === s.id
-                      ? "bg-indigo-600 text-white"
-                      : "bg-white dark:bg-gray-900 dark:text-white"
-                  }`}
-                >
-                  {s.name}
-                </button>
-                <button onClick={() => deleteSurvey(s.id)} className="text-red-500">
-                  <XCircle className="w-5 h-5" />
-                </button>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {selectedSurvey && (
-          <div className="space-y-6">
-            <h2 className="text-lg font-semibold">Edit Questions for: {selectedSurvey.name}</h2>
-            {questions.map((q, i) => (
-              <div key={q.id} className="bg-white dark:bg-gray-900 border rounded-lg p-5 space-y-3 shadow">
-                <input
-                  type="text"
-                  value={q.question_text}
-                  onChange={(e) =>
-                    setQuestions((prev) =>
-                      prev.map((item, index) => (index === i ? { ...item, question_text: e.target.value } : item))
-                    )
-                  }
-                  placeholder="Question text..."
-                  className="w-full p-2 border border-gray-300 dark:border-gray-700 dark:bg-gray-800 dark:text-white rounded"
-                />
-
-                <select
-                  value={q.question_type}
-                  onChange={(e) =>
-                    setQuestions((prev) =>
-                      prev.map((item, index) => (index === i ? { ...item, question_type: e.target.value } : item))
-                    )
-                  }
-                  className="p-2 border border-gray-300 dark:border-gray-700 dark:bg-gray-800 dark:text-white rounded"
-                >
-                  <option value="text">Text</option>
-                  <option value="number">Number</option>
-                  <option value="boolean">Yes / No</option>
-                  <option value="scale">1–5 Scale</option>
-                  <option value="stars">Star Rating (1–5)</option>
-                  <option value="multiple">Multiple Choice (Radio)</option>
-                </select>
-
-                {q.question_type === "multiple" && (
-                  <input
-                    type="text"
-                    value={q.options || ""}
-                    onChange={(e) =>
-                      setQuestions((prev) =>
-                        prev.map((item, index) =>
-                          index === i ? { ...item, options: e.target.value } : item
-                        )
-                      )
-                    }
-                    placeholder="Comma-separated options (e.g. Red, Blue, Green)"
-                    className="w-full p-2 border border-gray-300 dark:border-gray-700 dark:bg-gray-800 dark:text-white rounded"
-                  />
-                )}
-
-                <label className="flex items-center gap-2 text-sm">
-                  <input
-                    type="checkbox"
-                    checked={q.required}
-                    onChange={(e) =>
-                      setQuestions((prev) =>
-                        prev.map((item, index) =>
-                          index === i ? { ...item, required: e.target.checked } : item
-                        )
-                      )
-                    }
-                  />
-                  Required?
-                </label>
-
-                <button
-                  onClick={() => deleteQuestion(q.id)}
-                  className="text-red-600 text-sm flex items-center gap-1"
-                >
-                  <Trash2 className="w-4 h-4" /> Delete
-                </button>
-              </div>
-            ))}
-
-            <div className="flex gap-4 pt-4">
-              <button
-                onClick={addQuestion}
-                className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded flex items-center gap-2"
-              >
-                <PlusCircle className="w-4 h-4" /> Add Question
-              </button>
-              <button
-                onClick={saveQuestions}
-                className="bg-green-600 hover:bg-green-500 text-white px-4 py-2 rounded flex items-center gap-2"
-              >
-                <Save className="w-4 h-4" /> Save Questions
-              </button>
-            </div>
-          </div>
-        )}
+        ))}
       </div>
-    </BaseLayout>
+
+      <button
+        onClick={handleAddQuestion}
+        className="text-sm text-blue-600 hover:underline"
+      >
+        ➕ Add Question
+      </button>
+
+      <button
+        onClick={handleSubmit}
+        className="mt-4 bg-indigo-600 hover:bg-indigo-500 text-white px-6 py-2 rounded"
+      >
+        Save Survey
+      </button>
+    </div>
   );
 }
