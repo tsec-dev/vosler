@@ -45,8 +45,8 @@ export async function POST(req: Request) {
     }
 
     return NextResponse.json({ success: true });
-  } catch (err) {
-    console.error("Error inviting student:", err);
-    return NextResponse.json({ error: "Something went wrong" }, { status: 500 });
-  }
+    } catch (err: any) {
+      console.error("❌ Error inviting student:", err?.message || err);
+      return NextResponse.json({ error: err?.message || "Unknown error" }, { status: 500 });
+    }
 }
