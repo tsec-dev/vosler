@@ -9,6 +9,7 @@ export default function CourseSurveyPage() {
   const [selectedSurvey, setSelectedSurvey] = useState<any | null>(null);
   const [questions, setQuestions] = useState<any[]>([]);
   const [responses, setResponses] = useState<Record<string, any>>({});
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     const fetchSurveys = async () => {
@@ -40,8 +41,44 @@ export default function CourseSurveyPage() {
   };
 
   const handleSubmit = async () => {
-    alert("Survey submitted! (submission integration coming next)");
-    console.log("Responses:", responses);
+    if (!selectedSurvey) return;
+    setSubmitting(true);
+
+    const { data: responseData, error: responseError } = await supabase
+      .from("survey_responses")
+      .insert({
+        survey_id: selectedSurvey.id,
+        user_id: null, // Optional: replace with Clerk ID if desired
+      })
+      .select()
+      .single();
+
+    if (responseError) {
+      console.error("Failed to submit response", responseError);
+      alert("Error submitting survey.");
+      setSubmitting(false);
+      return;
+    }
+
+    const answers = questions.map((q) => ({
+      response_id: responseData.id,
+      question_id: q.id,
+      answer_text: responses[q.id] || "",
+    }));
+
+    const { error: answersError } = await supabase.from("survey_answers").insert(answers);
+
+    if (answersError) {
+      console.error("Failed to save answers", answersError);
+      alert("Some answers may not have saved.");
+    } else {
+      alert("✅ Survey submitted successfully!");
+      setSelectedSurvey(null);
+      setQuestions([]);
+      setResponses({});
+    }
+
+    setSubmitting(false);
   };
 
   return (
@@ -148,10 +185,11 @@ export default function CourseSurveyPage() {
         {selectedSurvey && questions.length > 0 && (
           <div className="mt-10">
             <button
+              disabled={submitting}
               onClick={handleSubmit}
               className="bg-green-600 hover:bg-green-500 text-white font-medium py-2 px-6 rounded-md text-sm transition"
             >
-              Submit Survey
+              {submitting ? "Submitting..." : "Submit Survey"}
             </button>
           </div>
         )}
