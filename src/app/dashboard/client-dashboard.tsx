@@ -29,56 +29,37 @@ interface TraitData {
   peer: number;
 }
 
-/**
- * Attempt to build a display name using a multi-step fallback:
- * 1. military_name
- * 2. rank + last_name
- * 3. first_name
- * 4. user.email (last resort)
- */
+// --- Fallback functions ---
 function getWelcomeDisplayName(student: StudentProps, user: UserProps): string {
+  console.log("getWelcomeDisplayName - student:", student);
   if (student.military_name && student.military_name.trim() !== "") {
-    return student.military_name;
-  }
-  if (student.rank && student.last_name) {
-    return `${student.rank} ${student.last_name}`;
-  }
-  if (student.first_name) {
-    // Capitalize the student's first_name
-    const first = student.first_name;
+    return student.military_name.trim();
+  } else if (student.rank && student.last_name && student.rank.trim() !== "" && student.last_name.trim() !== "") {
+    return `${student.rank.trim()} ${student.last_name.trim()}`;
+  } else if (student.first_name && student.first_name.trim() !== "") {
+    const first = student.first_name.trim();
     return first.charAt(0).toUpperCase() + first.slice(1).toLowerCase();
   }
-  // Fallback to the user's email if no other details exist
-  return user.email;
+  return user.email; // Last resort
 }
 
-/**
- * Build a display name for classmates:
- * 1. military_name
- * 2. rank + last_name
- * 3. first_name + last_name
- * 4. first_name
- * 5. email
- */
 function getClassmateDisplayName(s: any): string {
+  console.log("getClassmateDisplayName - s:", s);
   if (s.military_name && s.military_name.trim() !== "") {
-    return s.military_name;
-  }
-  if (s.rank && s.last_name) {
-    return `${s.rank} ${s.last_name}`;
-  }
-  if (s.first_name && s.last_name) {
-    return `${s.first_name} ${s.last_name}`;
-  }
-  if (s.first_name) {
-    return s.first_name;
+    return s.military_name.trim();
+  } else if (s.rank && s.last_name && s.rank.trim() !== "" && s.last_name.trim() !== "") {
+    return `${s.rank.trim()} ${s.last_name.trim()}`;
+  } else if (s.first_name && s.last_name && s.first_name.trim() !== "" && s.last_name.trim() !== "") {
+    return `${s.first_name.trim()} ${s.last_name.trim()}`;
+  } else if (s.first_name && s.first_name.trim() !== "") {
+    return s.first_name.trim();
   }
   return s.email;
 }
 
 export default function ClientDashboard({ user, student }: DashboardProps): JSX.Element {
   const displayName = getWelcomeDisplayName(student, user);
-
+  
   const [traitData, setTraitData] = useState<TraitData[]>([]);
   const [classmates, setClassmates] = useState<any[]>([]);
   const [givenFeedback, setGivenFeedback] = useState<string[]>([]);
@@ -95,14 +76,13 @@ export default function ClientDashboard({ user, student }: DashboardProps): JSX.
   }
 
   useEffect(() => {
-    // Debug logs to see what's coming in
-    console.log("Student prop:", student);
-    console.log("User prop:", user);
+    console.log("Dashboard useEffect - Student prop:", student);
+    console.log("Dashboard useEffect - User prop:", user);
 
     // Get the class ID from Clerk's public metadata.
     const classMeta = (window as any).Clerk?.user?.publicMetadata?.class_id;
     setClassId(classMeta);
-    console.log("classMeta:", classMeta);
+    console.log("Dashboard useEffect - classMeta:", classMeta);
 
     if (classMeta) {
       // Fetch class record to obtain start_date and fellowship_name.
@@ -163,7 +143,7 @@ export default function ClientDashboard({ user, student }: DashboardProps): JSX.
           }
         });
 
-      // Load classmates from the student_profiles view (or your class_students table if needed).
+      // Load classmates from the student_profiles view.
       supabase
         .from("student_profiles")
         .select("email, military_name, rank, first_name, last_name")
@@ -171,7 +151,7 @@ export default function ClientDashboard({ user, student }: DashboardProps): JSX.
         .then(({ data, error }) => {
           if (error) console.error("Error fetching classmates:", error);
           console.log("Fetched classmates:", data);
-          // Filter out the current user's email
+          // Filter out the current user's email.
           const others = (data || []).filter((s: any) => s.email !== user.email);
           setClassmates(others);
         });
