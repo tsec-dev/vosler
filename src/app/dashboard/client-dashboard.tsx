@@ -163,7 +163,7 @@ export default function ClientDashboard({ user, student }: DashboardProps): JSX.
     <>
       {/* Announcement Bar - Full width, 30% transparency, directly under nav */}
       {hasAnnouncements && (
-        <div className="w-full bg-orange-600/30 py-2">
+        <div className="w-full bg-orange-600/30 py-2 rounded-lg">
           <div className="mx-auto flex items-center">
             <div className="font-bold text-white ml-4 mr-3">ANNOUNCEMENT:</div>
             <div className="text-white flex-1 overflow-hidden">
@@ -180,6 +180,7 @@ export default function ClientDashboard({ user, student }: DashboardProps): JSX.
           </div>
         </div>
       )}
+
       
       <div className="max-w-6xl mx-auto p-6 space-y-8">
         {/* Centered Welcome Message */}
