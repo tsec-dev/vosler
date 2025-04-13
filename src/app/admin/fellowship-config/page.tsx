@@ -57,8 +57,8 @@ export default function FellowshipConfigPage() {
     });
 
     if (error) {
-      alert("❌ Failed to save themes.");
-      console.error(error);
+      console.error("Save error:", error); // See full message here
+      alert(`❌ Failed to save themes:\n${error.message || "Unknown error"}`);
     } else {
       alert("✅ Fellowship themes saved!");
     }
