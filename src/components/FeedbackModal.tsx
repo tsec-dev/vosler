@@ -27,13 +27,13 @@ export default function FeedbackModal({ targetUserEmail, targetResponseId, onClo
       alert("Please select a star rating.");
       return;
     }
-    // Build the payload for peer feedback. Adjust field names as needed.
+    // Build the payload for peer feedback, matching the table's column names:
     const payload = {
-      submitted_by: peerEmail,         // using the email from Clerk's user.emailAddresses
-      target_id: targetUserEmail,         // recipient's email
-      target_response_id: targetResponseId, // link to the recipient's self survey response
-      rating,                           // numeric star rating
-      comment,                          // optional comment
+      submitted_by: peerEmail,              // Using the email from Clerk's user.emailAddresses
+      target_id: targetUserEmail,           // Recipient's email
+      target_response_id: targetResponseId, // Link to the recipient's self survey response
+      ratings: rating,                      // Note: use "ratings" (jsonb) per your schema
+      comments: comment,                    // Use "comments" as per your table schema
       target_type: "peer"
     };
 
