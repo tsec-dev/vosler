@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import BaseLayout from "@/components/BaseLayout";
 import { supabase } from "@/lib/supabaseClient";
+import { useUser } from "@clerk/nextjs";
 
 interface Class {
   id: string;
@@ -42,6 +43,10 @@ export default function AdminToolsPage() {
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [activeTab, setActiveTab] = useState<string>("moderation");
   const [userEmail, setUserEmail] = useState<string>("");
+  const [isAdmin, setIsAdmin] = useState<boolean>(false);
+  
+  // Get Clerk user
+  const { user: clerkUser, isLoaded } = useUser();
   
   // Form state for announcements
   const [title, setTitle] = useState("");
@@ -52,18 +57,33 @@ export default function AdminToolsPage() {
 
   // Fetch initial data: classes and user email
   useEffect(() => {
-    // Get current user email from Supabase auth
-    const getCurrentUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user?.email) {
-        console.log("Current user email:", user.email);
-        setUserEmail(user.email);
+    // Get current user email from Clerk
+    if (isLoaded && clerkUser) {
+      const email = clerkUser.primaryEmailAddress?.emailAddress;
+      if (email) {
+        console.log("Current user email from Clerk:", email);
+        setUserEmail(email);
+        
+        // Check if user is admin in instructors table
+        supabase
+          .from("instructors")
+          .select("is_admin")
+          .eq("email", email)
+          .single()
+          .then(({ data, error }) => {
+            if (!error && data) {
+              setIsAdmin(data.is_admin || false);
+            } else {
+              console.warn("Could not verify admin status:", error);
+              // Check Clerk metadata as fallback for admin status
+              const meta = clerkUser.publicMetadata as { admin?: boolean };
+              setIsAdmin(meta.admin || false);
+            }
+          });
       } else {
-        console.error("No user email found in auth");
+        console.error("No user email found in Clerk auth");
       }
-    };
-    
-    getCurrentUser();
+    }
     
     // Fetch classes
     supabase.from("classes").select("id, name").then(({ data }) => {
@@ -75,7 +95,7 @@ export default function AdminToolsPage() {
         }
       }
     });
-  }, []);
+  }, [isLoaded, clerkUser]);
 
   // Load class-specific data when a class is selected
   useEffect(() => {
@@ -115,6 +135,7 @@ export default function AdminToolsPage() {
       .from('class_announcements')
       .select('*')
       .eq('class_id', classId)
+      .eq('is_active', true)
       .order('created_at', { ascending: false });
       
     if (error) {
@@ -194,12 +215,6 @@ export default function AdminToolsPage() {
     }
     
     try {
-      // Option 1: Hard delete
-      // const { error } = await supabase
-      //   .from('class_announcements')
-      //   .delete()
-      //   .eq('id', id);
-      
       // Option 2: Soft delete
       const { error } = await supabase
         .from('class_announcements')
@@ -217,6 +232,30 @@ export default function AdminToolsPage() {
       alert('Failed to delete announcement: ' + (error instanceof Error ? error.message : 'Unknown error'));
     }
   };
+
+  // Show loading state while checking admin status
+  if (!isLoaded) {
+    return (
+      <BaseLayout isAdmin showBackToDashboard>
+        <div className="max-w-7xl mx-auto p-6">
+          <p>Loading admin tools...</p>
+        </div>
+      </BaseLayout>
+    );
+  }
+
+  // Show error if not an admin
+  if (!isAdmin) {
+    return (
+      <BaseLayout isAdmin showBackToDashboard>
+        <div className="max-w-7xl mx-auto p-6">
+          <div className="p-4 bg-red-100 border border-red-400 text-red-700 rounded">
+            <p>You do not have admin privileges. Please contact the system administrator.</p>
+          </div>
+        </div>
+      </BaseLayout>
+    );
+  }
 
   return (
     <BaseLayout isAdmin showBackToDashboard>
@@ -368,9 +407,9 @@ export default function AdminToolsPage() {
                 
                 <button
                   type="submit"
-                  disabled={isSubmitting || !selectedClassId || !userEmail}
+                  disabled={isSubmitting || !selectedClassId}
                   className={`px-4 py-2 rounded text-white font-medium ${
-                    isSubmitting || !selectedClassId || !userEmail
+                    isSubmitting || !selectedClassId
                       ? "bg-gray-500 cursor-not-allowed" 
                       : "bg-blue-600 hover:bg-blue-500"
                   }`}
