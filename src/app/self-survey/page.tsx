@@ -16,11 +16,6 @@ export default function SelfSurveyPage() {
   useEffect(() => {
     if (!user) return;
 
-    // Load user's class from metadata (set during invite or similar)
-    // (You can remove this if self surveys don’t need a class id.)
-    // const classIdFromMeta = user?.publicMetadata?.class_id as string;
-    // setClassId(classIdFromMeta);
-
     // Load all self surveys – only those marked explicitly as self surveys
     supabase
       .from("surveys")
@@ -87,8 +82,6 @@ export default function SelfSurveyPage() {
   };
 
   // Render the question input based on its type.
-  // For now, self surveys have been set up for scale (star ratings) and free text.
-  // But if a question happens to be "radio", this code will render radio inputs.
   const renderQuestionInput = (question: any) => {
     switch (question.question_type) {
       case "scale":
@@ -133,7 +126,7 @@ export default function SelfSurveyPage() {
           />
         );
       default:
-        // Fallback to a star rating view if no known type is specified.
+        // Fallback to a star rating if no known type is specified.
         return (
           <div className="flex items-center gap-1 mb-2">
             {[1, 2, 3, 4, 5].map((num) => (
@@ -151,11 +144,11 @@ export default function SelfSurveyPage() {
   const handleSubmit = async () => {
     if (!user || !selectedSurveyId) return;
 
-    // Insert the survey response (adjust as needed if self surveys require additional fields)
+    // Insert the survey response, storing the user's email for joining purposes
     const { data: responseRecord, error } = await supabase
       .from("survey_responses")
       .insert({
-        user_id: user.id,
+        user_id: user.emailAddresses[0].emailAddress, // store email instead of user.id
         survey_id: selectedSurveyId,
       })
       .select()
@@ -175,8 +168,6 @@ export default function SelfSurveyPage() {
         continue;
       }
 
-      // For scale questions, use r.rating; for text questions, use r.answer_text.
-      // (For self surveys we also allow an optional comment.)
       const payload = {
         response_id: responseRecord.id,
         question_id: q.id,
@@ -229,9 +220,7 @@ export default function SelfSurveyPage() {
             {questions.map((q) => (
               <div key={q.id} className="border-b pb-4">
                 <p className="font-semibold mb-2">{q.prompt || q.question_text}</p>
-                {/* Render the main input based on question type */}
                 {renderQuestionInput(q)}
-                {/* If this is a scale (star rating) question, provide an optional comment box */}
                 {q.question_type === "scale" && (
                   <textarea
                     placeholder="Optional comments..."
