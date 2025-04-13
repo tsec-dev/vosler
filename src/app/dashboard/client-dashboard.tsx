@@ -58,7 +58,7 @@ export default function ClientDashboard({ user, student }: DashboardProps): JSX.
   const weekNumber: number = data?.weekNumber || 1;
   const currentTheme: string = data?.currentTheme || "Growth";
 
-  // Helper function for welcome display name (unchanged)
+  // Helper function for welcome display name
   const getWelcomeDisplayName = () => {
     if (student.military_name?.trim()) {
       return student.military_name.trim();
@@ -71,10 +71,14 @@ export default function ClientDashboard({ user, student }: DashboardProps): JSX.
     return user.email;
   };
 
-  // Updated helper to display full classmate info: military name, rank, first name, and last name.
+  // Helper to display classmate full info.
+  // If military_name exists, use that alone.
+  // Otherwise, combine rank, first_name, and last_name.
   const getClassmateFullDisplayInfo = (s: any): string => {
+    if (s.military_name?.trim()) {
+      return s.military_name.trim();
+    }
     const parts: string[] = [];
-    if (s.military_name?.trim()) parts.push(s.military_name.trim());
     if (s.rank?.trim()) parts.push(s.rank.trim());
     if (s.first_name?.trim()) parts.push(s.first_name.trim());
     if (s.last_name?.trim()) parts.push(s.last_name.trim());
@@ -106,9 +110,7 @@ export default function ClientDashboard({ user, student }: DashboardProps): JSX.
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
           {(data?.averages || []).map((d: any) => (
             <div key={d.category}>
-              <p className="text-sm font-medium text-gray-600 dark:text-gray-300 mb-1">
-                {d.category}
-              </p>
+              <p className="text-sm font-medium text-gray-600 dark:text-gray-300 mb-1">{d.category}</p>
               <div className="h-4 w-full bg-gray-200 dark:bg-gray-800 rounded overflow-hidden flex">
                 <motion.div
                   className="bg-indigo-500"
@@ -141,14 +143,14 @@ export default function ClientDashboard({ user, student }: DashboardProps): JSX.
             All feedback complete or no classmates found.
           </p>
         )}
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+        <div className="flex flex-col space-y-3">
           {(data?.classmates || []).map((s: any) => {
             const displayStudent = getClassmateFullDisplayInfo(s);
             return (
-              <div key={s.email} className="p-4 border rounded bg-gray-100 dark:bg-gray-800 text-sm">
-                <p className="mb-2">{displayStudent}</p>
+              <div key={s.email} className="flex justify-between items-center w-full p-4 border rounded bg-gray-100 dark:bg-gray-800 text-sm">
+                <p>{displayStudent}</p>
                 <button
-                  className={`w-full px-3 py-1 rounded text-sm font-medium transition ${
+                  className={`ml-4 px-3 py-1 rounded text-sm font-medium transition ${
                     givenFeedback.includes(s.email)
                       ? "bg-green-500 text-white cursor-not-allowed"
                       : "bg-blue-600 hover:bg-blue-500 text-white"
