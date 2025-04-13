@@ -17,7 +17,7 @@ export default function FeedbackModal({ targetUserEmail, targetResponseId, onClo
   const [rating, setRating] = useState<number>(0);
   const [comment, setComment] = useState("");
 
-  // Use the unique id from the Clerk user, which should match the students.id value.
+  // Use the unique id from the Clerk user, which should match students.id.
   const peerId = user?.id || "";
 
   const handleSubmit = async () => {
@@ -25,14 +25,12 @@ export default function FeedbackModal({ targetUserEmail, targetResponseId, onClo
       alert("Please select a star rating.");
       return;
     }
-
-    // Build the payload for peer feedback.
-    // Note that we are now storing the unique id (peerId) in the "submitted_by" field.
+    // Build the payload for peer feedback with ratings as an object.
     const payload = {
-      submitted_by: peerId,               // Use the student's unique id (e.g., "user_2veop0OJPva2y4VG21oxBtZ87kk")
-      target_id: targetUserEmail,         // The recipient's email remains as is for your logic
+      submitted_by: peerId,               // Using the student's unique id instead of email
+      target_id: targetUserEmail,         // Recipient's email remains as defined
       target_response_id: targetResponseId,
-      ratings: rating,                    // Supabase should auto-convert a number to JSON for a jsonb field
+      ratings: { score: rating },         // Now ratings is a JSON object
       comments: comment,
       target_type: "peer"
     };
