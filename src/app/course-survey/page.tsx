@@ -51,7 +51,7 @@ export default function CourseSurveyPage() {
       });
   }, [selectedSurveyId]);
 
-  // Handler for star rating input
+  // Handler for star rating input for "scale" or follow-up in yes_no_metric
   const handleRating = (questionId: string, value: number) => {
     console.log(`Setting rating for question ${questionId}: ${value}`);
     setResponses((prev) => ({
@@ -85,19 +85,36 @@ export default function CourseSurveyPage() {
     }));
   };
 
-  // Submit the course survey responses
+  // New handler for yes/no questions
+  const handleYesNo = (questionId: string, value: "yes" | "no") => {
+    // When the answer is "no", you might want to clear any star rating.
+    setResponses((prev) => ({
+      ...prev,
+      [questionId]: {
+        ...prev[questionId],
+        answer_text: value,
+        rating: value === "yes" ? prev[questionId]?.rating : undefined,
+      },
+    }));
+  };
+
   const handleSubmit = async () => {
     if (!user || !classId || !selectedSurveyId) {
       alert("Missing required information. Please try again.");
       return;
     }
 
-    // Validate required answers (for scale and text types)
-    const unansweredQuestions = questions.filter(q => {
+    // Validate required answers for each question
+    const unansweredQuestions = questions.filter((q) => {
       const response = responses[q.id];
-      return !response || 
-        (q.question_type === "scale" && response.rating === undefined) ||
-        (q.question_type === "text" && !response.answer_text);
+      if (!response) return true;
+      if (q.question_type === "scale" && response.rating === undefined) return true;
+      if (q.question_type === "text" && !response.answer_text) return true;
+      if (q.question_type === "yes_no_metric") {
+        if (!response.answer_text) return true;
+        if (response.answer_text === "yes" && response.rating === undefined) return true;
+      }
+      return false;
     });
 
     if (unansweredQuestions.length > 0) {
@@ -130,12 +147,11 @@ export default function CourseSurveyPage() {
     for (const q of questions) {
       const r = responses[q.id];
       if (!r) continue;
-
       answersToInsert.push({
         response_id: responseRecord.id,
         question_id: q.id,
-        rating: r.rating ?? null,         // store numeric star rating
-        answer_text: r.answer_text ?? null, // store text answer (if applicable)
+        rating: r.rating ?? null,
+        answer_text: r.answer_text ?? null,
       });
     }
 
@@ -156,7 +172,7 @@ export default function CourseSurveyPage() {
     setResponses({});
   };
 
-  // Render input based on question type
+  // Render question input based on type, including new "yes_no_metric" case
   const renderQuestionInput = (question: any) => {
     switch (question.question_type) {
       case "scale":
@@ -175,6 +191,50 @@ export default function CourseSurveyPage() {
             ))}
           </div>
         );
+      case "yes_no_metric":
+        return (
+          <div>
+            {/* Yes/No Toggle */}
+            <div className="flex gap-4 mb-2">
+              <button
+                onClick={() => handleYesNo(question.id, "yes")}
+                className={`px-4 py-2 rounded ${
+                  responses[question.id]?.answer_text === "yes"
+                    ? "bg-blue-600 text-white"
+                    : "bg-gray-200 text-gray-800"
+                }`}
+              >
+                Yes
+              </button>
+              <button
+                onClick={() => handleYesNo(question.id, "no")}
+                className={`px-4 py-2 rounded ${
+                  responses[question.id]?.answer_text === "no"
+                    ? "bg-blue-600 text-white"
+                    : "bg-gray-200 text-gray-800"
+                }`}
+              >
+                No
+              </button>
+            </div>
+            {/* Conditionally show star rating if "Yes" was selected */}
+            {responses[question.id]?.answer_text === "yes" && (
+              <div className="flex items-center gap-1">
+                {[1, 2, 3, 4, 5].map((num) => (
+                  <FaStar
+                    key={num}
+                    className={`cursor-pointer ${
+                      responses[question.id]?.rating >= num
+                        ? "text-yellow-400"
+                        : "text-gray-400"
+                    }`}
+                    onClick={() => handleRating(question.id, num)}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+        );
       case "text":
         return (
           <textarea
@@ -186,7 +246,6 @@ export default function CourseSurveyPage() {
           />
         );
       default:
-        // For multiple choice or any unhandled type, assume options in text
         if (question.options && Array.isArray(question.options)) {
           return (
             <div className="space-y-2">
@@ -200,9 +259,7 @@ export default function CourseSurveyPage() {
                     onChange={() => handleMultipleChoice(question.id, option)}
                     className="mr-2"
                   />
-                  <label htmlFor={`option-${question.id}-${index}`}>
-                    {option}
-                  </label>
+                  <label htmlFor={`option-${question.id}-${index}`}>{option}</label>
                 </div>
               ))}
             </div>
@@ -224,11 +281,10 @@ export default function CourseSurveyPage() {
   return (
     <BaseLayout>
       <div className="max-w-3xl mx-auto p-6">
-        <h1 className="text-2xl font-bold mb-4">📋 Course Survey</h1>
+        <h1 className="text-2xl font-bold mb-4">Course Survey</h1>
         <p className="mb-6 text-gray-500 dark:text-gray-400">
           Please complete this survey about your course experience.
         </p>
-
         <select
           className="mb-6 p-2 border rounded dark:bg-gray-800 dark:text-white w-full"
           value={selectedSurveyId || ""}
@@ -243,13 +299,11 @@ export default function CourseSurveyPage() {
             </option>
           ))}
         </select>
-
         {selectedSurveyId && questions.length === 0 && (
           <div className="text-center py-8">
             <p>Loading survey questions...</p>
           </div>
         )}
-
         {questions.length > 0 && (
           <div className="space-y-8 mt-4">
             {questions.map((q) => (
@@ -257,9 +311,7 @@ export default function CourseSurveyPage() {
                 key={q.id}
                 className="p-4 border rounded bg-gray-50 dark:bg-gray-800"
               >
-                <p className="font-semibold mb-2">
-                  {q.prompt || q.question_text}
-                </p>
+                <p className="font-semibold mb-2">{q.prompt || q.question_text}</p>
                 {q.category && (
                   <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">
                     Category: {q.category}

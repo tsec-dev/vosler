@@ -13,7 +13,9 @@ const mapQuestionType = (type: string) => {
     case "radio":
       return "text"; // Store multiple choice as text
     case "text":
-      return "text"; // This one already matches
+      return "text"; // Already matches
+    case "yes_no_metric":
+      return "yes_no_metric"; // Custom type for yes/no question with follow-up metric
     default:
       return "scale"; // Default to scale
   }
@@ -26,6 +28,8 @@ const mapQuestionTypeReverse = (type: string) => {
       return "stars";
     case "text":
       return "text";
+    case "yes_no_metric":
+      return "yes_no_metric";
     default:
       return "stars";
   }
@@ -141,6 +145,7 @@ export default function SurveyPage() {
     const updated = [...questions];
     if (field === "type") {
       updated[index][field] = value;
+      // Reset options if changing from radio to non-radio and vice versa.
       if (value === "radio" && !updated[index].options) {
         updated[index].options = [];
       } else if (value !== "radio") {
@@ -244,15 +249,13 @@ export default function SurveyPage() {
         return;
       }
       
-      alert("✅ Survey updated successfully!");
+      alert("Survey updated successfully!");
       handleCancel();
       fetchSurveys();
       return;
     }
 
-    // Creating a new survey
-    // Build survey payload using "name" (as defined in your surveys table)
-    // Properly flag each survey type
+    // Creating a new survey: build payload based on survey type.
     let surveyPayloads;
     if (surveyType === "paired") {
       surveyPayloads = [
@@ -306,7 +309,7 @@ export default function SurveyPage() {
       // Prepare question inserts.
       const questionInserts = questions.map((q) => ({
         survey_id: survey.id,
-        question_text: q.prompt, // Mapping local 'prompt' to DB column 'question_text'
+        question_text: q.prompt,
         category: q.type !== "radio" ? (q.category || "General") : null,
         question_type: mapQuestionType(q.type),
         options: q.type === "radio" ? q.options : null
@@ -323,7 +326,7 @@ export default function SurveyPage() {
       }
     }
 
-    alert("✅ Survey(s) created successfully!");
+    alert("Survey(s) created successfully!");
     // Clear the form.
     handleCancel();
     // Refresh the existing surveys list.
@@ -366,7 +369,7 @@ export default function SurveyPage() {
       <div className="max-w-4xl mx-auto p-6 space-y-6">
         {/* Survey Creation Form */}
         <h2 className="text-3xl font-bold text-white">
-          {isEditing ? "✏️ Edit Survey" : "📝 Create New Survey"}
+          {isEditing ? "Edit Survey" : "Create New Survey"}
         </h2>
         <input
           type="text"
@@ -384,9 +387,9 @@ export default function SurveyPage() {
           className="w-full p-2 border rounded dark:bg-gray-800 dark:text-white bg-white"
           disabled={isEditing} // Can't change type when editing
         >
-          <option value="course">📋 Course Survey</option>
-          <option value="self">🧠 Self Reflection</option>
-          <option value="paired">👥 Paired (Self + Peer)</option>
+          <option value="course">Course Survey</option>
+          <option value="self">Self Reflection</option>
+          <option value="paired">Paired (Self + Peer)</option>
         </select>
         <div className="space-y-4">
           {questions.map((q, index) => (
@@ -418,6 +421,7 @@ export default function SurveyPage() {
                 <option value="stars">⭐ 1–5 Star Rating</option>
                 <option value="radio">🔘 Multiple Choice (Radio)</option>
                 <option value="text">✍️ Short Text</option>
+                <option value="yes_no_metric">Yes/No with Metric</option>
               </select>
               {q.type === "radio" && (
                 <div className="mt-2 space-y-2">
