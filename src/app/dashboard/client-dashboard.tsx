@@ -33,7 +33,7 @@ interface TraitData {
 /**
  * Returns the welcome display name.
  * Order of preference:
- * 1. Use military_name (e.g., "MSgt Williams") if present.
+ * 1. Use military_name if present.
  * 2. Else, if rank and last_name are present, combine them.
  * 3. Else, if first_name is available, capitalize it.
  * 4. Otherwise, fallback to user.email.
@@ -94,15 +94,13 @@ export default function ClientDashboard({ user, student }: DashboardProps): JSX.
     return Math.floor(diff / (1000 * 60 * 60 * 24 * 7)) + 1;
   }
 
-  useEffect(() => {
-    console.log("Dashboard useEffect - Student prop:", student);
-    console.log("Dashboard useEffect - User prop:", user);
-
+  // Consolidated dashboard data fetching
+  const fetchDashboardData = () => {
     // Retrieve classMeta from Clerk's public metadata.
     const meta = (window as any).Clerk?.user?.publicMetadata;
     const classMeta = meta?.class_id ? meta.class_id : null;
     setClassId(classMeta);
-    console.log("Dashboard useEffect - classMeta:", classMeta);
+    console.log("Fetching dashboard data - classMeta:", classMeta);
 
     if (!classMeta) {
       console.warn("classMeta is not defined. Check your Clerk publicMetadata configuration.");
@@ -180,7 +178,6 @@ export default function ClientDashboard({ user, student }: DashboardProps): JSX.
       });
 
     // 4. Load feedback responses.
-    // We select "target_user", assuming that column stores the peer's email.
     supabase
       .from("survey_responses")
       .select("target_user")
@@ -194,6 +191,28 @@ export default function ClientDashboard({ user, student }: DashboardProps): JSX.
           setGivenFeedback(data.map((r: any) => r.target_user));
         }
       });
+  };
+
+  useEffect(() => {
+    console.log("Dashboard useEffect - Student prop:", student);
+    console.log("Dashboard useEffect - User prop:", user);
+    // Initially fetch dashboard data.
+    fetchDashboardData();
+
+    // Set up an event listener to re-fetch data when the user returns to the tab.
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        console.log("Page became visible, fetching latest dashboard data...");
+        fetchDashboardData();
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    // Clean up the event listener on component unmount.
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
   }, [user.email, student]);
 
   return (
