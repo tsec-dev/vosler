@@ -3,8 +3,10 @@
 import { useEffect, useState } from "react";
 import useSWR from "swr";
 import { motion } from "framer-motion";
+import { useUser } from "@clerk/nextjs";
 import { supabase } from "@/lib/supabaseClient";
 
+// Define your types
 export interface UserProps {
   firstName: string;
   lastName: string;
@@ -17,12 +19,12 @@ export interface StudentProps {
   last_name?: string;
   military_name?: string;
   rank?: string;
-  // Add other fields as needed...
+  // Additional fields as needed…
 }
 
 export interface DashboardProps {
   user: UserProps;
-  student: StudentProps; // Full profile from student_profiles view
+  student: StudentProps; // Full profile from the student_profiles view
 }
 
 interface TraitData {
@@ -31,88 +33,85 @@ interface TraitData {
   peer: number;
 }
 
-/**
- * Returns the welcome display name.
- * Order of preference:
- * 1. Use military_name if present.
- * 2. Else, if rank and last_name are present, combine them.
- * 3. Else, if first_name is available, capitalize it.
- * 4. Otherwise, fallback to user.email.
- */
-function getWelcomeDisplayName(student: StudentProps, user: UserProps): string {
-  if (student.military_name?.trim()) {
-    return student.military_name.trim();
-  } else if (student.rank?.trim() && student.last_name?.trim()) {
-    return `${student.rank.trim()} ${student.last_name.trim()}`;
-  } else if (student.first_name?.trim()) {
-    const first = student.first_name.trim();
-    return first.charAt(0).toUpperCase() + first.slice(1).toLowerCase();
-  }
-  return user.email;
-}
-
-/**
- * Returns a display name for classmates.
- * Order of preference:
- * 1. military_name,
- * 2. rank plus last_name,
- * 3. first_name plus last_name,
- * 4. first_name,
- * 5. fallback to email.
- */
-function getClassmateDisplayName(s: any): string {
-  if (s.military_name?.trim()) {
-    return s.military_name.trim();
-  } else if (s.rank?.trim() && s.last_name?.trim()) {
-    return `${s.rank.trim()} ${s.last_name.trim()}`;
-  } else if (s.first_name?.trim() && s.last_name?.trim()) {
-    return `${s.first_name.trim()} ${s.last_name.trim()}`;
-  } else if (s.first_name?.trim()) {
-    return s.first_name.trim();
-  }
-  return s.email;
-}
-
-// SWR fetcher function.
+// SWR fetcher function
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
 export default function ClientDashboard({ user, student }: DashboardProps): JSX.Element {
-  const displayName = getWelcomeDisplayName(student, user);
+  // Use Clerk's useUser hook for reliable access to user data
+  const { user: clerkUser, isLoaded } = useUser();
+
+  // Store the classId we extract from Clerk public metadata
   const [classId, setClassId] = useState<string | null>(null);
 
-  // Retrieve classId from Clerk's public metadata.
   useEffect(() => {
-    const meta = (window as any).Clerk?.user?.publicMetadata;
-    const classMeta = meta?.class_id ? meta.class_id : null;
-    setClassId(classMeta);
-    if (!classMeta) {
-      console.warn("classMeta is not defined. Check your Clerk publicMetadata configuration.");
+    // Once user data is loaded, extract the class_id from public metadata
+    if (isLoaded && clerkUser) {
+      // Cast publicMetadata to the expected type so TypeScript understands the structure.
+      const meta = clerkUser.publicMetadata as { class_id?: string };
+      const classMeta = meta.class_id;
+      if (!classMeta) {
+        console.warn("classMeta is not defined. Please complete your profile.");
+      }
+      setClassId(classMeta || null);
     }
-  }, []);
+  }, [isLoaded, clerkUser]);
 
-  // Use SWR for fetching the dashboard data from our API endpoint.
+  // Use SWR to fetch dashboard data once classId is defined.
   const { data, error, isLoading } = useSWR(
     classId ? `/api/dashboard?classId=${classId}&userEmail=${user.email}` : null,
     fetcher,
-    {
-      revalidateOnFocus: true, // automatically re-fetch on window focus
-    }
+    { revalidateOnFocus: true } // refresh when the window regains focus
   );
 
-  // Destructure data coming back from SWR.
-  const weekNumber = data?.weekNumber || 1;
-  const currentTheme = data?.currentTheme || "Growth";
+  // Set sensible defaults
+  const weekNumber: number = data?.weekNumber || 1;
+  const currentTheme: string = data?.currentTheme || "Growth";
   const traitData: TraitData[] =
     data?.averages?.map((d: any) => ({
       trait: d.category,
       self: d.selfavg || 0,
       peer: d.peeravg || 0,
     })) || [];
-  const classmates = data?.classmates || [];
+  const classmates: any[] = data?.classmates || [];
   const givenFeedback: string[] = (data?.feedback || []).map((r: any) => r.target_user);
 
-  if (error) return <div>Error loading dashboard data.</div>;
+  if (!classId) {
+    // Inform the user to complete the profile if classId hasn't been set
+    return <div>Please complete your profile to see dashboard data.</div>;
+  }
+  if (error) {
+    console.error("SWR error:", error);
+    return <div>Error loading dashboard data.</div>;
+  }
   if (isLoading || !data) return <div>Loading dashboard...</div>;
+
+  // Helper functions for display names.
+  const getWelcomeDisplayName = () => {
+    if (student.military_name?.trim()) {
+      return student.military_name.trim();
+    } else if (student.rank?.trim() && student.last_name?.trim()) {
+      return `${student.rank.trim()} ${student.last_name.trim()}`;
+    } else if (student.first_name?.trim()) {
+      const first = student.first_name.trim();
+      return first.charAt(0).toUpperCase() + first.slice(1).toLowerCase();
+    }
+    return user.email;
+  };
+
+  const getClassmateDisplayName = (s: any): string => {
+    if (s.military_name?.trim()) {
+      return s.military_name.trim();
+    } else if (s.rank?.trim() && s.last_name?.trim()) {
+      return `${s.rank.trim()} ${s.last_name.trim()}`;
+    } else if (s.first_name?.trim() && s.last_name?.trim()) {
+      return `${s.first_name.trim()} ${s.last_name.trim()}`;
+    } else if (s.first_name?.trim()) {
+      return s.first_name.trim();
+    }
+    return s.email;
+  };
+
+  const displayName = getWelcomeDisplayName();
 
   return (
     <div className="max-w-6xl mx-auto p-6 space-y-8">
