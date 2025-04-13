@@ -20,19 +20,19 @@ export async function middleware(req: NextRequest, event: NextFetchEvent) {
 
   // If the user is authenticated...
   if (userId) {
-    // When on the complete-profile page: if the profile is already completed, redirect to dashboard.
-    if (pathname === "/complete-profile") {
+    // When on the profile-setup page: if the profile is already completed, redirect to dashboard.
+    if (pathname === "/profile-setup") {
       const profileCompleted =
         req.cookies.get("profile_completed")?.value === "true";
       if (profileCompleted) {
         return NextResponse.redirect(new URL("/dashboard", req.url));
       }
     } else {
-      // On any other route: if the profile is not completed, redirect to complete-profile.
+      // On any other route: if the profile is not completed, redirect to profile-setup.
       const profileCompleted =
         req.cookies.get("profile_completed")?.value === "true";
       if (!profileCompleted) {
-        return NextResponse.redirect(new URL("/complete-profile", req.url));
+        return NextResponse.redirect(new URL("/profile-setup", req.url));
       }
     }
   }
@@ -45,7 +45,8 @@ export async function middleware(req: NextRequest, event: NextFetchEvent) {
 export const config = {
   matcher: [
     // Exclude static files (those with a dot), Next.js internals (_next), and public auth pages.
-    "/((?!.*\\..*|_next|sign-in|sign-up|complete-profile).*)",
+    // Note: Replace '/complete-profile' with '/profile-setup' here if needed.
+    "/((?!.*\\..*|_next|sign-in|sign-up|profile-setup).*)",
     "/dashboard(.*)",
   ],
 };
