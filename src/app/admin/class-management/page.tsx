@@ -4,8 +4,6 @@ import { useEffect, useState } from "react";
 import BaseLayout from "@/components/BaseLayout";
 import { supabase } from "@/lib/supabaseClient";
 import { Dialog } from "@headlessui/react";
-import { clerkClient } from "@clerk/clerk-sdk-node";
-import * as XLSX from "xlsx";
 
 interface Instructor {
   id: string;
@@ -44,21 +42,23 @@ export default function ClassManagementPage() {
   const [instructors, setInstructors] = useState<Instructor[]>([]);
   const [classTemplates, setClassTemplates] = useState<ClassTemplate[]>([]);
   const [classes, setClasses] = useState<Class[]>([]);
-  const [invites, setInvites] = useState<StudentInvite[]>([]);
   const [classWeeks, setClassWeeks] = useState<ClassWeek[]>([]);
+  const [invites, setInvites] = useState<StudentInvite[]>([]);
   const [userEmails, setUserEmails] = useState<string[]>([]);
 
   const [className, setClassName] = useState("");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [instructorId, setInstructorId] = useState<string>("");
+  const [fellowshipName, setFellowshipName] = useState("");
+
+  const [submitting, setSubmitting] = useState(false);
+  const [message, setMessage] = useState("");
 
   const [inviteEmail, setInviteEmail] = useState("");
   const [selectedClass, setSelectedClass] = useState<string | null>(null);
   const [viewingClass, setViewingClass] = useState<Class | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
-  const [message, setMessage] = useState("");
 
   useEffect(() => {
     const fetchData = async () => {
@@ -86,7 +86,7 @@ export default function ClassManagementPage() {
   useEffect(() => {
     const fetchClerkUsers = async () => {
       try {
-        const users = await clerkClient.users.getUserList();
+        const users = await (await import("@clerk/clerk-sdk-node")).clerkClient.users.getUserList();
         const emails = users.flatMap((u) =>
           u.emailAddresses.map((e) => e.emailAddress.toLowerCase())
         );
@@ -114,6 +114,43 @@ export default function ClassManagementPage() {
     return match?.theme || null;
   };
 
+  const handleCreateClass = async () => {
+    if (!className || !startDate || !endDate || !instructorId) {
+      alert("Please fill out all fields.");
+      return;
+    }
+
+    setSubmitting(true);
+    const { error } = await supabase.from("classes").insert({
+      name: className,
+      start_date: startDate,
+      end_date: endDate,
+      instructor_id: instructorId,
+      fellowship_name: fellowshipName,
+    });
+
+    if (error) {
+      console.error("Failed to create class:", error);
+      setMessage("❌ Failed to create class.");
+    } else {
+      setMessage("✅ Class created successfully!");
+      setClassName("");
+      setStartDate("");
+      setEndDate("");
+      setInstructorId("");
+      setFellowshipName("");
+
+      const { data } = await supabase
+        .from("classes")
+        .select("*, instructor:instructor_id (id, full_name, email)")
+        .order("created_at", { ascending: false });
+
+      setClasses(data || []);
+    }
+
+    setSubmitting(false);
+  };
+
   const handleViewClass = (cls: Class) => {
     setViewingClass(cls);
     setIsModalOpen(true);
@@ -124,7 +161,70 @@ export default function ClassManagementPage() {
       <div className="max-w-5xl mx-auto p-6">
         <h1 className="text-3xl font-bold mb-6">📚 Class Management</h1>
 
-        {/* Class Cards */}
+        {/* Add Class Form */}
+        <div className="space-y-4 mb-12">
+          <select
+            value={className}
+            onChange={(e) => setClassName(e.target.value)}
+            className="w-full p-2 border rounded dark:bg-gray-800 dark:text-white"
+          >
+            <option value="" disabled>Select Class Name</option>
+            {classTemplates.map((t) => (
+              <option key={t.id} value={t.name}>{t.name}</option>
+            ))}
+          </select>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <input
+              type="date"
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+              className="p-2 border rounded dark:bg-gray-800 dark:text-white"
+            />
+            <input
+              type="date"
+              value={endDate}
+              onChange={(e) => setEndDate(e.target.value)}
+              className="p-2 border rounded dark:bg-gray-800 dark:text-white"
+            />
+          </div>
+
+          <select
+            value={instructorId}
+            onChange={(e) => setInstructorId(e.target.value)}
+            className="w-full p-2 border rounded dark:bg-gray-800 dark:text-white"
+          >
+            <option value="" disabled>Select Instructor</option>
+            {instructors.map((i) => (
+              <option key={i.id} value={i.id}>
+                {i.full_name || i.email}
+              </option>
+            ))}
+          </select>
+
+          <select
+            value={fellowshipName}
+            onChange={(e) => setFellowshipName(e.target.value)}
+            className="w-full p-2 border rounded dark:bg-gray-800 dark:text-white"
+          >
+            <option value="">Select Fellowship</option>
+            <option value="Fellowship I">Fellowship I</option>
+            <option value="Fellowship II">Fellowship II</option>
+            <option value="Fellowship III">Fellowship III</option>
+          </select>
+
+          <button
+            onClick={handleCreateClass}
+            disabled={submitting}
+            className="bg-indigo-600 text-white px-4 py-2 rounded"
+          >
+            {submitting ? "Creating..." : "Create Class"}
+          </button>
+
+          {message && <p className="text-sm text-green-500">{message}</p>}
+        </div>
+
+        {/* Class List */}
         <div className="space-y-6">
           {classes.map((cls) => {
             const theme = getCurrentWeekTheme(cls.id, cls.start_date);
@@ -139,12 +239,42 @@ export default function ClassManagementPage() {
                     <p className="text-sm text-gray-500">
                       {cls.start_date} → {cls.end_date}
                     </p>
+
+                    <div className="mt-2 space-y-1">
+                      <p className="text-sm text-gray-500">Fellowship:</p>
+                      <select
+                        className="w-full p-2 border rounded dark:bg-gray-800 dark:text-white text-sm"
+                        value={cls.fellowship_name || ""}
+                        onChange={async (e) => {
+                          const { error } = await supabase
+                            .from("classes")
+                            .update({ fellowship_name: e.target.value })
+                            .eq("id", cls.id);
+
+                          if (!error) {
+                            const updated = await supabase
+                              .from("classes")
+                              .select("*, instructor:instructor_id (id, full_name, email)")
+                              .order("created_at", { ascending: false });
+
+                            if (updated.data) setClasses(updated.data);
+                          }
+                        }}
+                      >
+                        <option value="">Select Fellowship</option>
+                        <option value="Fellowship I">Fellowship I</option>
+                        <option value="Fellowship II">Fellowship II</option>
+                        <option value="Fellowship III">Fellowship III</option>
+                      </select>
+                    </div>
+
                     {theme && (
                       <p className="text-sm text-indigo-600 dark:text-indigo-400 mt-1">
                         📅 This Week's Theme: <span className="font-medium">{theme}</span>
                       </p>
                     )}
                   </div>
+
                   <div className="flex gap-2">
                     <button
                       onClick={() => handleViewClass(cls)}
@@ -173,17 +303,6 @@ export default function ClassManagementPage() {
                   .map((inv) => (
                     <li key={inv.id} className="flex justify-between items-center">
                       <span>{inv.email}</span>
-                      <span
-                        className={`text-xs font-medium ${
-                          userEmails.includes(inv.email.toLowerCase())
-                            ? "text-green-600"
-                            : "text-yellow-500"
-                        }`}
-                      >
-                        {userEmails.includes(inv.email.toLowerCase())
-                          ? "Signed Up"
-                          : "Pending"}
-                      </span>
                     </li>
                   ))}
               </ul>
