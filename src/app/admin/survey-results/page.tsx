@@ -14,7 +14,8 @@ interface Question {
 
 interface Answer {
   question_id: string;
-  answer_text: string;
+  rating?: number | string;
+  answer_text?: string;
 }
 
 export default function SurveyResultsPage() {
@@ -26,7 +27,10 @@ export default function SurveyResultsPage() {
 
   useEffect(() => {
     const fetchSurveys = async () => {
-      const { data, error } = await supabase.from("surveys").select("*").order("created_at", { ascending: false });
+      const { data, error } = await supabase
+        .from("surveys")
+        .select("*")
+        .order("created_at", { ascending: false });
       if (error) console.error("Failed to load surveys", error);
       else setSurveys(data || []);
     };
@@ -71,11 +75,17 @@ export default function SurveyResultsPage() {
     fetchData();
   }, [selectedSurvey]);
 
+  // Modified helper: use rating if available; otherwise, fall back to answer_text.
   const getAnswersFor = (questionId: string) =>
-    answers.filter((a) => a.question_id === questionId).map((a) => a.answer_text);
+    answers
+      .filter((a) => a.question_id === questionId)
+      .map((a) => (a.rating != null ? a.rating : a.answer_text));
 
+  // Updated getAverage that checks type before parsing
   const getAverage = (questionId: string) => {
-    const relevant = getAnswersFor(questionId).map((a) => parseFloat(a)).filter((n) => !isNaN(n));
+    const relevant = getAnswersFor(questionId)
+      .map((a) => (typeof a === "number" ? a : parseFloat(a as string)))
+      .filter((n) => !isNaN(n));
     if (!relevant.length) return null;
     const sum = relevant.reduce((a, b) => a + b, 0);
     return (sum / relevant.length).toFixed(2);
