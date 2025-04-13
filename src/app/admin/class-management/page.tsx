@@ -5,6 +5,7 @@ import BaseLayout from "@/components/BaseLayout";
 import { supabase } from "@/lib/supabaseClient";
 import { Dialog } from "@headlessui/react";
 import * as XLSX from "xlsx";
+import { clerkClient } from "@clerk/clerk-sdk-node"; // Only if needed on client side, otherwise remove
 
 interface Instructor {
   id: string;
@@ -257,7 +258,7 @@ export default function ClassManagementPage() {
     }
   };
 
-  // Mass invite
+  // Mass invite (bulk upload)
   const handleMassUpload = async (file: File, classId: string) => {
     const ext = file.name.split(".").pop()?.toLowerCase();
     let emails: string[] = [];
@@ -272,7 +273,7 @@ export default function ClassManagementPage() {
       const parsed = XLSX.utils.sheet_to_json<{ email: string }>(sheet);
       emails = parsed.map((r) => r.email?.trim()).filter(Boolean) as string[];
     } else {
-      alert("Only .csv or .xlsx supported");
+      alert("Only .csv or .xlsx files are supported");
       return;
     }
 
@@ -363,7 +364,10 @@ export default function ClassManagementPage() {
           {classes.map((cls) => {
             const theme = getCurrentWeekTheme(cls.id, cls.start_date);
             return (
-              <div key={cls.id} className="p-6 border rounded bg-white dark:bg-gray-900 shadow space-y-4">
+              <div
+                key={cls.id}
+                className="p-6 border rounded bg-white dark:bg-gray-900 shadow space-y-4"
+              >
                 <div className="flex justify-between items-start">
                   <div>
                     <h2 className="text-lg font-bold">{cls.name}</h2>
@@ -409,7 +413,7 @@ export default function ClassManagementPage() {
                 {/* Invite Section */}
                 <div className="border-t pt-4">
                   <h3 className="font-semibold mb-2">📨 Invite Students</h3>
-                  <div className="flex gap-2 mb-2">
+                  <div className="flex gap-2 mb-2 items-center">
                     <input
                       type="email"
                       value={selectedClass === cls.id ? inviteEmail : ""}
@@ -426,17 +430,20 @@ export default function ClassManagementPage() {
                     >
                       Invite
                     </button>
+                    {/* Custom styled file input */}
+                    <label className="bg-blue-600 text-white px-4 py-2 rounded text-sm cursor-pointer">
+                      Bulk Upload
+                      <input
+                        type="file"
+                        accept=".csv,.xlsx"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) handleMassUpload(file, cls.id);
+                        }}
+                        className="hidden"
+                      />
+                    </label>
                   </div>
-
-                  <input
-                    type="file"
-                    accept=".csv,.xlsx"
-                    onChange={(e) => {
-                      const file = e.target.files?.[0];
-                      if (file) handleMassUpload(file, cls.id);
-                    }}
-                    className="text-sm"
-                  />
                 </div>
               </div>
             );
@@ -444,7 +451,11 @@ export default function ClassManagementPage() {
         </div>
 
         {/* View Class Modal */}
-        <Dialog open={!!viewingClass} onClose={() => setIsModalOpen(false)} className="relative z-50">
+        <Dialog
+          open={!!viewingClass}
+          onClose={() => setIsModalOpen(false)}
+          className="relative z-50"
+        >
           <div className="fixed inset-0 bg-black/30" aria-hidden="true" />
           <div className="fixed inset-0 flex items-center justify-center p-4">
             <Dialog.Panel className="w-full max-w-xl rounded bg-white dark:bg-gray-900 p-6 shadow-xl">
@@ -480,11 +491,17 @@ export default function ClassManagementPage() {
         </Dialog>
 
         {/* Edit Class Modal */}
-        <Dialog open={!!editingClass} onClose={() => setEditingClass(null)} className="relative z-50">
+        <Dialog
+          open={!!editingClass}
+          onClose={() => setEditingClass(null)}
+          className="relative z-50"
+        >
           <div className="fixed inset-0 bg-black/30" aria-hidden="true" />
           <div className="fixed inset-0 flex items-center justify-center p-4">
             <Dialog.Panel className="w-full max-w-xl rounded bg-white dark:bg-gray-900 p-6 shadow-xl space-y-4">
-              <Dialog.Title className="text-xl font-bold mb-2">✏️ Edit Class</Dialog.Title>
+              <Dialog.Title className="text-xl font-bold mb-2">
+                ✏️ Edit Class
+              </Dialog.Title>
 
               <input
                 value={editingClass?.name || ""}
