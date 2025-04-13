@@ -1,24 +1,52 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import BaseLayout from "@/components/BaseLayout";
 import { supabase } from "@/lib/supabaseClient";
 
-// Helper to map the local question type to the allowed database value.
+// Helper to map local question type to allowed database value.
 const mapQuestionType = (type: string) => {
-  if (type === "radio") return "multiple_choice";
-  if (type === "text") return "short_text";
-  return "stars";
+  switch (type) {
+    case "stars":
+      return "star_rating"; // assuming check constraint uses "star_rating"
+    case "radio":
+      return "multiple_choice";
+    case "text":
+      return "short_text";
+    default:
+      return "star_rating";
+  }
 };
 
 export default function SurveyPage() {
+  // State for survey creation
   const [title, setTitle] = useState("");
-  // Each question stores a local "prompt" along with other fields.
   const [questions, setQuestions] = useState([
     { prompt: "", category: "", type: "stars", options: [] as string[] }
   ]);
   const [surveyType, setSurveyType] = useState<"course" | "self" | "paired">("course");
 
+  // State for existing surveys list.
+  const [existingSurveys, setExistingSurveys] = useState<any[]>([]);
+
+  // Fetch existing surveys from Supabase.
+  const fetchSurveys = async () => {
+    const { data, error } = await supabase
+      .from("surveys")
+      .select("*")
+      .order("created_at", { ascending: false });
+    if (error) {
+      console.error("Error fetching surveys:", error);
+    } else {
+      setExistingSurveys(data || []);
+    }
+  };
+
+  useEffect(() => {
+    fetchSurveys();
+  }, []);
+
+  // Handlers for survey creation fields.
   const handleAddQuestion = () => {
     setQuestions([
       ...questions,
@@ -30,7 +58,6 @@ export default function SurveyPage() {
     setQuestions(questions.filter((_, i) => i !== index));
   };
 
-  // Update the question's prompt, category, or type.
   const handleChange = (
     index: number,
     field: "prompt" | "category" | "type",
@@ -39,11 +66,9 @@ export default function SurveyPage() {
     const updated = [...questions];
     if (field === "type") {
       updated[index][field] = value;
-      // If the question type becomes "radio", initialize options.
       if (value === "radio" && !updated[index].options) {
         updated[index].options = [];
       } else if (value !== "radio") {
-        // For non-radio types, clear out options.
         updated[index].options = [];
       }
     } else {
@@ -52,7 +77,6 @@ export default function SurveyPage() {
     setQuestions(updated);
   };
 
-  // Handlers for radio options.
   const handleAddOption = (questionIndex: number) => {
     const updated = [...questions];
     if (!updated[questionIndex].options) {
@@ -88,7 +112,7 @@ export default function SurveyPage() {
 
     console.log("Survey title:", title);
 
-    // Build survey payloads—using the "name" column in surveys.
+    // Build survey payload using "name" (as defined in your surveys table)
     let surveyPayloads;
     if (surveyType === "paired") {
       surveyPayloads = [
@@ -113,12 +137,12 @@ export default function SurveyPage() {
         return;
       }
 
-      // Build the question inserts, mapping local fields to your DB schema.
+      // Prepare question inserts.
       const questionInserts = questions.map((q) => ({
         survey_id: survey.id,
-        question_text: q.prompt, // local prompt maps to question_text column.
+        question_text: q.prompt, // Mapping local 'prompt' to DB column 'question_text'
         category: q.type !== "radio" ? (q.category || "General") : null,
-        question_type: mapQuestionType(q.type), // use mapped type here.
+        question_type: mapQuestionType(q.type),
         options: q.type === "radio" ? q.options : null
       }));
 
@@ -134,16 +158,35 @@ export default function SurveyPage() {
     }
 
     alert("✅ Survey(s) created successfully!");
+    // Clear the form.
     setTitle("");
     setQuestions([{ prompt: "", category: "", type: "stars", options: [] }]);
     setSurveyType("course");
+    // Refresh the existing surveys list.
+    fetchSurveys();
+  };
+
+  // Handler to delete a survey.
+  const handleDeleteSurvey = async (surveyId: string) => {
+    if (!confirm("Are you sure you want to delete this survey?")) return;
+    const { error } = await supabase
+      .from("surveys")
+      .delete()
+      .eq("id", surveyId);
+    if (error) {
+      console.error("Failed to delete survey:", error);
+      alert("Failed to delete survey. Error: " + (error?.message || "Unknown error"));
+    } else {
+      alert("Survey deleted successfully!");
+      fetchSurveys();
+    }
   };
 
   return (
     <BaseLayout isAdmin showBackToDashboard>
       <div className="max-w-4xl mx-auto p-6 space-y-6">
+        {/* Survey Creation Form */}
         <h2 className="text-3xl font-bold text-white">📝 Create New Survey</h2>
-
         <input
           type="text"
           placeholder="Survey Title"
@@ -151,22 +194,18 @@ export default function SurveyPage() {
           value={title}
           onChange={(e) => setTitle(e.target.value)}
         />
-
         <label className="block text-sm font-medium mt-4 mb-1 text-white">
           Survey Type
         </label>
         <select
           value={surveyType}
-          onChange={(e) =>
-            setSurveyType(e.target.value as "course" | "self" | "paired")
-          }
+          onChange={(e) => setSurveyType(e.target.value as "course" | "self" | "paired")}
           className="w-full p-2 border rounded dark:bg-gray-800 dark:text-white bg-white"
         >
           <option value="course">📋 Course Survey</option>
           <option value="self">🧠 Self Reflection</option>
           <option value="paired">👥 Paired (Self + Peer)</option>
         </select>
-
         <div className="space-y-4">
           {questions.map((q, index) => (
             <div
@@ -208,9 +247,7 @@ export default function SurveyPage() {
                         placeholder={`Option ${optIndex + 1}`}
                         className="w-full p-2 border rounded bg-gray-800 text-white"
                         value={option}
-                        onChange={(e) =>
-                          handleChangeOption(index, optIndex, e.target.value)
-                        }
+                        onChange={(e) => handleChangeOption(index, optIndex, e.target.value)}
                       />
                       <button
                         onClick={() => handleRemoveOption(index, optIndex)}
@@ -237,20 +274,40 @@ export default function SurveyPage() {
             </div>
           ))}
         </div>
-
         <button
           onClick={handleAddQuestion}
           className="text-sm text-blue-400 hover:underline"
         >
           ➕ Add Question
         </button>
-
         <button
           onClick={handleSubmit}
           className="mt-4 bg-indigo-600 hover:bg-indigo-500 text-white px-6 py-2 rounded"
         >
           Save Survey
         </button>
+
+        {/* Existing Surveys List */}
+        <div className="mt-10 space-y-4">
+          <h2 className="text-2xl font-bold text-white">Existing Surveys</h2>
+          {existingSurveys.length === 0 ? (
+            <p className="text-white">No surveys found.</p>
+          ) : (
+            <ul className="space-y-2">
+              {existingSurveys.map((survey) => (
+                <li key={survey.id} className="flex justify-between items-center bg-gray-800 p-2 rounded">
+                  <span className="text-white">{survey.name}</span>
+                  <button
+                    onClick={() => handleDeleteSurvey(survey.id)}
+                    className="text-red-400 hover:text-red-600 text-sm"
+                  >
+                    Delete
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
       </div>
     </BaseLayout>
   );
