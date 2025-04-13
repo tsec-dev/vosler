@@ -37,16 +37,13 @@ interface TraitData {
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
 export default function ClientDashboard({ user, student }: DashboardProps): JSX.Element {
-  // Use Clerk's useUser hook for reliable access to user data
+  // Use Clerk's useUser hook for reliable user data
   const { user: clerkUser, isLoaded } = useUser();
-
-  // Store the classId we extract from Clerk public metadata
   const [classId, setClassId] = useState<string | null>(null);
 
+  // Extract class_id from Clerk public metadata when user is loaded
   useEffect(() => {
-    // Once user data is loaded, extract the class_id from public metadata
     if (isLoaded && clerkUser) {
-      // Cast publicMetadata to the expected type so TypeScript understands the structure.
       const meta = clerkUser.publicMetadata as { class_id?: string };
       const classMeta = meta.class_id;
       if (!classMeta) {
@@ -56,36 +53,26 @@ export default function ClientDashboard({ user, student }: DashboardProps): JSX.
     }
   }, [isLoaded, clerkUser]);
 
-  // Use SWR to fetch dashboard data once classId is defined.
-  const { data, error, isLoading } = useSWR(
+  // Use SWR to fetch dashboard data once we have a valid classId
+  const { data, error, isLoading, mutate } = useSWR(
     classId ? `/api/dashboard?classId=${classId}&userEmail=${user.email}` : null,
     fetcher,
-    { revalidateOnFocus: true } // refresh when the window regains focus
+    { revalidateOnFocus: true }
   );
 
-  // Set sensible defaults
+  // Map feedback using the correct column name "target"
+  const givenFeedback: string[] = (data?.feedback || []).map((r: any) => r.target);
+
+  // Set defaults for week & theme
   const weekNumber: number = data?.weekNumber || 1;
   const currentTheme: string = data?.currentTheme || "Growth";
-  const traitData: TraitData[] =
-    data?.averages?.map((d: any) => ({
-      trait: d.category,
-      self: d.selfavg || 0,
-      peer: d.peeravg || 0,
-    })) || [];
-  const classmates: any[] = data?.classmates || [];
-  const givenFeedback: string[] = (data?.feedback || []).map((r: any) => r.target_user);
 
-  if (!classId) {
-    // Inform the user to complete the profile if classId hasn't been set
-    return <div>Please complete your profile to see dashboard data.</div>;
-  }
-  if (error) {
-    console.error("SWR error:", error);
-    return <div>Error loading dashboard data.</div>;
-  }
-  if (isLoading || !data) return <div>Loading dashboard...</div>;
+  // For debugging, add a manual "Refresh Dashboard" button
+  const handleRefresh = () => {
+    mutate();
+  };
 
-  // Helper functions for display names.
+  // Helper functions for display names
   const getWelcomeDisplayName = () => {
     if (student.military_name?.trim()) {
       return student.military_name.trim();
@@ -113,8 +100,20 @@ export default function ClientDashboard({ user, student }: DashboardProps): JSX.
 
   const displayName = getWelcomeDisplayName();
 
+  if (!classId) {
+    return <div>Please complete your profile to see dashboard data.</div>;
+  }
+  if (error) {
+    console.error("SWR error:", error);
+    return <div>Error loading dashboard data.</div>;
+  }
+  if (isLoading || !data) return <div>Loading dashboard...</div>;
+
   return (
     <div className="max-w-6xl mx-auto p-6 space-y-8">
+      <button onClick={handleRefresh} className="mb-4 p-2 bg-gray-200 dark:bg-gray-700">
+        Refresh Dashboard
+      </button>
       <h1 className="text-2xl font-bold text-white">
         Welcome, {displayName}, to Week {weekNumber}: {currentTheme}
       </h1>
@@ -125,24 +124,26 @@ export default function ClientDashboard({ user, student }: DashboardProps): JSX.
           📊 Self vs Peer Averages
         </h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-          {traitData.map(({ trait, self, peer }) => (
-            <div key={trait}>
-              <p className="text-sm font-medium text-gray-600 dark:text-gray-300 mb-1">{trait}</p>
+          {(data?.averages || []).map((d: any) => (
+            <div key={d.category}>
+              <p className="text-sm font-medium text-gray-600 dark:text-gray-300 mb-1">{d.category}</p>
               <div className="h-4 w-full bg-gray-200 dark:bg-gray-800 rounded overflow-hidden flex">
                 <motion.div
                   className="bg-indigo-500"
-                  style={{ width: `${self * 20}%` }}
+                  style={{ width: `${(d.selfavg || 0) * 20}%` }}
                   initial={{ width: 0 }}
-                  animate={{ width: `${self * 20}%` }}
+                  animate={{ width: `${(d.selfavg || 0) * 20}%` }}
                 />
                 <motion.div
                   className="bg-green-500"
-                  style={{ width: `${peer * 20}%` }}
+                  style={{ width: `${(d.peeravg || 0) * 20}%` }}
                   initial={{ width: 0 }}
-                  animate={{ width: `${peer * 20}%` }}
+                  animate={{ width: `${(d.peeravg || 0) * 20}%` }}
                 />
               </div>
-              <p className="text-xs mt-1 text-gray-400">You: {self}/5 | Peers: {peer}/5</p>
+              <p className="text-xs mt-1 text-gray-400">
+                You: {d.selfavg || 0}/5 | Peers: {d.peeravg || 0}/5
+              </p>
             </div>
           ))}
         </div>
@@ -150,14 +151,16 @@ export default function ClientDashboard({ user, student }: DashboardProps): JSX.
 
       {/* Classmate Feedback Section */}
       <div className="p-6 border rounded-lg bg-white dark:bg-gray-900 shadow space-y-4">
-        <h2 className="text-lg font-semibold text-gray-800 dark:text-white">👥 Classmates to Review</h2>
-        {classmates.length === 0 && (
+        <h2 className="text-lg font-semibold text-gray-800 dark:text-white">
+          👥 Classmates to Review
+        </h2>
+        {data?.classmates?.length === 0 && (
           <p className="text-sm text-gray-500 dark:text-gray-400">
             All feedback complete or no classmates found.
           </p>
         )}
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-          {classmates.map((s: any) => {
+          {(data?.classmates || []).map((s: any) => {
             const displayStudent = getClassmateDisplayName(s);
             return (
               <div key={s.email} className="p-4 border rounded bg-gray-100 dark:bg-gray-800 text-sm">
