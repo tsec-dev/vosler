@@ -52,22 +52,22 @@ export async function POST(request: Request) {
 
     console.log("API POST /announcements called with:", { classId, title, userEmail });
 
-    if (!classId || !title || !content) {
+    if (!classId || !title || !content || !userEmail) {
       console.error("Missing required parameters.");
       return NextResponse.json(
-        { error: "Missing required parameters (classId, title, content)." },
+        { error: "Missing required parameters (classId, title, content, userEmail)." },
         { status: 400 }
       );
     }
 
-    // Verify user is an admin
+    // Verify user is an admin by checking the instructors table
     const { data: instructor, error: instructorError } = await supabase
       .from("instructors")
       .select("is_admin")
       .eq("email", userEmail)
       .single();
 
-    if (instructorError || !instructor) {
+    if (instructorError) {
       console.error("Error verifying admin status:", instructorError);
       return NextResponse.json(
         { error: "Unauthorized. User not found or not an admin." },
@@ -75,7 +75,7 @@ export async function POST(request: Request) {
       );
     }
 
-    if (!instructor.is_admin) {
+    if (!instructor || !instructor.is_admin) {
       console.error("User is not an admin:", userEmail);
       return NextResponse.json(
         { error: "Unauthorized. Admin privileges required." },
@@ -93,6 +93,7 @@ export async function POST(request: Request) {
           content,
           created_by: userEmail,
           created_at: new Date().toISOString(),
+          is_active: true
         },
       ])
       .select()
@@ -131,14 +132,14 @@ export async function DELETE(request: Request) {
   }
 
   try {
-    // Verify user is an admin
+    // Verify user is an admin by checking the instructors table
     const { data: instructor, error: instructorError } = await supabase
       .from("instructors")
       .select("is_admin")
       .eq("email", userEmail)
       .single();
 
-    if (instructorError || !instructor) {
+    if (instructorError) {
       console.error("Error verifying admin status:", instructorError);
       return NextResponse.json(
         { error: "Unauthorized. User not found or not an admin." },
@@ -146,7 +147,7 @@ export async function DELETE(request: Request) {
       );
     }
 
-    if (!instructor.is_admin) {
+    if (!instructor || !instructor.is_admin) {
       console.error("User is not an admin:", userEmail);
       return NextResponse.json(
         { error: "Unauthorized. Admin privileges required." },

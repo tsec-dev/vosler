@@ -52,6 +52,19 @@ export default function AdminToolsPage() {
 
   // Fetch initial data: classes and user email
   useEffect(() => {
+    // Get current user email from Supabase auth
+    const getCurrentUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user?.email) {
+        console.log("Current user email:", user.email);
+        setUserEmail(user.email);
+      } else {
+        console.error("No user email found in auth");
+      }
+    };
+    
+    getCurrentUser();
+    
     // Fetch classes
     supabase.from("classes").select("id, name").then(({ data }) => {
       if (data) {
@@ -60,13 +73,6 @@ export default function AdminToolsPage() {
         if (data.length > 0 && !selectedClassId) {
           setSelectedClassId(data[0].id);
         }
-      }
-    });
-
-    // Get current user email from Supabase auth
-    supabase.auth.getSession().then(({ data }) => {
-      if (data?.session?.user?.email) {
-        setUserEmail(data.session.user.email);
       }
     });
   }, []);
@@ -87,7 +93,7 @@ export default function AdminToolsPage() {
     // Load trends
     loadTrends(selectedClassId);
     
-    // Load announcements via API
+    // Load announcements
     loadAnnouncements(selectedClassId);
   }, [selectedClassId]);
 
@@ -105,16 +111,18 @@ export default function AdminToolsPage() {
   };
   
   const loadAnnouncements = async (classId: string) => {
-    try {
-      const response = await fetch(`/api/announcements?classId=${classId}`);
-      if (!response.ok) {
-        throw new Error(`Error fetching announcements: ${response.statusText}`);
-      }
-      const data = await response.json();
-      setAnnouncements(data);
-    } catch (error) {
-      console.error("Failed to load announcements:", error);
+    const { data, error } = await supabase
+      .from('class_announcements')
+      .select('*')
+      .eq('class_id', classId)
+      .order('created_at', { ascending: false });
+      
+    if (error) {
+      console.error("Announcements query error:", error);
+      return;
     }
+    
+    setAnnouncements(data || []);
   };
 
   const updateApproval = async (id: string, approved: boolean) => {
@@ -137,25 +145,33 @@ export default function AdminToolsPage() {
       return;
     }
     
+    if (!userEmail) {
+      setFormError("Unable to identify current user");
+      return;
+    }
+    
     setIsSubmitting(true);
     
     try {
-      const response = await fetch('/api/announcements', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          classId: selectedClassId,
-          title: title.trim(),
-          content: content.trim(),
-          userEmail: userEmail
-        }),
-      });
+      console.log("Submitting announcement with user email:", userEmail);
       
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to create announcement');
+      const { data, error } = await supabase
+        .from('class_announcements')
+        .insert([
+          { 
+            class_id: selectedClassId, 
+            title: title.trim(), 
+            content: content.trim(),
+            created_by: userEmail,
+            created_at: new Date().toISOString(),
+            is_active: true
+          }
+        ])
+        .select();
+        
+      if (error) {
+        console.error("Error creating announcement:", error);
+        throw new Error(error.message);
       }
       
       // Clear form and show success message
@@ -178,13 +194,20 @@ export default function AdminToolsPage() {
     }
     
     try {
-      const response = await fetch(`/api/announcements?id=${id}&userEmail=${encodeURIComponent(userEmail)}`, {
-        method: 'DELETE',
-      });
+      // Option 1: Hard delete
+      // const { error } = await supabase
+      //   .from('class_announcements')
+      //   .delete()
+      //   .eq('id', id);
       
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to delete announcement');
+      // Option 2: Soft delete
+      const { error } = await supabase
+        .from('class_announcements')
+        .update({ is_active: false })
+        .eq('id', id);
+      
+      if (error) {
+        throw new Error(error.message);
       }
       
       // Reload announcements after successful deletion
@@ -345,9 +368,9 @@ export default function AdminToolsPage() {
                 
                 <button
                   type="submit"
-                  disabled={isSubmitting || !selectedClassId}
+                  disabled={isSubmitting || !selectedClassId || !userEmail}
                   className={`px-4 py-2 rounded text-white font-medium ${
-                    isSubmitting || !selectedClassId 
+                    isSubmitting || !selectedClassId || !userEmail
                       ? "bg-gray-500 cursor-not-allowed" 
                       : "bg-blue-600 hover:bg-blue-500"
                   }`}
