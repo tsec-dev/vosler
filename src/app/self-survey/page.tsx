@@ -134,14 +134,14 @@ export default function SelfSurveyPage() {
   return (
     <BaseLayout>
       <div className="max-w-3xl mx-auto p-6">
-        <h1 className="text-2xl font-bold mb-4">🧠 Self Survey</h1>
+        <h1 className="text-2xl font-bold mb-4">Self Survey</h1>
 
         <p className="mb-6 text-gray-500 dark:text-gray-400">
           Select a self-survey below and complete your personal reflection.
         </p>
 
         <select
-          className="mb-6 p-2 border rounded dark:bg-gray-800 dark:text-white"
+          className="block w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring focus:ring-indigo-100 focus:border-indigo-300 dark:bg-gray-800 dark:border-gray-600 dark:text-white"
           value={selectedSurveyId || ""}
           onChange={(e) => setSelectedSurveyId(e.target.value)}
         >
@@ -156,7 +156,7 @@ export default function SelfSurveyPage() {
         </select>
 
         {questions.length > 0 && (
-          <div className="space-y-8">
+          <div className="space-y-8 mt-6">
             {questions.map((q) => (
               <div key={q.id}>
                 <p className="font-semibold mb-2">{q.prompt || q.question_text}</p>
@@ -164,9 +164,7 @@ export default function SelfSurveyPage() {
                   {[1, 2, 3, 4, 5].map((num) => (
                     <FaStar
                       key={num}
-                      className={`cursor-pointer ${
-                        responses[q.id]?.rating >= num ? "text-yellow-400" : "text-gray-400"
-                      }`}
+                      className={`cursor-pointer ${responses[q.id]?.rating >= num ? "text-yellow-400" : "text-gray-400"}`}
                       onClick={() => handleRate(q.id, num)}
                     />
                   ))}
