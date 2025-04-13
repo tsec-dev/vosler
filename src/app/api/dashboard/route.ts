@@ -85,12 +85,10 @@ export async function GET(request: Request) {
         { status: 500 }
       );
     }
-    // Use an empty array if no surveys have been completed
     const safeAverages = averages || [];
     console.log("Fetched averages (safe):", safeAverages);
 
-    // 4. Fetch classmates (excluding the current user)
-    // We include "id" so we can join on it if needed.
+    // 4. Fetch classmates (excluding the current user) from student_profiles
     const { data: classmates, error: classmatesError } = await supabase
       .from("student_profiles")
       .select("id, email, military_name, rank, first_name, last_name, class_id")
@@ -103,27 +101,29 @@ export async function GET(request: Request) {
         { status: 500 }
       );
     }
+    // Exclude the current user from classmates
     const filteredClassmates = (classmates || []).filter(
       (s: any) => s.email !== userEmail
     );
     console.log("Fetched classmates:", filteredClassmates);
 
-    // 4.1. Fetch self survey responses for the class
-    // Removed the .eq("response_type", "self") clause since that column doesn't exist.
-    // Adjust the query as needed if survey_responses has a class_id column.
+    // Prepare a list of student emails for filtering self survey responses.
+    const studentEmails = filteredClassmates.map((s: any) => s.email);
+
+    // 4.1. Fetch self survey responses for these students.
+    // We assume self survey submissions store the student’s email in user_id.
     const { data: selfResponses, error: selfResponsesError } = await supabase
       .from("survey_responses")
       .select("user_id, id")
-      .eq("class_id", classId);
-
+      .in("user_id", studentEmails);
+      
     if (selfResponsesError) {
       console.error("Error fetching self responses:", selfResponsesError);
       // Optionally continue even if this fails
     }
     console.log("Fetched self survey responses:", selfResponses);
 
-    // Merge self survey response IDs into classmates.
-    // Change the join key if needed: if your self survey submissions are saving the student's email as user_id, use s.email; otherwise, if they store a unique id, use s.id.
+    // Merge self survey response IDs into classmates
     const classmatesWithSelf = filteredClassmates.map((s: any) => {
       const selfResponse = (selfResponses || []).find(
         (r: any) => r.user_id === s.email
@@ -132,8 +132,8 @@ export async function GET(request: Request) {
     });
     console.log("Updated classmates with selfResponseId:", classmatesWithSelf);
 
-    // 5. Fetch feedback responses from the feedback table
-    // Here, 'submitted_by' is the email of the user who gave the feedback,
+    // 5. Fetch feedback responses from the feedback table.
+    // 'submitted_by' is the email of the user who gave the feedback,
     // 'target_type' is "peer" for peer feedback, and 'target_id' stores the email of the recipient.
     const { data: feedback, error: feedbackError } = await supabase
       .from("feedback")
@@ -150,14 +150,14 @@ export async function GET(request: Request) {
     }
     console.log("Fetched feedback responses:", feedback);
 
-    // Prepare the aggregated response data
+    // Prepare the aggregated response data.
     const responseData = {
       classRecord,
       weekNumber,
       currentTheme,
       averages: safeAverages,
-      classmates: classmatesWithSelf, // now includes selfResponseId for each classmate, if available
-      feedback, // array of objects with key "target_id"
+      classmates: classmatesWithSelf, // includes selfResponseId (if present)
+      feedback, // feedback data
     };
 
     return NextResponse.json(responseData);
