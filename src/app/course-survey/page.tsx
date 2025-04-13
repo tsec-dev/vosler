@@ -14,7 +14,6 @@ export default function CourseSurveyPage() {
   const [responses, setResponses] = useState<Record<string, any>>({});
   const [classId, setClassId] = useState<string | null>(null);
 
-  // Load user's class from metadata and fetch course surveys
   useEffect(() => {
     if (!user) return;
     const classIdFromMeta = user?.publicMetadata?.class_id as string;
@@ -34,7 +33,6 @@ export default function CourseSurveyPage() {
       });
   }, [user]);
 
-  // When a survey is selected, load its questions
   useEffect(() => {
     if (!selectedSurveyId) return;
 
@@ -51,19 +49,16 @@ export default function CourseSurveyPage() {
       });
   }, [selectedSurveyId]);
 
-  // Handler for star rating input for "scale" or follow-up in yes_no_metric
   const handleRating = (questionId: string, value: number) => {
-    console.log(`Setting rating for question ${questionId}: ${value}`);
     setResponses((prev) => ({
       ...prev,
       [questionId]: {
         ...prev[questionId],
-        rating: value, // numeric rating between 1 and 5
+        rating: value,
       },
     }));
   };
 
-  // Handler for free-text answers
   const handleTextAnswer = (questionId: string, value: string) => {
     setResponses((prev) => ({
       ...prev,
@@ -74,7 +69,6 @@ export default function CourseSurveyPage() {
     }));
   };
 
-  // Handler for multiple choice (radio)
   const handleMultipleChoice = (questionId: string, value: string) => {
     setResponses((prev) => ({
       ...prev,
@@ -85,9 +79,7 @@ export default function CourseSurveyPage() {
     }));
   };
 
-  // New handler for yes/no questions
   const handleYesNo = (questionId: string, value: "yes" | "no") => {
-    // When "no" is chosen, clear any star rating
     setResponses((prev) => ({
       ...prev,
       [questionId]: {
@@ -104,8 +96,6 @@ export default function CourseSurveyPage() {
       return;
     }
 
-    // Validate required answers for each question.
-    // For yes_no_metric, verify that an answer is selected and if "yes", the star rating is provided.
     const unansweredQuestions = questions.filter((q) => {
       const response = responses[q.id];
       if (!response) return true;
@@ -123,7 +113,6 @@ export default function CourseSurveyPage() {
       return;
     }
 
-    // Create the survey response record
     const { data: responseRecord, error } = await supabase
       .from("survey_responses")
       .insert({
@@ -141,9 +130,6 @@ export default function CourseSurveyPage() {
       return;
     }
 
-    console.log("Inserted course survey response:", responseRecord);
-
-    // Build an array of answers to insert
     const answersToInsert = [];
     for (const q of questions) {
       const r = responses[q.id];
@@ -167,13 +153,11 @@ export default function CourseSurveyPage() {
     }
 
     alert("✅ Course survey submitted successfully!");
-    // Reset form state
     setSelectedSurveyId(null);
     setQuestions([]);
     setResponses({});
   };
 
-  // Render question input based on type, including new "yes_no_metric" case
   const renderQuestionInput = (question: any) => {
     switch (question.question_type) {
       case "scale":
@@ -182,11 +166,7 @@ export default function CourseSurveyPage() {
             {[1, 2, 3, 4, 5].map((num) => (
               <FaStar
                 key={num}
-                className={`cursor-pointer ${
-                  responses[question.id]?.rating >= num
-                    ? "text-yellow-400"
-                    : "text-gray-400"
-                }`}
+                className={`cursor-pointer ${responses[question.id]?.rating >= num ? "text-yellow-400" : "text-gray-400"}`}
                 onClick={() => handleRating(question.id, num)}
               />
             ))}
@@ -195,40 +175,26 @@ export default function CourseSurveyPage() {
       case "yes_no_metric":
         return (
           <div>
-            {/* Yes/No Toggle */}
             <div className="flex gap-4 mb-2">
               <button
                 onClick={() => handleYesNo(question.id, "yes")}
-                className={`px-4 py-2 rounded ${
-                  responses[question.id]?.answer_text === "yes"
-                    ? "bg-blue-600 text-white"
-                    : "bg-gray-200 text-gray-800"
-                }`}
+                className={`px-4 py-2 rounded ${responses[question.id]?.answer_text === "yes" ? "bg-blue-600 text-white" : "bg-gray-200 text-gray-800"}`}
               >
                 Yes
               </button>
               <button
                 onClick={() => handleYesNo(question.id, "no")}
-                className={`px-4 py-2 rounded ${
-                  responses[question.id]?.answer_text === "no"
-                    ? "bg-blue-600 text-white"
-                    : "bg-gray-200 text-gray-800"
-                }`}
+                className={`px-4 py-2 rounded ${responses[question.id]?.answer_text === "no" ? "bg-blue-600 text-white" : "bg-gray-200 text-gray-800"}`}
               >
                 No
               </button>
             </div>
-            {/* Conditionally show star rating if "Yes" was selected */}
             {responses[question.id]?.answer_text === "yes" && (
               <div className="flex items-center gap-1">
                 {[1, 2, 3, 4, 5].map((num) => (
                   <FaStar
                     key={num}
-                    className={`cursor-pointer ${
-                      responses[question.id]?.rating >= num
-                        ? "text-yellow-400"
-                        : "text-gray-400"
-                    }`}
+                    className={`cursor-pointer ${responses[question.id]?.rating >= num ? "text-yellow-400" : "text-gray-400"}`}
                     onClick={() => handleRating(question.id, num)}
                   />
                 ))}
@@ -236,21 +202,11 @@ export default function CourseSurveyPage() {
             )}
           </div>
         );
-      case "text":
+      case "radio":  // New case for rendering radio-type questions
         return (
-          <textarea
-            placeholder="Your answer..."
-            value={responses[question.id]?.answer_text || ""}
-            onChange={(e) => handleTextAnswer(question.id, e.target.value)}
-            rows={3}
-            className="w-full p-2 border rounded dark:bg-gray-800 dark:text-white"
-          />
-        );
-      default:
-        if (question.options && Array.isArray(question.options)) {
-          return (
-            <div className="space-y-2">
-              {question.options.map((option: string, index: number) => (
+          <div className="space-y-2">
+            {question.options && Array.isArray(question.options) &&
+              question.options.map((option: string, index: number) => (
                 <div key={index} className="flex items-center">
                   <input
                     type="radio"
@@ -263,19 +219,19 @@ export default function CourseSurveyPage() {
                   <label htmlFor={`option-${question.id}-${index}`}>{option}</label>
                 </div>
               ))}
-            </div>
-          );
-        } else {
-          return (
-            <textarea
-              placeholder="Your answer..."
-              value={responses[question.id]?.answer_text || ""}
-              onChange={(e) => handleTextAnswer(question.id, e.target.value)}
-              rows={3}
-              className="w-full p-2 border rounded dark:bg-gray-800 dark:text-white"
-            />
-          );
-        }
+          </div>
+        );
+      case "text":
+      default:
+        return (
+          <textarea
+            placeholder="Your answer..."
+            value={responses[question.id]?.answer_text || ""}
+            onChange={(e) => handleTextAnswer(question.id, e.target.value)}
+            rows={3}
+            className="w-full p-2 border rounded dark:bg-gray-800 dark:text-white"
+          />
+        );
     }
   };
 
