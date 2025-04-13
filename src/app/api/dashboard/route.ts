@@ -1,36 +1,38 @@
-// pages/api/dashboard.ts
+// app/api/dashboard/route.ts
 
-import type { NextApiRequest, NextApiResponse } from "next";
+import { NextResponse } from "next/server";
 import { supabase } from "@/lib/supabaseClient";
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  const { classId, userEmail } = req.query;
+export async function GET(request: Request) {
+  // Parse query parameters from the URL.
+  const { searchParams } = new URL(request.url);
+  const classId = searchParams.get("classId");
+  const userEmail = searchParams.get("userEmail");
 
   if (!classId || !userEmail) {
-    res.status(400).json({ error: "Missing classId or userEmail parameter." });
-    return;
+    return NextResponse.json({ error: "Missing classId or userEmail parameter." }, { status: 400 });
   }
 
   try {
-    // 1. Fetch class record (start_date & fellowship_name).
+    // 1. Fetch class record (start_date & fellowship_name)
     const { data: classRecord, error: classError } = await supabase
       .from("classes")
       .select("start_date, fellowship_name")
       .eq("id", classId)
       .single();
-    if (classError) throw classError;
+    if (classError || !classRecord) throw classError || new Error("Class record not found");
 
-    // Compute week number from the start_date.
+    // Helper: calculate current week
     const calculateCurrentWeek = (start: string): number => {
       const sDate = new Date(start);
       const now = new Date();
       const diff = now.getTime() - sDate.getTime();
       return Math.floor(diff / (1000 * 60 * 60 * 24 * 7)) + 1;
     };
-    const weekNumber = classRecord?.start_date ? calculateCurrentWeek(classRecord.start_date) : 1;
+    const weekNumber = classRecord.start_date ? calculateCurrentWeek(classRecord.start_date) : 1;
 
-    // 2. Fetch fellowship templates to get the current theme.
-    let currentTheme = "Growth"; // fallback
+    // 2. Fetch fellowship theme based on the week number.
+    let currentTheme = "Growth"; // fallback theme
     if (classRecord.fellowship_name) {
       const { data: templates, error: templatesError } = await supabase
         .from("fellowship_templates")
@@ -45,14 +47,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       }
     }
 
-    // 3. Load self vs. peer averages.
+    // 3. Fetch self vs. peer averages.
     const { data: averages, error: averagesError } = await supabase.rpc("get_self_peer_avg_by_category", {
       target_user: userEmail,
       class_filter: classId,
     });
     if (averagesError) throw averagesError;
 
-    // 4. Load classmates (excluding the current user).
+    // 4. Fetch classmates (excluding the current user).
     const { data: classmates, error: classmatesError } = await supabase
       .from("student_profiles")
       .select("email, military_name, rank, first_name, last_name, class_id")
@@ -60,7 +62,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     if (classmatesError) throw classmatesError;
     const filteredClassmates = (classmates || []).filter((s: any) => s.email !== userEmail);
 
-    // 5. Load feedback responses.
+    // 5. Fetch feedback responses.
     const { data: feedback, error: feedbackError } = await supabase
       .from("survey_responses")
       .select("target_user")
@@ -69,15 +71,18 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       .eq("class_id", classId);
     if (feedbackError) throw feedbackError;
 
-    res.status(200).json({
+    const responseData = {
       classRecord,
       weekNumber,
       currentTheme,
       averages,
       classmates: filteredClassmates,
       feedback,
-    });
+    };
+
+    return NextResponse.json(responseData);
   } catch (error: any) {
-    res.status(500).json({ error: error.message });
+    console.error("API Error:", error);
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
