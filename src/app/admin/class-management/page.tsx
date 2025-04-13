@@ -83,21 +83,6 @@ export default function ClassManagementPage() {
     fetchData();
   }, []);
 
-  useEffect(() => {
-    const fetchClerkUsers = async () => {
-      try {
-        const users = await (await import("@clerk/clerk-sdk-node")).clerkClient.users.getUserList();
-        const emails = users.flatMap((u) =>
-          u.emailAddresses.map((e) => e.emailAddress.toLowerCase())
-        );
-        setUserEmails(emails);
-      } catch (err) {
-        console.error("Failed to fetch Clerk users", err);
-      }
-    };
-    fetchClerkUsers();
-  }, []);
-
   const calculateCurrentWeekNumber = (start: string): number => {
     const startDate = new Date(start);
     const now = new Date();
@@ -115,7 +100,7 @@ export default function ClassManagementPage() {
   };
 
   const handleCreateClass = async () => {
-    if (!className || !startDate || !endDate || !instructorId) {
+    if (!className || !startDate || !endDate || !instructorId || !fellowshipName) {
       alert("Please fill out all fields.");
       return;
     }
@@ -130,8 +115,8 @@ export default function ClassManagementPage() {
     });
 
     if (error) {
-      console.error("Failed to create class:", error);
-      setMessage("❌ Failed to create class.");
+      console.error("❌ Failed to create class:", error);
+      setMessage(`❌ Failed to create class: ${error.message}`);
     } else {
       setMessage("✅ Class created successfully!");
       setClassName("");
@@ -151,6 +136,28 @@ export default function ClassManagementPage() {
     setSubmitting(false);
   };
 
+  const handleDeleteClass = async (classId: string) => {
+    if (!confirm("Are you sure you want to delete this class?")) return;
+    const { error } = await supabase.from("classes").delete().eq("id", classId);
+    if (error) {
+      alert("❌ Failed to delete class.");
+      console.error(error);
+    } else {
+      setClasses((prev) => prev.filter((c) => c.id !== classId));
+    }
+  };
+
+  const handleDeleteStudent = async (inviteId: string) => {
+    if (!confirm("Remove this student from the class?")) return;
+    const { error } = await supabase.from("class_students").delete().eq("id", inviteId);
+    if (error) {
+      alert("❌ Failed to remove student.");
+      console.error(error);
+    } else {
+      setInvites((prev) => prev.filter((i) => i.id !== inviteId));
+    }
+  };
+
   const handleViewClass = (cls: Class) => {
     setViewingClass(cls);
     setIsModalOpen(true);
@@ -161,7 +168,7 @@ export default function ClassManagementPage() {
       <div className="max-w-5xl mx-auto p-6">
         <h1 className="text-3xl font-bold mb-6">📚 Class Management</h1>
 
-        {/* Add Class Form */}
+        {/* Add Class */}
         <div className="space-y-4 mb-12">
           <select
             value={className}
@@ -173,7 +180,6 @@ export default function ClassManagementPage() {
               <option key={t.id} value={t.name}>{t.name}</option>
             ))}
           </select>
-
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <input
               type="date"
@@ -188,7 +194,6 @@ export default function ClassManagementPage() {
               className="p-2 border rounded dark:bg-gray-800 dark:text-white"
             />
           </div>
-
           <select
             value={instructorId}
             onChange={(e) => setInstructorId(e.target.value)}
@@ -196,12 +201,9 @@ export default function ClassManagementPage() {
           >
             <option value="" disabled>Select Instructor</option>
             {instructors.map((i) => (
-              <option key={i.id} value={i.id}>
-                {i.full_name || i.email}
-              </option>
+              <option key={i.id} value={i.id}>{i.full_name || i.email}</option>
             ))}
           </select>
-
           <select
             value={fellowshipName}
             onChange={(e) => setFellowshipName(e.target.value)}
@@ -212,7 +214,6 @@ export default function ClassManagementPage() {
             <option value="Fellowship II">Fellowship II</option>
             <option value="Fellowship III">Fellowship III</option>
           </select>
-
           <button
             onClick={handleCreateClass}
             disabled={submitting}
@@ -220,7 +221,6 @@ export default function ClassManagementPage() {
           >
             {submitting ? "Creating..." : "Create Class"}
           </button>
-
           {message && <p className="text-sm text-green-500">{message}</p>}
         </div>
 
@@ -233,55 +233,20 @@ export default function ClassManagementPage() {
                 <div className="flex justify-between items-center">
                   <div>
                     <h2 className="text-lg font-bold">{cls.name}</h2>
-                    <p className="text-sm text-gray-500">
-                      Instructor: {cls.instructor?.full_name || cls.instructor?.email}
-                    </p>
-                    <p className="text-sm text-gray-500">
-                      {cls.start_date} → {cls.end_date}
-                    </p>
-
-                    <div className="mt-2 space-y-1">
-                      <p className="text-sm text-gray-500">Fellowship:</p>
-                      <select
-                        className="w-full p-2 border rounded dark:bg-gray-800 dark:text-white text-sm"
-                        value={cls.fellowship_name || ""}
-                        onChange={async (e) => {
-                          const { error } = await supabase
-                            .from("classes")
-                            .update({ fellowship_name: e.target.value })
-                            .eq("id", cls.id);
-
-                          if (!error) {
-                            const updated = await supabase
-                              .from("classes")
-                              .select("*, instructor:instructor_id (id, full_name, email)")
-                              .order("created_at", { ascending: false });
-
-                            if (updated.data) setClasses(updated.data);
-                          }
-                        }}
-                      >
-                        <option value="">Select Fellowship</option>
-                        <option value="Fellowship I">Fellowship I</option>
-                        <option value="Fellowship II">Fellowship II</option>
-                        <option value="Fellowship III">Fellowship III</option>
-                      </select>
-                    </div>
-
+                    <p className="text-sm text-gray-500">Instructor: {cls.instructor?.full_name || cls.instructor?.email}</p>
+                    <p className="text-sm text-gray-500">{cls.start_date} → {cls.end_date}</p>
+                    {cls.fellowship_name && (
+                      <p className="text-sm text-gray-500">Fellowship: {cls.fellowship_name}</p>
+                    )}
                     {theme && (
                       <p className="text-sm text-indigo-600 dark:text-indigo-400 mt-1">
                         📅 This Week's Theme: <span className="font-medium">{theme}</span>
                       </p>
                     )}
                   </div>
-
                   <div className="flex gap-2">
-                    <button
-                      onClick={() => handleViewClass(cls)}
-                      className="text-sm bg-blue-600 text-white px-3 py-1 rounded"
-                    >
-                      👁️ View Class
-                    </button>
+                    <button onClick={() => handleViewClass(cls)} className="text-sm bg-blue-600 text-white px-3 py-1 rounded">👁️ View</button>
+                    <button onClick={() => handleDeleteClass(cls.id)} className="text-sm bg-red-600 text-white px-3 py-1 rounded">🗑️ Delete</button>
                   </div>
                 </div>
               </div>
@@ -289,7 +254,7 @@ export default function ClassManagementPage() {
           })}
         </div>
 
-        {/* View Class Modal */}
+        {/* Modal */}
         <Dialog open={isModalOpen} onClose={() => setIsModalOpen(false)} className="relative z-50">
           <div className="fixed inset-0 bg-black/30" aria-hidden="true" />
           <div className="fixed inset-0 flex items-center justify-center p-4">
@@ -303,6 +268,12 @@ export default function ClassManagementPage() {
                   .map((inv) => (
                     <li key={inv.id} className="flex justify-between items-center">
                       <span>{inv.email}</span>
+                      <button
+                        onClick={() => handleDeleteStudent(inv.id)}
+                        className="text-red-600 hover:text-red-400 text-xs"
+                      >
+                        ❌ Remove
+                      </button>
                     </li>
                   ))}
               </ul>
