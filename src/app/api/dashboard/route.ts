@@ -90,9 +90,10 @@ export async function GET(request: Request) {
     console.log("Fetched averages (safe):", safeAverages);
 
     // 4. Fetch classmates (excluding the current user)
+    // Include the "id" column so we can match using this unique identifier
     const { data: classmates, error: classmatesError } = await supabase
       .from("student_profiles")
-      .select("email, military_name, rank, first_name, last_name, class_id")
+      .select("id, email, military_name, rank, first_name, last_name, class_id")
       .eq("class_id", classId);
 
     if (classmatesError) {
@@ -119,26 +120,25 @@ export async function GET(request: Request) {
       // Optionally continue even if this fails
     }
 
-    // Merge self survey response IDs into classmates based on matching email
+    // Merge self survey response IDs into classmates based on matching the unique identifier.
     const classmatesWithSelf = filteredClassmates.map((s: any) => {
       const selfResponse = (selfResponses || []).find(
-        (r: any) => r.user_id === s.email
+        // Compare survey_responses.user_id with student_profiles.id
+        (r: any) => r.user_id === s.id
       );
       return { ...s, selfResponseId: selfResponse ? selfResponse.id : null };
     });
     console.log("Updated classmates with selfResponseId:", classmatesWithSelf);
 
     // 5. Fetch feedback responses from the feedback table
-    // Here we assume that:
-    // - 'submitted_by' contains the email of the user who gave the feedback.
-    // - 'target_type' is 'peer' for peer feedback.
-    // - 'target_id' stores the email of the student receiving the feedback.
+    // Here, 'submitted_by' is the email of the user who gave the feedback.
+    // 'target_type' is "peer" for peer feedback and 'target_id' stores the email of the recipient.
     const { data: feedback, error: feedbackError } = await supabase
       .from("feedback")
       .select("target_id")
       .eq("submitted_by", userEmail)
       .eq("target_type", "peer");
-      
+
     if (feedbackError) {
       console.error("Error fetching feedback responses:", feedbackError);
       return NextResponse.json(
