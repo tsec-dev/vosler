@@ -63,14 +63,13 @@ export default function SelfSurveyPage() {
   };
 
   const handleSubmit = async () => {
-    if (!user || !classId || !selectedSurveyId) return;
+    if (!user || !selectedSurveyId) return;
 
+    // Insert survey response without additional fields not present in the schema
     const { data: responseRecord, error } = await supabase
       .from("survey_responses")
       .insert({
         user_id: user.id,
-        response_type: "self",
-        class_id: classId,
         survey_id: selectedSurveyId,
       })
       .select()
@@ -82,7 +81,7 @@ export default function SelfSurveyPage() {
       return;
     }
 
-    // Insert answers
+    // Insert answers for each question
     for (const q of questions) {
       const r = responses[q.id];
       if (!r) continue;
@@ -115,9 +114,13 @@ export default function SelfSurveyPage() {
           value={selectedSurveyId || ""}
           onChange={(e) => setSelectedSurveyId(e.target.value)}
         >
-          <option value="" disabled>Select a self survey...</option>
+          <option value="" disabled>
+            Select a self survey...
+          </option>
           {surveys.map((s) => (
-            <option key={s.id} value={s.id}>{s.title || s.name}</option>
+            <option key={s.id} value={s.id}>
+              {s.title || s.name}
+            </option>
           ))}
         </select>
 
