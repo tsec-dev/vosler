@@ -4,7 +4,7 @@ import { supabase } from "@/lib/supabaseClient";
 import ClientDashboard from "./client-dashboard";
 import BaseLayout from "@/components/BaseLayout";
 
-// Type interfaces
+// Extended type to include MIL fields
 interface UserProps {
   firstName: string;
   lastName: string;
@@ -13,12 +13,10 @@ interface UserProps {
 }
 
 interface StudentProps {
-  // Ensure to include all fields you need (this should match your view)
   first_name: string;
   last_name: string;
   military_name?: string;
   rank?: string;
-  // You can include other fields if you need them:
   branch?: string;
   years_of_service?: string;
   current_duty?: string;
@@ -31,8 +29,7 @@ export default async function DashboardPage() {
     redirect("/sign-in");
   }
 
-  // Fetch the full student profile from the view student_profiles.
-  // This view should return columns: first_name, last_name, military_name, rank, etc.
+  // Fetch the complete student profile from your view which has MIL data.
   const { data: student, error } = await supabase
     .from("student_profiles")
     .select("*")
@@ -43,12 +40,10 @@ export default async function DashboardPage() {
     console.error("Error fetching student profile:", error);
   }
 
-  // If no student profile or first_name is missing, redirect to the profile completion page.
   if (!student || !student.first_name) {
     redirect("/complete-profile");
   }
 
-  // Map the fetched student data into plainStudent with the extra MIL fields.
   const plainStudent: StudentProps = student;
 
   const plainUser: UserProps = {

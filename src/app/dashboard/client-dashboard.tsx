@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { supabase } from "@/lib/supabaseClient";
-import { useUser } from "@clerk/nextjs";
 
 export interface UserProps {
   firstName: string;
@@ -17,12 +16,12 @@ export interface StudentProps {
   last_name?: string;
   military_name?: string;
   rank?: string;
-  // Other fields (branch, years_of_service, etc.) if needed
+  // Other fields as needed...
 }
 
 export interface DashboardProps {
   user: UserProps;
-  student: StudentProps; // Expected to come from student_profiles view with full MIL data
+  student: StudentProps; // Full profile from student_profiles view
 }
 
 interface TraitData {
@@ -33,11 +32,11 @@ interface TraitData {
 
 /**
  * Returns the welcome display name.
- * Fallback order:
- *   1. Use trimmed military_name (e.g. "MSgt Williams") if available.
- *   2. Otherwise, if both rank and last_name exist, return "rank last_name".
- *   3. Otherwise, if first_name exists, return a capitalized first_name.
- *   4. Otherwise, fallback to user.email.
+ * Order of preference:
+ * 1. Use military_name (e.g., "MSgt Williams") if present.
+ * 2. Else, if rank and last_name are present, combine them.
+ * 3. Else, if first_name is available, capitalize it.
+ * 4. Otherwise, fallback to user.email.
  */
 function getWelcomeDisplayName(student: StudentProps, user: UserProps): string {
   if (student.military_name && student.military_name.trim() !== "") {
@@ -53,34 +52,24 @@ function getWelcomeDisplayName(student: StudentProps, user: UserProps): string {
     const first = student.first_name.trim();
     return first.charAt(0).toUpperCase() + first.slice(1).toLowerCase();
   }
-  return user.email; // Last resort
+  return user.email;
 }
 
 /**
- * Returns the display name for a classmate.
- * Fallback order:
- *   1. Use trimmed military_name if available.
- *   2. Otherwise, if rank and last_name exist, return "rank last_name".
- *   3. Otherwise, if both first_name and last_name exist, return "first_name last_name".
- *   4. Otherwise, if first_name exists, return first_name.
- *   5. Otherwise, fallback to email.
+ * Returns a display name for classmates.
+ * Order of preference:
+ * 1. military_name,
+ * 2. rank plus last_name,
+ * 3. first_name plus last_name,
+ * 4. first_name,
+ * 5. fallback to email.
  */
 function getClassmateDisplayName(s: any): string {
   if (s.military_name && s.military_name.trim() !== "") {
     return s.military_name.trim();
-  } else if (
-    s.rank &&
-    s.last_name &&
-    s.rank.trim() !== "" &&
-    s.last_name.trim() !== ""
-  ) {
+  } else if (s.rank && s.last_name && s.rank.trim() !== "" && s.last_name.trim() !== "") {
     return `${s.rank.trim()} ${s.last_name.trim()}`;
-  } else if (
-    s.first_name &&
-    s.last_name &&
-    s.first_name.trim() !== "" &&
-    s.last_name.trim() !== ""
-  ) {
+  } else if (s.first_name && s.last_name && s.first_name.trim() !== "" && s.last_name.trim() !== "") {
     return `${s.first_name.trim()} ${s.last_name.trim()}`;
   } else if (s.first_name && s.first_name.trim() !== "") {
     return s.first_name.trim();
@@ -89,18 +78,15 @@ function getClassmateDisplayName(s: any): string {
 }
 
 export default function ClientDashboard({ user, student }: DashboardProps): JSX.Element {
-  // Use our helper to obtain the welcome display name.
   const displayName = getWelcomeDisplayName(student, user);
 
-  // State for additional data.
   const [traitData, setTraitData] = useState<TraitData[]>([]);
   const [classmates, setClassmates] = useState<any[]>([]);
   const [givenFeedback, setGivenFeedback] = useState<string[]>([]);
   const [classId, setClassId] = useState<string | null>(null);
   const [currentWeek, setCurrentWeek] = useState<number>(1);
-  const [currentTheme, setCurrentTheme] = useState<string>("Growth");
+  const [currentTheme, setCurrentTheme] = useState<string>("Growth"); // fallback theme
 
-  // Helper to compute current week number from a start date.
   function calculateCurrentWeek(start: string): number {
     const sDate = new Date(start);
     const now = new Date();
@@ -112,18 +98,18 @@ export default function ClientDashboard({ user, student }: DashboardProps): JSX.
     console.log("Dashboard useEffect - Student prop:", student);
     console.log("Dashboard useEffect - User prop:", user);
 
-    // Retrieve classMeta from Clerk's public metadata. (Ensure your Clerk config sets it.)
+    // Retrieve classMeta from Clerk's public metadata.
     const meta = (window as any).Clerk?.user?.publicMetadata;
     const classMeta = meta?.class_id ? meta.class_id : null;
     setClassId(classMeta);
     console.log("Dashboard useEffect - classMeta:", classMeta);
 
     if (!classMeta) {
-      console.warn("classMeta is not defined. Ensure Clerk publicMetadata includes class_id.");
+      console.warn("classMeta is not defined. Check your Clerk publicMetadata configuration.");
       return;
     }
 
-    // 1. Fetch class record (to determine start_date and fellowship_name).
+    // 1. Fetch class record (start_date & fellowship_name).
     supabase
       .from("classes")
       .select("start_date, fellowship_name")
@@ -134,7 +120,6 @@ export default function ClientDashboard({ user, student }: DashboardProps): JSX.
         if (data && data.start_date) {
           const weekNumber = calculateCurrentWeek(data.start_date);
           setCurrentWeek(weekNumber);
-          // Query fellowship_templates for the current theme.
           if (data.fellowship_name) {
             supabase
               .from("fellowship_templates")
@@ -146,9 +131,7 @@ export default function ClientDashboard({ user, student }: DashboardProps): JSX.
                   setCurrentTheme("Growth");
                 }
                 if (templates && templates.length > 0) {
-                  const templateForWeek = templates.find(
-                    (t: any) => t.week_number === weekNumber
-                  );
+                  const templateForWeek = templates.find((t: any) => t.week_number === weekNumber);
                   if (templateForWeek && templateForWeek.theme) {
                     setCurrentTheme(templateForWeek.theme);
                   } else {
@@ -162,7 +145,7 @@ export default function ClientDashboard({ user, student }: DashboardProps): JSX.
         }
       });
 
-    // 2. Load trait averages (Self vs Peer).
+    // 2. Load self vs. peer averages.
     supabase
       .rpc("get_self_peer_avg_by_category", {
         target_user: user.email,
@@ -196,8 +179,8 @@ export default function ClientDashboard({ user, student }: DashboardProps): JSX.
         setClassmates(others);
       });
 
-    // 4. Load submitted feedback.
-    // Here we expect the responses table to store the target’s email under "target_user".
+    // 4. Load feedback responses.
+    // We select "target_user", assuming that column stores the peer's email.
     supabase
       .from("survey_responses")
       .select("target_user")
@@ -211,7 +194,6 @@ export default function ClientDashboard({ user, student }: DashboardProps): JSX.
           setGivenFeedback(data.map((r: any) => r.target_user));
         }
       });
-
   }, [user.email, student]);
 
   return (
