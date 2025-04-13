@@ -19,7 +19,6 @@ export interface StudentProps {
 export interface DashboardProps {
   user: UserProps;
   student: StudentProps;
-  week?: number;
 }
 
 interface TraitData {
@@ -33,23 +32,69 @@ function capitalizeFirstName(name?: string): string {
   return name.charAt(0).toUpperCase() + name.slice(1).toLowerCase();
 }
 
-const weekThemes = ["Architect", "Foundation", "Reflection", "Execution"];
+// Helper function to compute the current week based on the class start_date.
+function calculateCurrentWeek(start: string): number {
+  const sDate = new Date(start);
+  const now = new Date();
+  const diff = now.getTime() - sDate.getTime();
+  const weeks = Math.floor(diff / (1000 * 60 * 60 * 24 * 7)) + 1;
+  return weeks;
+}
 
-export default function ClientDashboard({ user, student, week = 2 }: DashboardProps): JSX.Element {
+export default function ClientDashboard({ user, student }: DashboardProps): JSX.Element {
   const displayName = capitalizeFirstName(student.first_name || user.firstName);
-  const weekTheme = weekThemes[week - 1] || "Growth";
-
   const [traitData, setTraitData] = useState<TraitData[]>([]);
   const [classmates, setClassmates] = useState<any[]>([]);
   const [givenFeedback, setGivenFeedback] = useState<string[]>([]);
   const [classId, setClassId] = useState<string | null>(null);
+  const [currentWeek, setCurrentWeek] = useState<number>(1);
+  const [currentTheme, setCurrentTheme] = useState<string>("Growth"); // Fallback theme
 
   useEffect(() => {
+    // Get the class ID from Clerk's public metadata.
     const classMeta = (window as any).Clerk?.user?.publicMetadata?.class_id;
     setClassId(classMeta);
 
     if (classMeta) {
-      // Load trait averages
+      // Fetch class record to obtain start_date and fellowship_name.
+      supabase
+        .from("classes")
+        .select("start_date, fellowship_name")
+        .eq("id", classMeta)
+        .single()
+        .then(({ data, error }) => {
+          if (data && data.start_date) {
+            const weekNumber = calculateCurrentWeek(data.start_date);
+            setCurrentWeek(weekNumber);
+            // Query the fellowship_templates table to get themes for this fellowship.
+            if (data.fellowship_name) {
+              supabase
+                .from("fellowship_templates")
+                .select("week_number, theme")
+                .eq("fellowship_name", data.fellowship_name)
+                .then(({ data: templates, error: templatesError }) => {
+                  if (templatesError) {
+                    console.error("Error fetching fellowship themes:", templatesError);
+                    setCurrentTheme("Growth");
+                  }
+                  if (templates && templates.length > 0) {
+                    const templateForWeek = templates.find(
+                      (t: any) => t.week_number === weekNumber
+                    );
+                    if (templateForWeek && templateForWeek.theme) {
+                      setCurrentTheme(templateForWeek.theme);
+                    } else {
+                      setCurrentTheme("Growth");
+                    }
+                  } else {
+                    setCurrentTheme("Growth");
+                  }
+                });
+            }
+          }
+        });
+
+      // Load trait averages (Self vs Peer Chart)
       supabase
         .rpc("get_self_peer_avg_by_category", {
           target_user: user.email,
@@ -67,7 +112,7 @@ export default function ClientDashboard({ user, student, week = 2 }: DashboardPr
           }
         });
 
-      // Load classmates
+      // Load classmates (filter out current user's email)
       supabase
         .from("class_students")
         .select("email")
@@ -77,7 +122,7 @@ export default function ClientDashboard({ user, student, week = 2 }: DashboardPr
           setClassmates(others);
         });
 
-      // Load submitted feedback (to classmates)
+      // Load submitted feedback (to identify classmates already reviewed)
       supabase
         .from("survey_responses")
         .select("target_user_id")
@@ -86,7 +131,7 @@ export default function ClientDashboard({ user, student, week = 2 }: DashboardPr
         .eq("class_id", classMeta)
         .then(({ data }) => {
           if (data) {
-            setGivenFeedback(data.map((r) => r.target_user_id));
+            setGivenFeedback(data.map((r: any) => r.target_user_id));
           }
         });
     }
@@ -95,12 +140,14 @@ export default function ClientDashboard({ user, student, week = 2 }: DashboardPr
   return (
     <div className="max-w-6xl mx-auto p-6 space-y-8">
       <h1 className="text-2xl font-bold text-white">
-        Welcome, {displayName}, to Week {week}: {weekTheme}
+        Welcome, {displayName}, to Week {currentWeek}: {currentTheme}
       </h1>
 
-      {/* Self vs Peer Chart */}
+      {/* Self vs Peer Averages Chart */}
       <div className="p-6 border rounded-lg bg-white dark:bg-gray-900 shadow">
-        <h2 className="text-lg font-semibold mb-4 text-gray-800 dark:text-white">📊 Self vs Peer Averages</h2>
+        <h2 className="text-lg font-semibold mb-4 text-gray-800 dark:text-white">
+          📊 Self vs Peer Averages
+        </h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
           {traitData.map(({ trait, self, peer }) => (
             <div key={trait}>
@@ -129,7 +176,9 @@ export default function ClientDashboard({ user, student, week = 2 }: DashboardPr
       <div className="p-6 border rounded-lg bg-white dark:bg-gray-900 shadow space-y-4">
         <h2 className="text-lg font-semibold text-gray-800 dark:text-white">👥 Classmates to Review</h2>
         {classmates.length === 0 && (
-          <p className="text-sm text-gray-500 dark:text-gray-400">All feedback complete or no classmates found.</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400">
+            All feedback complete or no classmates found.
+          </p>
         )}
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
           {classmates.map((s) => (
