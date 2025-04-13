@@ -61,8 +61,17 @@ export default function AdminPage() {
           <p className="text-sm opacity-80 mt-2 text-center">Add and assign instructor permissions by email.</p>
         </a>
       </Link>
+      <Link href="/admin/fellowship-config">
+        <a className="group bg-gradient-to-br from-indigo-600 to-blue-600 hover:from-indigo-500 hover:to-blue-500 text-white rounded-2xl shadow-xl p-6 flex flex-col items-center justify-center transition transform hover:-translate-y-1 hover:shadow-2xl min-h-[200px]">
+          <span className="text-4xl mb-3">📚</span>
+          <h2 className="text-xl font-semibold">Fellowship Theme Config</h2>
+          <p className="text-sm opacity-80 mt-2 text-center">
+            Customize the week themes for Fellowship I, II, and III tracks.
+          </p>
+        </a>
+      </Link>
       </div>
-      </div>
+    </div>
     </BaseLayout>
   );
 }
