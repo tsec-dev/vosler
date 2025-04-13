@@ -4,6 +4,7 @@ import { NextResponse } from "next/server";
 import { supabase } from "@/lib/supabaseClient";
 
 export async function GET(request: Request) {
+  // Parse query parameters from the URL
   const { searchParams } = new URL(request.url);
   const classId = searchParams.get("classId");
   const userEmail = searchParams.get("userEmail");
@@ -25,13 +26,17 @@ export async function GET(request: Request) {
       .select("start_date, fellowship_name")
       .eq("id", classId)
       .single();
+
     if (classError || !classRecord) {
       console.error("Error fetching class record:", classError);
-      throw new Error("Error fetching class record.");
+      return NextResponse.json(
+        { error: "Error fetching class record.", detail: classError },
+        { status: 500 }
+      );
     }
     console.log("Fetched class record:", classRecord);
 
-    // Helper: calculate current week
+    // Helper: calculate current week based on start_date
     const calculateCurrentWeek = (start: string): number => {
       const sDate = new Date(start);
       const now = new Date();
@@ -43,18 +48,25 @@ export async function GET(request: Request) {
       : 1;
 
     // 2. Fetch fellowship templates to determine the theme
-    let currentTheme = "Growth"; // fallback
+    let currentTheme = "Growth"; // fallback theme
     if (classRecord.fellowship_name) {
       const { data: templates, error: templatesError } = await supabase
         .from("fellowship_templates")
         .select("week_number, theme")
         .eq("fellowship_name", classRecord.fellowship_name);
+
       if (templatesError) {
         console.error("Error fetching fellowship templates:", templatesError);
-        throw new Error("Error fetching fellowship templates.");
+        return NextResponse.json(
+          { error: "Error fetching fellowship templates.", detail: templatesError },
+          { status: 500 }
+        );
       }
+
       if (templates && templates.length > 0) {
-        const templateForWeek = templates.find((t: any) => t.week_number === weekNumber);
+        const templateForWeek = templates.find(
+          (t: any) => t.week_number === weekNumber
+        );
         if (templateForWeek && templateForWeek.theme) {
           currentTheme = templateForWeek.theme;
         }
@@ -62,15 +74,23 @@ export async function GET(request: Request) {
     }
     console.log("Current theme:", currentTheme);
 
-    // 3. Fetch self vs. peer averages (update function if needed)
-    // (Assuming this part works for you; if not, adjust or comment it out)
+    // 3. Fetch self vs. peer averages using RPC
+    // Option 1: Use only the parameter the function expects.
     const { data: averages, error: averagesError } = await supabase.rpc("get_self_peer_gaps", {
-      target_user: userEmail,
       class_filter: classId,
     });
+    // If you want to use Option 2 (passing both parameters), ensure your Supabase function
+    // accepts both parameters and change the call to:
+    // {
+    //   target_user: userEmail,
+    //   class_filter: classId,
+    // }
     if (averagesError) {
       console.error("Error in RPC get_self_peer_gaps:", averagesError);
-      throw new Error("Error fetching self-peer data.");
+      return NextResponse.json(
+        { error: "Error fetching self-peer data.", detail: averagesError },
+        { status: 500 }
+      );
     }
     console.log("Fetched averages:", averages);
 
@@ -79,34 +99,44 @@ export async function GET(request: Request) {
       .from("student_profiles")
       .select("email, military_name, rank, first_name, last_name, class_id")
       .eq("class_id", classId);
+
     if (classmatesError) {
       console.error("Error fetching classmates:", classmatesError);
-      throw new Error("Error fetching classmates.");
+      return NextResponse.json(
+        { error: "Error fetching classmates.", detail: classmatesError },
+        { status: 500 }
+      );
     }
-    const filteredClassmates = (classmates || []).filter((s: any) => s.email !== userEmail);
+    const filteredClassmates = (classmates || []).filter(
+      (s: any) => s.email !== userEmail
+    );
     console.log("Fetched classmates:", filteredClassmates);
 
     // 5. Fetch feedback responses
-    // IMPORTANT: Here we use "target" instead of "target_user" because your table column is different.
     const { data: feedback, error: feedbackError } = await supabase
       .from("survey_responses")
       .select("target")
       .eq("user_id", userEmail)
       .eq("response_type", "peer")
       .eq("class_id", classId);
+
     if (feedbackError) {
       console.error("Error fetching feedback responses:", feedbackError);
-      throw new Error("Error fetching feedback responses.");
+      return NextResponse.json(
+        { error: "Error fetching feedback responses.", detail: feedbackError },
+        { status: 500 }
+      );
     }
     console.log("Fetched feedback responses:", feedback);
 
+    // Prepare the aggregated response data
     const responseData = {
       classRecord,
       weekNumber,
       currentTheme,
       averages,
       classmates: filteredClassmates,
-      feedback, // expecting an array of objects with key "target"
+      feedback, // array of objects with key "target"
     };
 
     return NextResponse.json(responseData);
