@@ -29,27 +29,54 @@ interface TraitData {
   peer: number;
 }
 
-// --- Fallback functions ---
+/**
+ * Returns the welcome display name using the following fallbacks:
+ *   1. Use trimmed military_name if available.
+ *   2. Otherwise, if both rank and last_name are available, return "rank last_name".
+ *   3. Otherwise, if first_name is available, capitalize it.
+ *   4. Otherwise, fallback to user.email.
+ */
 function getWelcomeDisplayName(student: StudentProps, user: UserProps): string {
-  console.log("getWelcomeDisplayName - student:", student);
   if (student.military_name && student.military_name.trim() !== "") {
     return student.military_name.trim();
-  } else if (student.rank && student.last_name && student.rank.trim() !== "" && student.last_name.trim() !== "") {
+  } else if (
+    student.rank &&
+    student.last_name &&
+    student.rank.trim() !== "" &&
+    student.last_name.trim() !== ""
+  ) {
     return `${student.rank.trim()} ${student.last_name.trim()}`;
   } else if (student.first_name && student.first_name.trim() !== "") {
     const first = student.first_name.trim();
     return first.charAt(0).toUpperCase() + first.slice(1).toLowerCase();
   }
-  return user.email; // Last resort
+  return user.email; // Fallback to email
 }
 
+/**
+ * Returns the display name for a classmate using the following fallbacks:
+ *   1. Use trimmed military_name if available.
+ *   2. Otherwise, if both rank and last_name are available, use "rank last_name".
+ *   3. Otherwise, if both first_name and last_name are available, combine them.
+ *   4. Otherwise, if first_name is available, use it.
+ *   5. Otherwise, fallback to email.
+ */
 function getClassmateDisplayName(s: any): string {
-  console.log("getClassmateDisplayName - s:", s);
   if (s.military_name && s.military_name.trim() !== "") {
     return s.military_name.trim();
-  } else if (s.rank && s.last_name && s.rank.trim() !== "" && s.last_name.trim() !== "") {
+  } else if (
+    s.rank &&
+    s.last_name &&
+    s.rank.trim() !== "" &&
+    s.last_name.trim() !== ""
+  ) {
     return `${s.rank.trim()} ${s.last_name.trim()}`;
-  } else if (s.first_name && s.last_name && s.first_name.trim() !== "" && s.last_name.trim() !== "") {
+  } else if (
+    s.first_name &&
+    s.last_name &&
+    s.first_name.trim() !== "" &&
+    s.last_name.trim() !== ""
+  ) {
     return `${s.first_name.trim()} ${s.last_name.trim()}`;
   } else if (s.first_name && s.first_name.trim() !== "") {
     return s.first_name.trim();
@@ -59,7 +86,7 @@ function getClassmateDisplayName(s: any): string {
 
 export default function ClientDashboard({ user, student }: DashboardProps): JSX.Element {
   const displayName = getWelcomeDisplayName(student, user);
-  
+
   const [traitData, setTraitData] = useState<TraitData[]>([]);
   const [classmates, setClassmates] = useState<any[]>([]);
   const [givenFeedback, setGivenFeedback] = useState<string[]>([]);
@@ -67,7 +94,7 @@ export default function ClientDashboard({ user, student }: DashboardProps): JSX.
   const [currentWeek, setCurrentWeek] = useState<number>(1);
   const [currentTheme, setCurrentTheme] = useState<string>("Growth"); // Fallback theme
 
-  // Helper function to compute the current week based on the class start_date.
+  // Helper function: calculates week number from class start_date.
   function calculateCurrentWeek(start: string): number {
     const sDate = new Date(start);
     const now = new Date();
@@ -96,7 +123,7 @@ export default function ClientDashboard({ user, student }: DashboardProps): JSX.
           if (data && data.start_date) {
             const weekNumber = calculateCurrentWeek(data.start_date);
             setCurrentWeek(weekNumber);
-            // Query the fellowship_templates table to get themes for this fellowship.
+            // Get current theme from fellowship_templates.
             if (data.fellowship_name) {
               supabase
                 .from("fellowship_templates")
@@ -124,7 +151,7 @@ export default function ClientDashboard({ user, student }: DashboardProps): JSX.
           }
         });
 
-      // Load trait averages (Self vs Peer Chart)
+      // Load trait averages for the "Self vs Peer Averages" chart.
       supabase
         .rpc("get_self_peer_avg_by_category", {
           target_user: user.email,
@@ -143,10 +170,10 @@ export default function ClientDashboard({ user, student }: DashboardProps): JSX.
           }
         });
 
-      // Load classmates from the student_profiles view.
+      // Load classmates from the student_profiles view, now including the class_id.
       supabase
         .from("student_profiles")
-        .select("email, military_name, rank, first_name, last_name")
+        .select("email, military_name, rank, first_name, last_name, class_id")
         .eq("class_id", classMeta)
         .then(({ data, error }) => {
           if (error) console.error("Error fetching classmates:", error);
@@ -156,7 +183,7 @@ export default function ClientDashboard({ user, student }: DashboardProps): JSX.
           setClassmates(others);
         });
 
-      // Load submitted feedback (to identify classmates already reviewed)
+      // Load submitted feedback responses to track which classmates have received feedback.
       supabase
         .from("survey_responses")
         .select("target_user_id")
@@ -202,7 +229,9 @@ export default function ClientDashboard({ user, student }: DashboardProps): JSX.
                   animate={{ width: `${peer * 20}%` }}
                 />
               </div>
-              <p className="text-xs mt-1 text-gray-400">You: {self}/5 | Peers: {peer}/5</p>
+              <p className="text-xs mt-1 text-gray-400">
+                You: {self}/5 | Peers: {peer}/5
+              </p>
             </div>
           ))}
         </div>
@@ -210,7 +239,9 @@ export default function ClientDashboard({ user, student }: DashboardProps): JSX.
 
       {/* Classmate Feedback Section */}
       <div className="p-6 border rounded-lg bg-white dark:bg-gray-900 shadow space-y-4">
-        <h2 className="text-lg font-semibold text-gray-800 dark:text-white">👥 Classmates to Review</h2>
+        <h2 className="text-lg font-semibold text-gray-800 dark:text-white">
+          👥 Classmates to Review
+        </h2>
         {classmates.length === 0 && (
           <p className="text-sm text-gray-500 dark:text-gray-400">
             All feedback complete or no classmates found.
@@ -231,7 +262,9 @@ export default function ClientDashboard({ user, student }: DashboardProps): JSX.
                   disabled={givenFeedback.includes(s.email)}
                   onClick={() => alert(`Open peer feedback modal for ${displayStudent}`)}
                 >
-                  {givenFeedback.includes(s.email) ? "✅ Feedback Given" : "Give Feedback"}
+                  {givenFeedback.includes(s.email)
+                    ? "✅ Feedback Given"
+                    : "Give Feedback"}
                 </button>
               </div>
             );
