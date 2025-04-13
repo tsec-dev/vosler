@@ -7,6 +7,7 @@ import { supabase } from "@/lib/supabaseClient";
 export default function SurveyPage() {
   const [title, setTitle] = useState("");
   // Each question now includes an "options" array for radio questions.
+  // We still use "prompt" for our local state but when inserting we map it to "question_text".
   const [questions, setQuestions] = useState([
     { prompt: "", category: "", type: "stars", options: [] as string[] }
   ]);
@@ -32,7 +33,7 @@ export default function SurveyPage() {
     const updated = [...questions];
     if (field === "type") {
       updated[index][field] = value;
-      // If changing to "radio", ensure the options array is initialized.
+      // If changing to "radio", initialize the options if not set.
       if (value === "radio" && !updated[index].options) {
         updated[index].options = [];
       } else if (value !== "radio") {
@@ -45,7 +46,7 @@ export default function SurveyPage() {
     setQuestions(updated);
   };
 
-  // Handlers for radio options
+  // Handlers for radio options.
   const handleAddOption = (questionIndex: number) => {
     const updated = [...questions];
     if (!updated[questionIndex].options) {
@@ -79,11 +80,10 @@ export default function SurveyPage() {
       return;
     }
 
-    // Log the title to ensure it's not empty.
     console.log("Survey title:", title);
 
     // Build the payload array.
-    // Use the column "name" because that is defined in our surveys table.
+    // We use the "name" column for the survey title, which matches your surveys table.
     let surveyPayloads;
     if (surveyType === "paired") {
       surveyPayloads = [
@@ -108,10 +108,11 @@ export default function SurveyPage() {
         return;
       }
 
-      // Prepare question inserts. For radio questions, include the options; otherwise, include the category (or default "General").
+      // Prepare question inserts.
+      // Map the local "prompt" to the "question_text" column.
       const questionInserts = questions.map((q) => ({
         survey_id: survey.id,
-        prompt: q.prompt,
+        question_text: q.prompt, // Changed from prompt: to question_text:
         category: q.type !== "radio" ? (q.category || "General") : null,
         type: q.type,
         options: q.type === "radio" ? q.options : null
@@ -122,19 +123,14 @@ export default function SurveyPage() {
         .insert(questionInserts);
 
       if (qError) {
-        console.error(
-          "Failed to insert questions for survey",
-          survey.id,
-          "Error:",
-          qError
-        );
+        console.error("Failed to insert questions for survey", survey.id, "Error:", qError);
         alert("Failed to insert questions. Error: " + (qError?.message || "Unknown error"));
         return;
       }
     }
 
     alert("✅ Survey(s) created successfully!");
-    // Reset form state
+    // Reset form state.
     setTitle("");
     setQuestions([{ prompt: "", category: "", type: "stars", options: [] }]);
     setSurveyType("course");
@@ -181,7 +177,6 @@ export default function SurveyPage() {
                 value={q.prompt}
                 onChange={(e) => handleChange(index, "prompt", e.target.value)}
               />
-              {/* Render the category input only if the question type is not radio */}
               {q.type !== "radio" && (
                 <input
                   type="text"
@@ -200,7 +195,6 @@ export default function SurveyPage() {
                 <option value="radio">🔘 Multiple Choice (Radio)</option>
                 <option value="text">✍️ Short Text</option>
               </select>
-              {/* For radio questions, show controls to add/edit options */}
               {q.type === "radio" && (
                 <div className="mt-2 space-y-2">
                   <p className="text-sm font-medium">Options:</p>
