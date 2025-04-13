@@ -93,7 +93,7 @@ export default function ClientDashboard({ user, student }: DashboardProps): JSX.
     { refreshInterval: 30000 } // Adjust as needed for real-time updates
   );
 
-  // SWR fetch for course announcements
+  // SWR fetch for announcements
   const { data: announcements, error: announcementsError, isLoading: announcementsLoading } = useSWR(
     classId ? `/api/announcements?classId=${classId}` : null,
     fetcher,

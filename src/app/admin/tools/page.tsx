@@ -31,6 +31,7 @@ interface Announcement {
   title: string;
   content: string;
   created_at: string;
+  created_by?: string;
 }
 
 export default function AdminToolsPage() {
@@ -40,6 +41,7 @@ export default function AdminToolsPage() {
   const [trends, setTrends] = useState<Trend[]>([]);
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [activeTab, setActiveTab] = useState<string>("moderation");
+  const [userEmail, setUserEmail] = useState<string>("");
   
   // Form state for announcements
   const [title, setTitle] = useState("");
@@ -48,7 +50,9 @@ export default function AdminToolsPage() {
   const [formError, setFormError] = useState("");
   const [formSuccess, setFormSuccess] = useState("");
 
+  // Fetch initial data: classes and user email
   useEffect(() => {
+    // Fetch classes
     supabase.from("classes").select("id, name").then(({ data }) => {
       if (data) {
         setClasses(data);
@@ -58,8 +62,16 @@ export default function AdminToolsPage() {
         }
       }
     });
+
+    // Get current user email from Supabase auth
+    supabase.auth.getSession().then(({ data }) => {
+      if (data?.session?.user?.email) {
+        setUserEmail(data.session.user.email);
+      }
+    });
   }, []);
 
+  // Load class-specific data when a class is selected
   useEffect(() => {
     if (!selectedClassId) return;
 
@@ -75,7 +87,7 @@ export default function AdminToolsPage() {
     // Load trends
     loadTrends(selectedClassId);
     
-    // Load announcements
+    // Load announcements via API
     loadAnnouncements(selectedClassId);
   }, [selectedClassId]);
 
@@ -93,18 +105,16 @@ export default function AdminToolsPage() {
   };
   
   const loadAnnouncements = async (classId: string) => {
-    const { data, error } = await supabase
-      .from('class_announcements')
-      .select('*')
-      .eq('class_id', classId)
-      .order('created_at', { ascending: false });
-      
-    if (error) {
-      console.error("Announcements query error:", error);
-      return;
+    try {
+      const response = await fetch(`/api/announcements?classId=${classId}`);
+      if (!response.ok) {
+        throw new Error(`Error fetching announcements: ${response.statusText}`);
+      }
+      const data = await response.json();
+      setAnnouncements(data);
+    } catch (error) {
+      console.error("Failed to load announcements:", error);
     }
-    
-    setAnnouncements(data || []);
   };
 
   const updateApproval = async (id: string, approved: boolean) => {
@@ -130,20 +140,22 @@ export default function AdminToolsPage() {
     setIsSubmitting(true);
     
     try {
-      const { data, error } = await supabase
-        .from('class_announcements')
-        .insert([
-          { 
-            class_id: selectedClassId, 
-            title: title.trim(), 
-            content: content.trim(),
-            created_at: new Date().toISOString()
-          }
-        ])
-        .select();
-        
-      if (error) {
-        throw new Error(error.message);
+      const response = await fetch('/api/announcements', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          classId: selectedClassId,
+          title: title.trim(),
+          content: content.trim(),
+          userEmail: userEmail
+        }),
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to create announcement');
       }
       
       // Clear form and show success message
@@ -157,6 +169,29 @@ export default function AdminToolsPage() {
       setFormError(error instanceof Error ? error.message : "An unexpected error occurred");
     } finally {
       setIsSubmitting(false);
+    }
+  };
+  
+  const handleDeleteAnnouncement = async (id: string) => {
+    if (!confirm("Are you sure you want to delete this announcement?")) {
+      return;
+    }
+    
+    try {
+      const response = await fetch(`/api/announcements?id=${id}&userEmail=${encodeURIComponent(userEmail)}`, {
+        method: 'DELETE',
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to delete announcement');
+      }
+      
+      // Reload announcements after successful deletion
+      loadAnnouncements(selectedClassId!);
+    } catch (error) {
+      console.error('Error deleting announcement:', error);
+      alert('Failed to delete announcement: ' + (error instanceof Error ? error.message : 'Unknown error'));
     }
   };
 
@@ -341,18 +376,11 @@ export default function AdminToolsPage() {
                       <p className="text-xs text-gray-500 mt-2">
                         Posted: {new Date(announcement.created_at).toLocaleDateString()} at{" "}
                         {new Date(announcement.created_at).toLocaleTimeString()}
+                        {announcement.created_by && ` by ${announcement.created_by}`}
                       </p>
                       <div className="flex mt-3">
                         <button 
-                          onClick={async () => {
-                            if (confirm("Are you sure you want to delete this announcement?")) {
-                              await supabase
-                                .from('class_announcements')
-                                .delete()
-                                .eq('id', announcement.id);
-                              loadAnnouncements(selectedClassId);
-                            }
-                          }}
+                          onClick={() => handleDeleteAnnouncement(announcement.id)}
                           className="text-xs text-red-600 hover:text-red-800"
                         >
                           Delete
