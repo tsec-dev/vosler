@@ -75,16 +75,9 @@ export async function GET(request: Request) {
     console.log("Current theme:", currentTheme);
 
     // 3. Fetch self vs. peer averages using RPC
-    // Option 1: Use only the parameter the function expects.
     const { data: averages, error: averagesError } = await supabase.rpc("get_self_peer_gaps", {
       class_filter: classId,
     });
-    // If you want to use Option 2 (passing both parameters), ensure your Supabase function
-    // accepts both parameters and change the call to:
-    // {
-    //   target_user: userEmail,
-    //   class_filter: classId,
-    // }
     if (averagesError) {
       console.error("Error in RPC get_self_peer_gaps:", averagesError);
       return NextResponse.json(
@@ -92,7 +85,10 @@ export async function GET(request: Request) {
         { status: 500 }
       );
     }
-    console.log("Fetched averages:", averages);
+    // If no surveys have been completed, averages may be null.
+    // Ensure we return an empty array to maintain a consistent data structure.
+    const safeAverages = averages || [];
+    console.log("Fetched averages (safe):", safeAverages);
 
     // 4. Fetch classmates (excluding the current user)
     const { data: classmates, error: classmatesError } = await supabase
@@ -129,14 +125,14 @@ export async function GET(request: Request) {
     }
     console.log("Fetched feedback responses:", feedback);
 
-    // Prepare the aggregated response data
+    // Prepare aggregated response data
     const responseData = {
       classRecord,
       weekNumber,
       currentTheme,
-      averages,
+      averages: safeAverages,
       classmates: filteredClassmates,
-      feedback, // array of objects with key "target"
+      feedback,
     };
 
     return NextResponse.json(responseData);
