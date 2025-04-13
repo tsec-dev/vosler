@@ -48,11 +48,18 @@ export default function ClientDashboard({ user, student }: DashboardProps): JSX.
     }
   }, [isLoaded, clerkUser]);
 
-  // SWR fetch for dashboard data
+  // SWR fetch for dashboard main data
   const { data, error, isLoading } = useSWR(
     classId ? `/api/dashboard?classId=${classId}&userEmail=${user.email}` : null,
     fetcher,
     { revalidateOnFocus: true }
+  );
+
+  // SWR fetch for approved feedback comments
+  const { data: feedback, error: feedbackError, isLoading: feedbackLoading } = useSWR(
+    user.email ? `/api/approved-feedback?targetEmail=${user.email}` : null,
+    fetcher,
+    { refreshInterval: 30000 } // Adjust as needed for real-time updates
   );
 
   const givenFeedback: string[] = (data?.feedback || []).map((r: any) => r.target_id);
@@ -79,7 +86,6 @@ export default function ClientDashboard({ user, student }: DashboardProps): JSX.
 
   // Open the peer feedback modal: set target's email and selfResponseId
   const openFeedbackModal = (classmate: any) => {
-    // Assume that your API now returns a selfResponseId for each classmate
     if (!classmate.selfResponseId) {
       alert("This classmate hasn't submitted a self survey yet.");
       return;
@@ -135,6 +141,33 @@ export default function ClientDashboard({ user, student }: DashboardProps): JSX.
             </div>
           ))}
         </div>
+      </div>
+
+      {/* Approved Peer Feedback Section */}
+      <div className="p-6 border rounded-lg bg-white dark:bg-gray-900 shadow">
+        <h2 className="text-lg font-semibold mb-4 text-gray-800 dark:text-white">
+          Your Peer Feedback
+        </h2>
+        {feedbackLoading ? (
+          <p>Loading your feedback comments...</p>
+        ) : feedbackError ? (
+          <p>Error loading feedback comments.</p>
+        ) : feedback && feedback.length > 0 ? (
+          feedback.map((comment: any) => (
+            <div key={comment.id} className="p-4 mb-4 border rounded bg-gray-50 dark:bg-gray-800">
+              <p className="text-sm font-semibold text-gray-700 dark:text-gray-200">
+                {comment.category}
+              </p>
+              <p className="text-sm text-gray-600 dark:text-gray-400">{comment.comment_text}</p>
+              <div className="text-xs text-gray-500 mt-1">
+                Rating: {comment.rating} |{" "}
+                Submitted: {new Date(comment.submitted_at).toLocaleDateString()}
+              </div>
+            </div>
+          ))
+        ) : (
+          <p className="text-gray-500">No feedback comments available.</p>
+        )}
       </div>
 
       {/* Classmate Feedback Section */}
