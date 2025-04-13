@@ -107,6 +107,27 @@ export async function GET(request: Request) {
     );
     console.log("Fetched classmates:", filteredClassmates);
 
+    // 4.1. Fetch self survey responses for the class (self feedback)
+    const { data: selfResponses, error: selfResponsesError } = await supabase
+      .from("survey_responses")
+      .select("user_id, id")
+      .eq("response_type", "self")
+      .eq("class_id", classId);
+
+    if (selfResponsesError) {
+      console.error("Error fetching self responses:", selfResponsesError);
+      // Optionally continue even if this fails
+    }
+
+    // Merge self survey response IDs into classmates based on matching email
+    const classmatesWithSelf = filteredClassmates.map((s: any) => {
+      const selfResponse = (selfResponses || []).find(
+        (r: any) => r.user_id === s.email
+      );
+      return { ...s, selfResponseId: selfResponse ? selfResponse.id : null };
+    });
+    console.log("Updated classmates with selfResponseId:", classmatesWithSelf);
+
     // 5. Fetch feedback responses from the feedback table
     // Here we assume that:
     // - 'submitted_by' contains the email of the user who gave the feedback.
@@ -133,7 +154,7 @@ export async function GET(request: Request) {
       weekNumber,
       currentTheme,
       averages: safeAverages,
-      classmates: filteredClassmates,
+      classmates: classmatesWithSelf, // now includes selfResponseId for each classmate
       feedback, // array of objects with key "target_id"
     };
 

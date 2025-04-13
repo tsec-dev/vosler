@@ -4,8 +4,8 @@ import { useEffect, useState } from "react";
 import useSWR from "swr";
 import { motion } from "framer-motion";
 import { useUser } from "@clerk/nextjs";
+import FeedbackModal from "@/components/FeedbackModal";
 
-// Define your types
 export interface UserProps {
   firstName: string;
   lastName: string;
@@ -25,14 +25,18 @@ export interface DashboardProps {
   student: StudentProps; // Full profile from the student_profiles view
 }
 
-// SWR fetcher function
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
 export default function ClientDashboard({ user, student }: DashboardProps): JSX.Element {
   const { user: clerkUser, isLoaded } = useUser();
   const [classId, setClassId] = useState<string | null>(null);
+  
+  // Modal state for peer feedback
+  const [feedbackModalOpen, setFeedbackModalOpen] = useState(false);
+  const [modalTargetEmail, setModalTargetEmail] = useState("");
+  const [modalSelfResponseId, setModalSelfResponseId] = useState("");
 
-  // Extract class_id from Clerk public metadata when user is loaded
+  // Extract class_id from Clerk metadata when loaded
   useEffect(() => {
     if (isLoaded && clerkUser) {
       const meta = clerkUser.publicMetadata as { class_id?: string };
@@ -44,21 +48,17 @@ export default function ClientDashboard({ user, student }: DashboardProps): JSX.
     }
   }, [isLoaded, clerkUser]);
 
-  // Use SWR to fetch dashboard data once we have a valid classId
+  // SWR fetch for dashboard data
   const { data, error, isLoading } = useSWR(
     classId ? `/api/dashboard?classId=${classId}&userEmail=${user.email}` : null,
     fetcher,
     { revalidateOnFocus: true }
   );
 
-  // Map feedback using the correct column name "target_id"
   const givenFeedback: string[] = (data?.feedback || []).map((r: any) => r.target_id);
-
-  // Set defaults for week & theme
   const weekNumber: number = data?.weekNumber || 1;
   const currentTheme: string = data?.currentTheme || "Growth";
 
-  // Helper for welcome display name using only "Rank Firstname Lastname"
   const getWelcomeDisplayName = () => {
     if (student.rank?.trim() && student.first_name?.trim() && student.last_name?.trim()) {
       return `${student.rank.trim()} ${student.first_name.trim()} ${student.last_name.trim()}`;
@@ -70,12 +70,23 @@ export default function ClientDashboard({ user, student }: DashboardProps): JSX.
     return user.email;
   };
 
-  // Helper for classmate display: always combine "Rank Firstname Lastname"
   const getClassmateFullDisplayInfo = (s: any): string => {
     if (s.rank?.trim() && s.first_name?.trim() && s.last_name?.trim()) {
       return `${s.rank.trim()} ${s.first_name.trim()} ${s.last_name.trim()}`;
     }
     return s.email;
+  };
+
+  // Open the peer feedback modal: set target's email and selfResponseId
+  const openFeedbackModal = (classmate: any) => {
+    // Assume that your API now returns a selfResponseId for each classmate
+    if (!classmate.selfResponseId) {
+      alert("This classmate hasn't submitted a self survey yet.");
+      return;
+    }
+    setModalTargetEmail(classmate.email);
+    setModalSelfResponseId(classmate.selfResponseId);
+    setFeedbackModalOpen(true);
   };
 
   const displayName = getWelcomeDisplayName();
@@ -98,7 +109,7 @@ export default function ClientDashboard({ user, student }: DashboardProps): JSX.
       {/* Self vs Peer Averages Chart */}
       <div className="p-6 border rounded-lg bg-white dark:bg-gray-900 shadow">
         <h2 className="text-lg font-semibold mb-4 text-gray-800 dark:text-white">
-          📊 Self vs Peer Averages
+          Self vs Peer Averages
         </h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
           {(data?.averages || []).map((d: any) => (
@@ -129,7 +140,7 @@ export default function ClientDashboard({ user, student }: DashboardProps): JSX.
       {/* Classmate Feedback Section */}
       <div className="p-6 border rounded-lg bg-white dark:bg-gray-900 shadow space-y-4">
         <h2 className="text-lg font-semibold text-gray-800 dark:text-white">
-          👥 Classmates to Review
+          Classmates to Review
         </h2>
         {data?.classmates?.length === 0 && (
           <p className="text-sm text-gray-500 dark:text-gray-400">
@@ -149,15 +160,24 @@ export default function ClientDashboard({ user, student }: DashboardProps): JSX.
                       : "bg-blue-600 hover:bg-blue-500 text-white"
                   }`}
                   disabled={givenFeedback.includes(s.email)}
-                  onClick={() => alert(`Open peer feedback modal for ${displayStudent}`)}
+                  onClick={() => openFeedbackModal(s)}
                 >
-                  {givenFeedback.includes(s.email) ? "✅ Feedback Given" : "Give Feedback"}
+                  {givenFeedback.includes(s.email) ? "Feedback Given" : "Give Feedback"}
                 </button>
               </div>
             );
           })}
         </div>
       </div>
+
+      {/* Feedback Modal */}
+      {feedbackModalOpen && (
+        <FeedbackModal
+          targetUserEmail={modalTargetEmail}
+          targetResponseId={modalSelfResponseId}
+          onClose={() => setFeedbackModalOpen(false)}
+        />
+      )}
     </div>
   );
 }
