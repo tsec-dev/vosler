@@ -149,7 +149,7 @@ export default function ClientDashboard({ user, student }: DashboardProps): JSX.
       {/* Centered Welcome Message */}
       <div className="text-center mb-8">
         <h1 className="text-3xl font-bold text-white">
-          Welcome, {displayName}
+          Welcome, {displayName} 👋
         </h1>
         <h2 className="text-xl text-white mt-2">
           Week {weekNumber}: {currentTheme}
@@ -165,7 +165,7 @@ export default function ClientDashboard({ user, student }: DashboardProps): JSX.
       </div>
 
       {/* Announcements Box */}
-      <div className="p-6 border rounded-lg bg-orange-600 shadow-lg mb-8">
+      <div className="p-6 border rounded-lg bg-orange-600/80 shadow-lg mb-8">
         <h2 className="text-xl font-bold text-white mb-4">
           Course Announcements
         </h2>
@@ -176,7 +176,7 @@ export default function ClientDashboard({ user, student }: DashboardProps): JSX.
         ) : announcements && announcements.length > 0 ? (
           <div className="space-y-4">
             {announcements.map((announcement: any) => (
-              <div key={announcement.id} className="p-4 bg-orange-700 rounded-lg border border-orange-500">
+              <div key={announcement.id} className="p-4 bg-orange-700/80 rounded-lg border border-orange-500">
                 <h3 className="font-semibold text-white">{announcement.title}</h3>
                 <p className="text-white opacity-90 mt-2">{announcement.content}</p>
                 <p className="text-xs text-orange-200 mt-2">
