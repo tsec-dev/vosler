@@ -41,7 +41,7 @@ export default async function DashboardPage() {
   }
 
   if (!student || !student.first_name) {
-    redirect("/complete-profile");
+    redirect("/profile-setup");
   }
 
   const plainStudent: StudentProps = student;
