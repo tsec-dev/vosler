@@ -4,10 +4,16 @@ import { useState } from "react";
 import BaseLayout from "@/components/BaseLayout";
 import { supabase } from "@/lib/supabaseClient";
 
+// Helper to map the local question type to the allowed database value.
+const mapQuestionType = (type: string) => {
+  if (type === "radio") return "multiple_choice";
+  if (type === "text") return "short_text";
+  return "stars";
+};
+
 export default function SurveyPage() {
   const [title, setTitle] = useState("");
-  // Each question now includes an "options" array for radio questions.
-  // We still use "prompt" for our local state but will map it to "question_text" on insert.
+  // Each question stores a local "prompt" along with other fields.
   const [questions, setQuestions] = useState([
     { prompt: "", category: "", type: "stars", options: [] as string[] }
   ]);
@@ -33,11 +39,11 @@ export default function SurveyPage() {
     const updated = [...questions];
     if (field === "type") {
       updated[index][field] = value;
-      // If changing to "radio", ensure the options array is initialized.
+      // If the question type becomes "radio", initialize options.
       if (value === "radio" && !updated[index].options) {
         updated[index].options = [];
       } else if (value !== "radio") {
-        // For non-radio types, clear out any options.
+        // For non-radio types, clear out options.
         updated[index].options = [];
       }
     } else {
@@ -82,8 +88,7 @@ export default function SurveyPage() {
 
     console.log("Survey title:", title);
 
-    // Build the payload array.
-    // We use the "name" column in surveys for the title.
+    // Build survey payloads—using the "name" column in surveys.
     let surveyPayloads;
     if (surveyType === "paired") {
       surveyPayloads = [
@@ -108,13 +113,12 @@ export default function SurveyPage() {
         return;
       }
 
-      // Prepare question inserts.
-      // Map our local "prompt" to "question_text" and "type" to "question_type".
+      // Build the question inserts, mapping local fields to your DB schema.
       const questionInserts = questions.map((q) => ({
         survey_id: survey.id,
-        question_text: q.prompt,
+        question_text: q.prompt, // local prompt maps to question_text column.
         category: q.type !== "radio" ? (q.category || "General") : null,
-        question_type: q.type, // Updated key to match schema.
+        question_type: mapQuestionType(q.type), // use mapped type here.
         options: q.type === "radio" ? q.options : null
       }));
 
@@ -130,7 +134,6 @@ export default function SurveyPage() {
     }
 
     alert("✅ Survey(s) created successfully!");
-    // Reset form state.
     setTitle("");
     setQuestions([{ prompt: "", category: "", type: "stars", options: [] }]);
     setSurveyType("course");
