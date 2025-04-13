@@ -165,7 +165,7 @@ export default function ClientDashboard({ user, student }: DashboardProps): JSX.
       </div>
 
       {/* Announcements Box */}
-      <div className="p-6 border rounded-lg bg-orange-600/80 shadow-lg mb-8">
+      <div className="p-6 border rounded-lg bg-orange-600/30 shadow-lg mb-8">
         <h2 className="text-xl font-bold text-white mb-4">
           Course Announcements
         </h2>
