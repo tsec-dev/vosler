@@ -6,7 +6,7 @@ import { supabase } from "@/lib/supabaseClient";
 
 export default function SurveyPage() {
   const [title, setTitle] = useState("");
-  // Added `options` field to each question.
+  // Each question now includes an "options" array for radio questions.
   const [questions, setQuestions] = useState([
     { prompt: "", category: "", type: "stars", options: [] as string[] }
   ]);
@@ -23,6 +23,7 @@ export default function SurveyPage() {
     setQuestions(questions.filter((_, i) => i !== index));
   };
 
+  // Update the question's prompt, category, or type.
   const handleChange = (
     index: number,
     field: "prompt" | "category" | "type",
@@ -31,9 +32,11 @@ export default function SurveyPage() {
     const updated = [...questions];
     if (field === "type") {
       updated[index][field] = value;
+      // If changing to "radio", ensure the options array is initialized.
       if (value === "radio" && !updated[index].options) {
         updated[index].options = [];
       } else if (value !== "radio") {
+        // For non-radio types, clear out any options.
         updated[index].options = [];
       }
     } else {
@@ -76,17 +79,19 @@ export default function SurveyPage() {
       return;
     }
 
-    let surveyPayloads;
+    // Log the title to ensure it's not empty.
+    console.log("Survey title:", title);
 
+    // Build the payload array.
+    // Use the column "name" because that is defined in our surveys table.
+    let surveyPayloads;
     if (surveyType === "paired") {
       surveyPayloads = [
-        { title: `${title} (Self)`, is_self_survey: true, is_peer_survey: false },
-        { title: `${title} (Peer)`, is_self_survey: false, is_peer_survey: true }
+        { name: `${title} (Self)` },
+        { name: `${title} (Peer)` }
       ];
-    } else if (surveyType === "self") {
-      surveyPayloads = [{ title, is_self_survey: true, is_peer_survey: false }];
     } else {
-      surveyPayloads = [{ title, is_self_survey: false, is_peer_survey: false }];
+      surveyPayloads = [{ name: title }];
     }
 
     for (const payload of surveyPayloads) {
@@ -103,13 +108,12 @@ export default function SurveyPage() {
         return;
       }
 
+      // Prepare question inserts. For radio questions, include the options; otherwise, include the category (or default "General").
       const questionInserts = questions.map((q) => ({
         survey_id: survey.id,
         prompt: q.prompt,
-        // Use category if not a radio question; otherwise, set to null.
         category: q.type !== "radio" ? (q.category || "General") : null,
         type: q.type,
-        // Include options only for radio questions.
         options: q.type === "radio" ? q.options : null
       }));
 
@@ -118,13 +122,19 @@ export default function SurveyPage() {
         .insert(questionInserts);
 
       if (qError) {
-        console.error("Failed to insert questions for survey", survey.id, "Error:", qError);
+        console.error(
+          "Failed to insert questions for survey",
+          survey.id,
+          "Error:",
+          qError
+        );
         alert("Failed to insert questions. Error: " + (qError?.message || "Unknown error"));
         return;
       }
     }
 
     alert("✅ Survey(s) created successfully!");
+    // Reset form state
     setTitle("");
     setQuestions([{ prompt: "", category: "", type: "stars", options: [] }]);
     setSurveyType("course");
@@ -143,10 +153,14 @@ export default function SurveyPage() {
           onChange={(e) => setTitle(e.target.value)}
         />
 
-        <label className="block text-sm font-medium mt-4 mb-1 text-white">Survey Type</label>
+        <label className="block text-sm font-medium mt-4 mb-1 text-white">
+          Survey Type
+        </label>
         <select
           value={surveyType}
-          onChange={(e) => setSurveyType(e.target.value as "course" | "self" | "paired")}
+          onChange={(e) =>
+            setSurveyType(e.target.value as "course" | "self" | "paired")
+          }
           className="w-full p-2 border rounded dark:bg-gray-800 dark:text-white bg-white"
         >
           <option value="course">📋 Course Survey</option>
@@ -167,6 +181,7 @@ export default function SurveyPage() {
                 value={q.prompt}
                 onChange={(e) => handleChange(index, "prompt", e.target.value)}
               />
+              {/* Render the category input only if the question type is not radio */}
               {q.type !== "radio" && (
                 <input
                   type="text"
@@ -185,29 +200,29 @@ export default function SurveyPage() {
                 <option value="radio">🔘 Multiple Choice (Radio)</option>
                 <option value="text">✍️ Short Text</option>
               </select>
+              {/* For radio questions, show controls to add/edit options */}
               {q.type === "radio" && (
                 <div className="mt-2 space-y-2">
                   <p className="text-sm font-medium">Options:</p>
-                  {q.options &&
-                    q.options.map((option: string, optIndex: number) => (
-                      <div key={optIndex} className="flex gap-2 items-center">
-                        <input
-                          type="text"
-                          placeholder={`Option ${optIndex + 1}`}
-                          className="w-full p-2 border rounded bg-gray-800 text-white"
-                          value={option}
-                          onChange={(e) =>
-                            handleChangeOption(index, optIndex, e.target.value)
-                          }
-                        />
-                        <button
-                          onClick={() => handleRemoveOption(index, optIndex)}
-                          className="text-red-500 text-sm"
-                        >
-                          ❌
-                        </button>
-                      </div>
-                    ))}
+                  {q.options && q.options.map((option, optIndex) => (
+                    <div key={optIndex} className="flex gap-2 items-center">
+                      <input
+                        type="text"
+                        placeholder={`Option ${optIndex + 1}`}
+                        className="w-full p-2 border rounded bg-gray-800 text-white"
+                        value={option}
+                        onChange={(e) =>
+                          handleChangeOption(index, optIndex, e.target.value)
+                        }
+                      />
+                      <button
+                        onClick={() => handleRemoveOption(index, optIndex)}
+                        className="text-red-500 text-sm"
+                      >
+                        ❌
+                      </button>
+                    </div>
+                  ))}
                   <button
                     onClick={() => handleAddOption(index)}
                     className="text-blue-400 text-sm hover:underline"
