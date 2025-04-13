@@ -36,6 +36,12 @@ const MILITARY_RANKS: Record<BranchType, string[]> = {
   ]
 };
 
+// Helper function to set cookies
+const setCookie = (name: string, value: string, days: number): void => {
+  const expires = new Date(Date.now() + days * 864e5).toUTCString();
+  document.cookie = `${name}=${encodeURIComponent(value)}; expires=${expires}; path=/`;
+};
+
 export default function ProfileSetupPage() {
   const { user } = useUser();
   const { signOut } = useAuth();
@@ -79,7 +85,7 @@ export default function ProfileSetupPage() {
         setIsExistingUser(true);
         
         // Set a cookie to mark as existing user for middleware
-        document.cookie = "existing_user=true; path=/; max-age=86400";
+        setCookie("existing_user", "true", 30); // 30 days
       }
       
       // Also check for existing user by email
@@ -92,7 +98,7 @@ export default function ProfileSetupPage() {
           
         if (emailData) {
           setIsExistingUser(true);
-          document.cookie = "existing_user=true; path=/; max-age=86400";
+          setCookie("existing_user", "true", 30); // 30 days
         }
       }
     };
@@ -133,22 +139,8 @@ export default function ProfileSetupPage() {
         
       if (supabaseError) throw supabaseError;
       
-      // Update Clerk user metadata
-      try {
-        await user.update({
-          firstName,
-          lastName,
-          // Using unsafeMetadata since we can't directly access publicMetadata in client components
-          unsafeMetadata: {
-            profile_completed: true,
-            rank,
-            branch
-          }
-        });
-      } catch (userUpdateError) {
-        console.error("Error updating user metadata:", userUpdateError);
-        // Continue anyway as the database was updated
-      }
+      // Set profile completed cookie instead of updating Clerk metadata
+      setCookie("profile_completed", "true", 365); // 1 year
       
       // Redirect to dashboard
       router.push("/dashboard");
@@ -160,27 +152,13 @@ export default function ProfileSetupPage() {
     }
   };
   
-  const handleSkip = async () => {
-    if (!user) return;
+  const handleSkip = () => {
+    // Set cookies for middleware instead of updating Clerk metadata
+    setCookie("existing_user", "true", 30); // 30 days
+    setCookie("profile_completed", "true", 365); // 1 year
     
-    try {
-      // Mark profile as completed in metadata
-      await user.update({
-        unsafeMetadata: {
-          profile_completed: true
-        }
-      });
-      
-      // Set cookie for middleware
-      document.cookie = "existing_user=true; path=/; max-age=2592000"; // 30 days
-      
-      // Redirect to dashboard
-      router.push("/dashboard");
-    } catch (err) {
-      console.error("Error updating metadata:", err);
-      // Force redirect anyway
-      router.push("/dashboard");
-    }
+    // Redirect to dashboard
+    router.push("/dashboard");
   };
   
   if (!user) {
