@@ -31,6 +31,7 @@ interface ClassWeek {
   class_id: string;
   week_number: number;
   theme: string;
+  start_date?: string;
 }
 
 interface StudentInvite {
@@ -46,19 +47,29 @@ export default function ClassManagementPage() {
   const [classWeeks, setClassWeeks] = useState<ClassWeek[]>([]);
   const [invites, setInvites] = useState<StudentInvite[]>([]);
 
+  // For editing an existing class
+  const [editingClass, setEditingClass] = useState<Class | null>(null);
+
+  // Fields for creating a new class
   const [className, setClassName] = useState("");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [instructorId, setInstructorId] = useState<string>("");
   const [fellowshipName, setFellowshipName] = useState("");
+
+  // For inviting students
   const [inviteEmail, setInviteEmail] = useState("");
   const [selectedClass, setSelectedClass] = useState<string | null>(null);
+
+  // Viewing class details in a modal
   const [viewingClass, setViewingClass] = useState<Class | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
+  // UX states
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState("");
 
+  // Load data from Supabase on mount
   useEffect(() => {
     const fetchAll = async () => {
       const [inst, templates, cls, invitesRes, weeksRes] = await Promise.all([
@@ -82,14 +93,16 @@ export default function ClassManagementPage() {
     fetchAll();
   }, []);
 
+  // Calculate the current week from class start date
   const calculateCurrentWeekNumber = (start: string): number => {
-    const startDate = new Date(start);
+    const sDate = new Date(start);
     const now = new Date();
-    const diff = now.getTime() - startDate.getTime();
-    const week = Math.floor(diff / (1000 * 60 * 60 * 24 * 7));
-    return Math.max(1, week + 1);
+    const diff = now.getTime() - sDate.getTime();
+    const weeks = Math.floor(diff / (1000 * 60 * 60 * 24 * 7));
+    return Math.max(1, weeks + 1);
   };
 
+  // Find the current week's theme from class_weeks
   const getCurrentWeekTheme = (classId: string, start: string) => {
     const currentWeek = calculateCurrentWeekNumber(start);
     const match = classWeeks.find(
@@ -98,6 +111,7 @@ export default function ClassManagementPage() {
     return match?.theme || null;
   };
 
+  // Create a new class
   const handleCreateClass = async () => {
     if (!className || !startDate || !endDate || !instructorId || !fellowshipName) {
       alert("Please fill out all fields.");
@@ -118,13 +132,13 @@ export default function ClassManagementPage() {
       .single();
 
     if (error || !createdClass) {
-      console.error("Failed to create class:", error);
+      console.error("❌ Failed to create class:", error);
       setMessage("❌ Failed to create class.");
       setSubmitting(false);
       return;
     }
 
-    // 🎯 Auto generate class_weeks
+    // Auto-generate class_weeks from fellowship_templates
     const { data: templates } = await supabase
       .from("fellowship_templates")
       .select("*")
@@ -157,6 +171,7 @@ export default function ClassManagementPage() {
     setFellowshipName("");
     setSubmitting(false);
 
+    // Refresh class list
     const { data: updated } = await supabase
       .from("classes")
       .select("*, instructor:instructor_id (id, full_name, email)")
@@ -165,12 +180,65 @@ export default function ClassManagementPage() {
     if (updated) setClasses(updated);
   };
 
+  // Delete class
   const handleDeleteClass = async (classId: string) => {
-    if (!confirm("Are you sure?")) return;
+    if (!confirm("Are you sure you want to delete this class?")) return;
     const { error } = await supabase.from("classes").delete().eq("id", classId);
-    if (!error) setClasses((prev) => prev.filter((c) => c.id !== classId));
+    if (!error) {
+      setClasses((prev) => prev.filter((c) => c.id !== classId));
+    } else {
+      alert("❌ Failed to delete class.");
+      console.error(error);
+    }
   };
 
+  // Editing existing class
+  const handleEditSave = async () => {
+    if (!editingClass) return;
+
+    const { error } = await supabase
+      .from("classes")
+      .update({
+        name: editingClass.name,
+        start_date: editingClass.start_date,
+        end_date: editingClass.end_date,
+        instructor_id: editingClass.instructor_id,
+        fellowship_name: editingClass.fellowship_name,
+      })
+      .eq("id", editingClass.id);
+
+    if (error) {
+      alert("❌ Failed to update class.");
+      console.error(error);
+      return;
+    }
+
+    // Refresh
+    const { data: refreshed } = await supabase
+      .from("classes")
+      .select("*, instructor:instructor_id (id, full_name, email)")
+      .order("created_at", { ascending: false });
+
+    setClasses(refreshed || []);
+    setEditingClass(null);
+  };
+
+  // View class modal
+  const handleViewClass = (cls: Class) => {
+    setViewingClass(cls);
+    setIsModalOpen(true);
+  };
+
+  // Delete student from class
+  const handleDeleteStudent = async (inviteId: string) => {
+    if (!confirm("Remove this student?")) return;
+    const { error } = await supabase.from("class_students").delete().eq("id", inviteId);
+    if (!error) {
+      setInvites((prev) => prev.filter((i) => i.id !== inviteId));
+    }
+  };
+
+  // Single invite
   const handleInvite = async (classId: string) => {
     if (!inviteEmail.trim()) return;
 
@@ -181,13 +249,17 @@ export default function ClassManagementPage() {
     });
 
     const result = await res.json();
-    if (!res.ok) alert("❌ Failed: " + result.error);
-    else alert("✅ Invited!");
-    setInviteEmail("");
+    if (!res.ok) {
+      alert("❌ Failed to invite: " + (result?.error || "Unknown error"));
+    } else {
+      alert("✅ Invitation sent!");
+      setInviteEmail("");
+    }
   };
 
+  // Mass invite
   const handleMassUpload = async (file: File, classId: string) => {
-    const ext = file.name.split(".").pop();
+    const ext = file.name.split(".").pop()?.toLowerCase();
     let emails: string[] = [];
 
     if (ext === "csv") {
@@ -195,12 +267,13 @@ export default function ClassManagementPage() {
       emails = text.split("\n").map((line) => line.trim()).filter(Boolean);
     } else if (ext === "xlsx") {
       const data = await file.arrayBuffer();
-      const wb = XLSX.read(data, { type: "array" });
-      const sheet = wb.Sheets[wb.SheetNames[0]];
+      const workbook = XLSX.read(data, { type: "array" });
+      const sheet = workbook.Sheets[workbook.SheetNames[0]];
       const parsed = XLSX.utils.sheet_to_json<{ email: string }>(sheet);
-      emails = parsed.map((row) => row.email?.trim()).filter(Boolean) as string[];
+      emails = parsed.map((r) => r.email?.trim()).filter(Boolean) as string[];
     } else {
-      return alert("Only .csv or .xlsx supported");
+      alert("Only .csv or .xlsx supported");
+      return;
     }
 
     if (!confirm(`Invite ${emails.length} students?`)) return;
@@ -216,48 +289,76 @@ export default function ClassManagementPage() {
     alert("✅ Bulk invite complete.");
   };
 
-  const handleDeleteStudent = async (inviteId: string) => {
-    if (!confirm("Remove student?")) return;
-    const { error } = await supabase.from("class_students").delete().eq("id", inviteId);
-    if (!error) setInvites((prev) => prev.filter((i) => i.id !== inviteId));
-  };
-
   return (
     <BaseLayout isAdmin showBackToDashboard>
       <div className="max-w-5xl mx-auto p-6">
         <h1 className="text-3xl font-bold mb-6">📚 Class Management</h1>
 
-        {/* Class creation */}
+        {/* Create New Class */}
         <div className="space-y-4 mb-12">
-          <select value={className} onChange={(e) => setClassName(e.target.value)} className="w-full p-2 border rounded dark:bg-gray-800 dark:text-white">
+          <select
+            value={className}
+            onChange={(e) => setClassName(e.target.value)}
+            className="w-full p-2 border rounded dark:bg-gray-800 dark:text-white"
+          >
             <option value="">Select Class Name</option>
             {classTemplates.map((t) => (
-              <option key={t.id} value={t.name}>{t.name}</option>
+              <option key={t.id} value={t.name}>
+                {t.name}
+              </option>
             ))}
           </select>
-          <div className="grid grid-cols-2 gap-4">
-            <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="p-2 border rounded dark:bg-gray-800 dark:text-white" />
-            <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="p-2 border rounded dark:bg-gray-800 dark:text-white" />
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <input
+              type="date"
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+              className="p-2 border rounded dark:bg-gray-800 dark:text-white"
+            />
+            <input
+              type="date"
+              value={endDate}
+              onChange={(e) => setEndDate(e.target.value)}
+              className="p-2 border rounded dark:bg-gray-800 dark:text-white"
+            />
           </div>
-          <select value={instructorId} onChange={(e) => setInstructorId(e.target.value)} className="w-full p-2 border rounded dark:bg-gray-800 dark:text-white">
+
+          <select
+            value={instructorId}
+            onChange={(e) => setInstructorId(e.target.value)}
+            className="w-full p-2 border rounded dark:bg-gray-800 dark:text-white"
+          >
             <option value="">Select Instructor</option>
             {instructors.map((i) => (
-              <option key={i.id} value={i.id}>{i.full_name || i.email}</option>
+              <option key={i.id} value={i.id}>
+                {i.full_name || i.email}
+              </option>
             ))}
           </select>
-          <select value={fellowshipName} onChange={(e) => setFellowshipName(e.target.value)} className="w-full p-2 border rounded dark:bg-gray-800 dark:text-white">
+
+          <select
+            value={fellowshipName}
+            onChange={(e) => setFellowshipName(e.target.value)}
+            className="w-full p-2 border rounded dark:bg-gray-800 dark:text-white"
+          >
             <option value="">Select Fellowship</option>
             <option value="Fellowship I">Fellowship I</option>
             <option value="Fellowship II">Fellowship II</option>
             <option value="Fellowship III">Fellowship III</option>
           </select>
-          <button onClick={handleCreateClass} disabled={submitting} className="bg-indigo-600 text-white px-6 py-2 rounded">
+
+          <button
+            onClick={handleCreateClass}
+            disabled={submitting}
+            className="bg-indigo-600 text-white px-4 py-2 rounded"
+          >
             {submitting ? "Creating..." : "Create Class"}
           </button>
           {message && <p className="text-sm text-green-500">{message}</p>}
         </div>
 
-        {/* Class cards */}
+        {/* Class List */}
         <div className="space-y-6">
           {classes.map((cls) => {
             const theme = getCurrentWeekTheme(cls.id, cls.start_date);
@@ -266,9 +367,17 @@ export default function ClassManagementPage() {
                 <div className="flex justify-between items-start">
                   <div>
                     <h2 className="text-lg font-bold">{cls.name}</h2>
-                    <p className="text-sm text-gray-500">Instructor: {cls.instructor?.full_name || cls.instructor?.email}</p>
-                    <p className="text-sm text-gray-500">{cls.start_date} → {cls.end_date}</p>
-                    {cls.fellowship_name && <p className="text-sm text-gray-500">Fellowship: {cls.fellowship_name}</p>}
+                    <p className="text-sm text-gray-500">
+                      Instructor: {cls.instructor?.full_name || cls.instructor?.email}
+                    </p>
+                    <p className="text-sm text-gray-500">
+                      {cls.start_date} → {cls.end_date}
+                    </p>
+                    {cls.fellowship_name && (
+                      <p className="text-sm text-gray-500">
+                        Fellowship: {cls.fellowship_name}
+                      </p>
+                    )}
                     {theme && (
                       <p className="text-sm text-indigo-600 dark:text-indigo-400 mt-1">
                         📅 This Week's Theme: <span className="font-medium">{theme}</span>
@@ -276,8 +385,24 @@ export default function ClassManagementPage() {
                     )}
                   </div>
                   <div className="flex flex-col items-end gap-2">
-                    <button onClick={() => setViewingClass(cls)} className="bg-blue-600 text-white px-4 py-1 rounded text-sm">👁️ View</button>
-                    <button onClick={() => handleDeleteClass(cls.id)} className="bg-red-600 text-white px-4 py-1 rounded text-sm">🗑️ Delete</button>
+                    <button
+                      onClick={() => setEditingClass(cls)}
+                      className="text-sm bg-yellow-500 text-white px-3 py-1 rounded"
+                    >
+                      ✏️ Edit
+                    </button>
+                    <button
+                      onClick={() => handleViewClass(cls)}
+                      className="text-sm bg-blue-600 text-white px-3 py-1 rounded"
+                    >
+                      👁️ View
+                    </button>
+                    <button
+                      onClick={() => handleDeleteClass(cls.id)}
+                      className="text-sm bg-red-600 text-white px-3 py-1 rounded"
+                    >
+                      🗑️ Delete
+                    </button>
                   </div>
                 </div>
 
@@ -318,12 +443,14 @@ export default function ClassManagementPage() {
           })}
         </div>
 
-        {/* Modal */}
-        <Dialog open={isModalOpen} onClose={() => setIsModalOpen(false)} className="relative z-50">
+        {/* View Class Modal */}
+        <Dialog open={!!viewingClass} onClose={() => setIsModalOpen(false)} className="relative z-50">
           <div className="fixed inset-0 bg-black/30" aria-hidden="true" />
           <div className="fixed inset-0 flex items-center justify-center p-4">
             <Dialog.Panel className="w-full max-w-xl rounded bg-white dark:bg-gray-900 p-6 shadow-xl">
-              <Dialog.Title className="text-xl font-bold mb-4">👥 {viewingClass?.name} Members</Dialog.Title>
+              <Dialog.Title className="text-xl font-bold mb-4">
+                👥 {viewingClass?.name} Members
+              </Dialog.Title>
               <ul className="space-y-2 text-sm">
                 {invites
                   .filter((inv) => inv.class_id === viewingClass?.id)
@@ -339,9 +466,130 @@ export default function ClassManagementPage() {
                     </li>
                   ))}
               </ul>
-              <button onClick={() => setIsModalOpen(false)} className="mt-6 bg-gray-200 dark:bg-gray-700 text-sm px-4 py-2 rounded">
+              <button
+                onClick={() => {
+                  setViewingClass(null);
+                  setIsModalOpen(false);
+                }}
+                className="mt-6 bg-gray-200 dark:bg-gray-700 text-sm px-4 py-2 rounded"
+              >
                 Close
               </button>
+            </Dialog.Panel>
+          </div>
+        </Dialog>
+
+        {/* Edit Class Modal */}
+        <Dialog open={!!editingClass} onClose={() => setEditingClass(null)} className="relative z-50">
+          <div className="fixed inset-0 bg-black/30" aria-hidden="true" />
+          <div className="fixed inset-0 flex items-center justify-center p-4">
+            <Dialog.Panel className="w-full max-w-xl rounded bg-white dark:bg-gray-900 p-6 shadow-xl space-y-4">
+              <Dialog.Title className="text-xl font-bold mb-2">✏️ Edit Class</Dialog.Title>
+
+              <input
+                value={editingClass?.name || ""}
+                onChange={(e) =>
+                  setEditingClass((prev) => prev && { ...prev, name: e.target.value })
+                }
+                className="w-full p-2 border rounded dark:bg-gray-800 dark:text-white"
+                placeholder="Class Name"
+              />
+
+              <div className="grid grid-cols-2 gap-4">
+                <input
+                  type="date"
+                  value={editingClass?.start_date || ""}
+                  onChange={(e) =>
+                    setEditingClass((prev) =>
+                      prev && { ...prev, start_date: e.target.value }
+                    )
+                  }
+                  className="p-2 border rounded dark:bg-gray-800 dark:text-white"
+                />
+                <input
+                  type="date"
+                  value={editingClass?.end_date || ""}
+                  onChange={(e) =>
+                    setEditingClass((prev) =>
+                      prev && { ...prev, end_date: e.target.value }
+                    )
+                  }
+                  className="p-2 border rounded dark:bg-gray-800 dark:text-white"
+                />
+              </div>
+
+              <select
+                value={editingClass?.instructor_id || ""}
+                onChange={(e) =>
+                  setEditingClass((prev) =>
+                    prev && { ...prev, instructor_id: e.target.value }
+                  )
+                }
+                className="w-full p-2 border rounded dark:bg-gray-800 dark:text-white"
+              >
+                <option value="">Select Instructor</option>
+                {instructors.map((i) => (
+                  <option key={i.id} value={i.id}>
+                    {i.full_name || i.email}
+                  </option>
+                ))}
+              </select>
+
+              <select
+                value={editingClass?.fellowship_name || ""}
+                onChange={(e) =>
+                  setEditingClass((prev) =>
+                    prev && { ...prev, fellowship_name: e.target.value }
+                  )
+                }
+                className="w-full p-2 border rounded dark:bg-gray-800 dark:text-white"
+              >
+                <option value="">Select Fellowship</option>
+                <option value="Fellowship I">Fellowship I</option>
+                <option value="Fellowship II">Fellowship II</option>
+                <option value="Fellowship III">Fellowship III</option>
+              </select>
+
+              <div className="flex justify-end gap-2 pt-4">
+                <button
+                  onClick={() => setEditingClass(null)}
+                  className="bg-gray-200 dark:bg-gray-700 px-4 py-2 rounded text-sm"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={async () => {
+                    if (!editingClass) return;
+                    const { error } = await supabase
+                      .from("classes")
+                      .update({
+                        name: editingClass.name,
+                        start_date: editingClass.start_date,
+                        end_date: editingClass.end_date,
+                        instructor_id: editingClass.instructor_id,
+                        fellowship_name: editingClass.fellowship_name,
+                      })
+                      .eq("id", editingClass.id);
+
+                    if (error) {
+                      alert("❌ Failed to update class.");
+                      console.error(error);
+                      return;
+                    }
+                    // Refresh
+                    const { data: refreshed } = await supabase
+                      .from("classes")
+                      .select("*, instructor:instructor_id (id, full_name, email)")
+                      .order("created_at", { ascending: false });
+
+                    setClasses(refreshed || []);
+                    setEditingClass(null);
+                  }}
+                  className="bg-indigo-600 text-white px-4 py-2 rounded text-sm"
+                >
+                  Save Changes
+                </button>
+              </div>
             </Dialog.Panel>
           </div>
         </Dialog>
