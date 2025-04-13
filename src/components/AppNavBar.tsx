@@ -18,7 +18,7 @@ export default function AppNavBar({ isAdmin, showBackToDashboard }: AppNavBarPro
     { name: "Self Survey", href: "/self-survey" },
     { name: "Course Survey", href: "/course-survey" },
     { name: "Instructor Panel", href: "/admin", adminOnly: true },
-  ];  
+  ];
 
   return (
     <nav className="flex items-center justify-between px-6 py-4 bg-white dark:bg-gray-900 border-b border-gray-300 dark:border-gray-700 shadow-sm">
@@ -50,13 +50,6 @@ export default function AppNavBar({ isAdmin, showBackToDashboard }: AppNavBarPro
       </div>
 
       <div className="flex items-center gap-4">
-        {isAdmin && (
-          <>
-            <button className="px-4 py-2 rounded-md bg-blue-600 text-white hover:bg-blue-500 text-sm font-medium transition">
-              EXPORT
-            </button>
-          </>
-        )}
         <UserButton afterSignOutUrl="/" />
       </div>
     </nav>
