@@ -69,7 +69,7 @@ export default function ClassManagementPage() {
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState("");
 
-  // Load data from Supabase on mount
+  // Fetch all data (including invites) on mount.
   useEffect(() => {
     const fetchAll = async () => {
       const [inst, templates, cls, invitesRes, weeksRes] = await Promise.all([
@@ -93,7 +93,17 @@ export default function ClassManagementPage() {
     fetchAll();
   }, []);
 
-  // Calculate the current week from class start date
+  // Helper: Refresh invites from Supabase.
+  const refreshInvites = async () => {
+    const { data: invitesData, error } = await supabase.from("class_students").select("*");
+    if (error) {
+      console.error("Error refreshing invites:", error);
+    } else if (invitesData) {
+      setInvites(invitesData);
+    }
+  };
+
+  // Calculate current week from class start date.
   const calculateCurrentWeekNumber = (start: string): number => {
     const sDate = new Date(start);
     const now = new Date();
@@ -102,7 +112,7 @@ export default function ClassManagementPage() {
     return Math.max(1, weeks + 1);
   };
 
-  // Find the current week's theme from class_weeks
+  // Get current week theme from class_weeks.
   const getCurrentWeekTheme = (classId: string, start: string) => {
     const currentWeek = calculateCurrentWeekNumber(start);
     const match = classWeeks.find(
@@ -111,7 +121,7 @@ export default function ClassManagementPage() {
     return match?.theme || null;
   };
 
-  // Create a new class
+  // Create a new class.
   const handleCreateClass = async () => {
     if (!className || !startDate || !endDate || !instructorId || !fellowshipName) {
       alert("Please fill out all fields.");
@@ -138,7 +148,7 @@ export default function ClassManagementPage() {
       return;
     }
 
-    // Auto-generate class_weeks from fellowship_templates
+    // Auto-generate class_weeks from fellowship_templates.
     const { data: templates } = await supabase
       .from("fellowship_templates")
       .select("*")
@@ -171,7 +181,7 @@ export default function ClassManagementPage() {
     setFellowshipName("");
     setSubmitting(false);
 
-    // Refresh class list
+    // Refresh class list.
     const { data: updated } = await supabase
       .from("classes")
       .select("*, instructor:instructor_id (id, full_name, email)")
@@ -180,7 +190,7 @@ export default function ClassManagementPage() {
     if (updated) setClasses(updated);
   };
 
-  // Delete class
+  // Delete a class.
   const handleDeleteClass = async (classId: string) => {
     if (!confirm("Are you sure you want to delete this class?")) return;
     const { error } = await supabase.from("classes").delete().eq("id", classId);
@@ -192,7 +202,7 @@ export default function ClassManagementPage() {
     }
   };
 
-  // Editing existing class
+  // Save edited class data.
   const handleEditSave = async () => {
     if (!editingClass) return;
 
@@ -213,7 +223,7 @@ export default function ClassManagementPage() {
       return;
     }
 
-    // Refresh
+    // Refresh class list.
     const { data: refreshed } = await supabase
       .from("classes")
       .select("*, instructor:instructor_id (id, full_name, email)")
@@ -223,22 +233,23 @@ export default function ClassManagementPage() {
     setEditingClass(null);
   };
 
-  // View class modal
+  // Open view class modal.
   const handleViewClass = (cls: Class) => {
     setViewingClass(cls);
     setIsModalOpen(true);
   };
 
-  // Delete student from class
+  // Delete a student invite.
   const handleDeleteStudent = async (inviteId: string) => {
     if (!confirm("Remove this student?")) return;
     const { error } = await supabase.from("class_students").delete().eq("id", inviteId);
     if (!error) {
-      setInvites((prev) => prev.filter((i) => i.id !== inviteId));
+      // Refresh the invites after deletion.
+      await refreshInvites();
     }
   };
 
-  // Single invite with debugging logs
+  // Single invite with debugging and refresh.
   const handleInvite = async (classId: string) => {
     console.debug("handleInvite invoked");
     console.debug("Invite Email:", inviteEmail);
@@ -250,10 +261,12 @@ export default function ClassManagementPage() {
     }
 
     try {
+      const payload = { email: inviteEmail, class_id: classId };
+      console.debug("Sending payload:", payload);
       const res = await fetch("/api/invite-student", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: inviteEmail, class_id: classId }),
+        body: JSON.stringify(payload),
       });
       console.debug("Response status:", res.status);
       const result = await res.json();
@@ -263,6 +276,7 @@ export default function ClassManagementPage() {
       } else {
         alert("✅ Invitation sent!");
         setInviteEmail("");
+        await refreshInvites(); // Refresh invites state after successful invite.
       }
     } catch (error) {
       console.error("❌ Error in handleInvite:", error);
@@ -270,7 +284,7 @@ export default function ClassManagementPage() {
     }
   };
 
-  // Mass invite (bulk upload) with debugging logs
+  // Bulk invite (mass upload) with debugging and refresh.
   const handleMassUpload = async (file: File, classId: string) => {
     console.debug("handleMassUpload invoked with file:", file.name, "and classId:", classId);
     const ext = file.name.split(".").pop()?.toLowerCase();
@@ -301,7 +315,7 @@ export default function ClassManagementPage() {
         body: JSON.stringify({ email, class_id: classId }),
       });
     }
-
+    await refreshInvites(); // Refresh invites state after bulk invite.
     alert("✅ Bulk invite complete.");
   };
 
@@ -445,7 +459,6 @@ export default function ClassManagementPage() {
                     >
                       Invite
                     </button>
-                    {/* Custom styled file input */}
                     <label className="bg-blue-600 text-white px-4 py-2 rounded text-sm cursor-pointer">
                       Bulk Upload
                       <input
@@ -608,7 +621,7 @@ export default function ClassManagementPage() {
                       console.error(error);
                       return;
                     }
-                    // Refresh
+                    // Refresh class list.
                     const { data: refreshed } = await supabase
                       .from("classes")
                       .select("*, instructor:instructor_id (id, full_name, email)")
