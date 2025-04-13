@@ -2,341 +2,543 @@
 
 import { useEffect, useState } from "react";
 import BaseLayout from "@/components/BaseLayout";
-import { useUser } from "@clerk/nextjs";
 import { supabase } from "@/lib/supabaseClient";
-import { FaStar } from "react-icons/fa";
+import { FaPlus, FaTrash, FaPencilAlt } from "react-icons/fa";
 
-export default function CourseSurveyPage() {
-  const { user } = useUser();
-  const [surveys, setSurveys] = useState<any[]>([]);
-  const [selectedSurveyId, setSelectedSurveyId] = useState<string | null>(null);
-  const [questions, setQuestions] = useState<any[]>([]);
-  const [responses, setResponses] = useState<Record<string, any>>({});
-  const [classId, setClassId] = useState<string | null>(null);
+// Define a Question interface for better type checking.
+interface Question {
+  id?: string;
+  prompt: string;
+  category: string;
+  type: string;
+  options: string[];
+  subType?: string; // Follow-up type for yes_no_metric questions (e.g. "stars" or "text")
+}
 
-  // Load the surveys (course surveys in this example)
-  useEffect(() => {
-    if (!user) return;
-    const classIdFromMeta = user?.publicMetadata?.class_id as string;
-    setClassId(classIdFromMeta);
+// Helper to map local question type to allowed database value.
+const mapQuestionType = (type: string) => {
+  switch (type) {
+    case "stars":
+      return "scale";
+    case "radio":
+      return "radio"; // Preserve radio type instead of mapping to "text"
+    case "text":
+      return "text";
+    case "yes_no_metric":
+      return "yes_no_metric";
+    default:
+      return "scale";
+  }
+};
 
-    supabase
+// Helper to map database question type back to UI type.
+const mapQuestionTypeReverse = (type: string) => {
+  switch (type) {
+    case "scale":
+      return "stars";
+    case "radio":
+      return "radio"; // Return radio when stored as radio
+    case "text":
+      return "text";
+    case "yes_no_metric":
+      return "yes_no_metric";
+    default:
+      return "stars";
+  }
+};
+
+export default function SurveyPage() {
+  // State for survey creation
+  const [title, setTitle] = useState("");
+  const [questions, setQuestions] = useState<Question[]>([
+    { prompt: "", category: "", type: "stars", options: [], subType: "" }
+  ]);
+  const [surveyType, setSurveyType] = useState<"course" | "self" | "paired">("course");
+
+  // State for editing
+  const [isEditing, setIsEditing] = useState(false);
+  const [editingSurveyId, setEditingSurveyId] = useState<string | null>(null);
+
+  // State for existing surveys list.
+  const [existingSurveys, setExistingSurveys] = useState<any[]>([]);
+
+  // Fetch existing surveys from Supabase.
+  const fetchSurveys = async () => {
+    const { data, error } = await supabase
       .from("surveys")
-      .select("id, title, name")
-      .eq("is_course_survey", true)
-      .then(({ data, error }) => {
-        if (error) {
-          console.error("Error fetching course surveys:", error);
-        } else {
-          console.log("Fetched course surveys:", data);
-          setSurveys(data || []);
-        }
-      });
-  }, [user]);
+      .select("*")
+      .order("created_at", { ascending: false });
+    if (error) {
+      console.error("Error fetching surveys:", error);
+    } else {
+      setExistingSurveys(data || []);
+    }
+  };
 
-  // When a survey is selected, load its questions.
   useEffect(() => {
-    if (!selectedSurveyId) return;
+    fetchSurveys();
+  }, []);
 
-    supabase
+  // Load survey data for editing.
+  const loadSurveyForEdit = async (surveyId: string) => {
+    // Get survey details.
+    const { data: surveyData, error: surveyError } = await supabase
+      .from("surveys")
+      .select("*")
+      .eq("id", surveyId)
+      .single();
+    if (surveyError || !surveyData) {
+      console.error("Error loading survey:", surveyError);
+      return;
+    }
+
+    let type: "course" | "self" | "paired" = "course";
+    if (surveyData.is_self_survey) {
+      type = "self";
+    } else if (surveyData.name && (surveyData.name.includes("(Self)") || surveyData.name.includes("(Peer)"))) {
+      type = "paired";
+    }
+
+    // Get survey questions.
+    const { data: questionData, error: questionError } = await supabase
       .from("survey_questions")
       .select("*")
-      .eq("survey_id", selectedSurveyId)
-      .then(({ data, error }) => {
-        if (error) {
-          console.error("Error fetching course survey questions:", error);
-        } else {
-          setQuestions(data || []);
-        }
-      });
-  }, [selectedSurveyId]);
-
-  // Handlers for star ratings and text answers.
-  const handleRating = (questionId: string, value: number) => {
-    setResponses((prev) => ({
-      ...prev,
-      [questionId]: {
-        ...prev[questionId],
-        rating: value,
-      },
-    }));
-  };
-
-  const handleTextAnswer = (questionId: string, value: string) => {
-    setResponses((prev) => ({
-      ...prev,
-      [questionId]: {
-        ...prev[questionId],
-        answer_text: value,
-      },
-    }));
-  };
-
-  // Handler for multiple choice (radio)
-  const handleMultipleChoice = (questionId: string, value: string) => {
-    setResponses((prev) => ({
-      ...prev,
-      [questionId]: {
-        ...prev[questionId],
-        answer_text: value,
-      },
-    }));
-  };
-
-  // New handler for storing follow-up free-text input for yes_no_metric questions.
-  const handleFollowupText = (questionId: string, value: string) => {
-    setResponses((prev) => ({
-      ...prev,
-      [questionId]: {
-        ...prev[questionId],
-        followup_text: value,
-      },
-    }));
-  };
-
-  // Handler for yes/no toggle.
-  const handleYesNo = (questionId: string, value: "yes" | "no") => {
-    setResponses((prev) => ({
-      ...prev,
-      [questionId]: {
-        ...prev[questionId],
-        answer_text: value,
-        // If "no" is chosen, optionally clear any follow-up rating or text.
-        ...(value === "no" && { rating: undefined, followup_text: "" }),
-      },
-    }));
-  };
-
-  // Render different input types based on question type.
-  const renderQuestionInput = (question: any) => {
-    switch (question.question_type) {
-      case "scale":
-        return (
-          <div className="flex items-center gap-1 mb-2">
-            {[1, 2, 3, 4, 5].map((num) => (
-              <FaStar
-                key={num}
-                className={`cursor-pointer ${
-                  responses[question.id]?.rating >= num
-                    ? "text-yellow-400"
-                    : "text-gray-400"
-                }`}
-                onClick={() => handleRating(question.id, num)}
-              />
-            ))}
-          </div>
-        );
-      case "yes_no_metric":
-        return (
-          <div>
-            {/* Yes/No Toggle */}
-            <div className="flex gap-4 mb-2">
-              <button
-                onClick={() => handleYesNo(question.id, "yes")}
-                className={`px-4 py-2 rounded ${
-                  responses[question.id]?.answer_text === "yes"
-                    ? "bg-blue-600 text-white"
-                    : "bg-gray-200 text-gray-800"
-                }`}
-              >
-                Yes
-              </button>
-              <button
-                onClick={() => handleYesNo(question.id, "no")}
-                className={`px-4 py-2 rounded ${
-                  responses[question.id]?.answer_text === "no"
-                    ? "bg-blue-600 text-white"
-                    : "bg-gray-200 text-gray-800"
-                }`}
-              >
-                No
-              </button>
-            </div>
-            {/* If "Yes" is selected, render the follow-up input based on sub_type */}
-            {responses[question.id]?.answer_text === "yes" && (
-              <div className="mt-2">
-                {question.sub_type === "stars" ? (
-                  <div className="flex items-center gap-1">
-                    {[1, 2, 3, 4, 5].map((num) => (
-                      <FaStar
-                        key={num}
-                        className={`cursor-pointer ${
-                          responses[question.id]?.rating >= num
-                            ? "text-yellow-400"
-                            : "text-gray-400"
-                        }`}
-                        onClick={() => handleRating(question.id, num)}
-                      />
-                    ))}
-                    <span className="ml-2 text-sm text-gray-600">
-                      Rate: {question.prompt}
-                    </span>
-                  </div>
-                ) : (
-                  <div>
-                    <label className="block text-sm text-gray-600 mb-1">
-                      {question.prompt} (Comment)
-                    </label>
-                    <textarea
-                      placeholder="Enter your comment..."
-                      value={responses[question.id]?.followup_text || ""}
-                      onChange={(e) =>
-                        handleFollowupText(question.id, e.target.value)
-                      }
-                      rows={3}
-                      className="w-full p-2 border rounded dark:bg-gray-800 dark:text-white"
-                    />
-                  </div>
-                )}
-              </div>
-            )}
-            {/* Optionally, if you want the user to also be able to submit a free text answer alongside stars, you could add an extra textarea below */}
-          </div>
-        );
-      case "radio":
-        return (
-          <div className="space-y-2">
-            {question.options &&
-              Array.isArray(question.options) &&
-              question.options.map((option: string, index: number) => (
-                <div key={index} className="flex items-center">
-                  <input
-                    type="radio"
-                    id={`option-${question.id}-${index}`}
-                    name={`question-${question.id}`}
-                    checked={responses[question.id]?.answer_text === option}
-                    onChange={() => handleMultipleChoice(question.id, option)}
-                    className="mr-2"
-                  />
-                  <label htmlFor={`option-${question.id}-${index}`}>
-                    {option}
-                  </label>
-                </div>
-              ))}
-          </div>
-        );
-      case "text":
-      default:
-        return (
-          <textarea
-            placeholder="Your answer..."
-            value={responses[question.id]?.answer_text || ""}
-            onChange={(e) => handleTextAnswer(question.id, e.target.value)}
-            rows={3}
-            className="w-full p-2 border rounded dark:bg-gray-800 dark:text-white"
-          />
-        );
+      .eq("survey_id", surveyId);
+    if (questionError) {
+      console.error("Error loading survey questions:", questionError);
+      return;
     }
+
+    // Map questions to our format.
+    const mappedQuestions: Question[] = (questionData || []).map((q: any) => {
+      const mappedType = mapQuestionTypeReverse(q.question_type);
+      return {
+        id: q.id,
+        prompt: q.question_text || q.prompt || "",
+        category: q.category || "General",
+        type: mappedType,
+        options: q.options || [],
+        subType: q.sub_type || ""
+      };
+    });
+
+    setTitle(surveyData.title || surveyData.name || "");
+    setSurveyType(type);
+    setQuestions(
+      mappedQuestions.length > 0
+        ? mappedQuestions
+        : [{ prompt: "", category: "", type: "stars", options: [], subType: "" }]
+    );
+    setIsEditing(true);
+    setEditingSurveyId(surveyId);
+  };
+
+  // Handlers for survey creation fields.
+  const handleAddQuestion = () => {
+    setQuestions([
+      ...questions,
+      { prompt: "", category: "", type: "stars", options: [], subType: "" }
+    ]);
+  };
+
+  const handleRemoveQuestion = (index: number) => {
+    if (questions.length === 1) {
+      // Ensure at least one question exists.
+      setQuestions([{ prompt: "", category: "", type: "stars", options: [], subType: "" }]);
+    } else {
+      setQuestions(questions.filter((_, i) => i !== index));
+    }
+  };
+
+  const handleChange = (
+    index: number,
+    field: "prompt" | "category" | "type",
+    value: string
+  ) => {
+    const updated = [...questions];
+    if (field === "type") {
+      updated[index][field] = value;
+      // For radio questions, preserve options array; otherwise clear options.
+      if (value === "radio" && !updated[index].options) {
+        updated[index].options = [];
+      } else if (value !== "radio") {
+        updated[index].options = [];
+      }
+      // For yes_no_metric, optionally set a follow-up subtype.
+      if (value === "yes_no_metric") {
+        updated[index].subType = "stars";
+      } else {
+        updated[index].subType = "";
+      }
+    } else {
+      updated[index][field] = value;
+    }
+    setQuestions(updated);
+  };
+
+  // Handler for changing the follow-up type (subType).
+  const handleChangeSubType = (questionIndex: number, newSubType: string) => {
+    const updated = [...questions];
+    updated[questionIndex].subType = newSubType;
+    setQuestions(updated);
+  };
+
+  const handleAddOption = (questionIndex: number) => {
+    const updated = [...questions];
+    if (!updated[questionIndex].options) {
+      updated[questionIndex].options = [];
+    }
+    updated[questionIndex].options.push("");
+    setQuestions(updated);
+  };
+
+  const handleRemoveOption = (questionIndex: number, optionIndex: number) => {
+    const updated = [...questions];
+    updated[questionIndex].options = updated[questionIndex].options.filter(
+      (_, i) => i !== optionIndex
+    );
+    setQuestions(updated);
+  };
+
+  const handleChangeOption = (
+    questionIndex: number,
+    optionIndex: number,
+    newValue: string
+  ) => {
+    const updated = [...questions];
+    updated[questionIndex].options[optionIndex] = newValue;
+    setQuestions(updated);
+  };
+
+  const handleCancel = () => {
+    setTitle("");
+    setQuestions([{ prompt: "", category: "", type: "stars", options: [], subType: "" }]);
+    setSurveyType("course");
+    setIsEditing(false);
+    setEditingSurveyId(null);
   };
 
   const handleSubmit = async () => {
-    if (!user || !classId || !selectedSurveyId) {
-      alert("Missing required information. Please try again.");
+    if (!title.trim() || questions.length === 0) {
+      alert("Please provide a title and at least one question.");
       return;
     }
 
-    // Validate required answers here (omitted for brevity)
+    // If editing an existing survey, remove its questions first.
+    if (isEditing && editingSurveyId) {
+      const { error: deleteError } = await supabase
+        .from("survey_questions")
+        .delete()
+        .eq("survey_id", editingSurveyId);
+      if (deleteError) {
+        console.error("Error deleting existing questions:", deleteError);
+        alert("Failed to update survey. Error: " + (deleteError?.message || "Unknown error"));
+        return;
+      }
 
-    // Insert the survey response record.
-    const { data: responseRecord, error } = await supabase
-      .from("survey_responses")
-      .insert({
-        user_id: user.id,
-        response_type: "course",
-        class_id: classId,
-        survey_id: selectedSurveyId,
-      })
-      .select()
-      .single();
+      const updatePayload = {
+        name: title,
+        title: title
+      };
 
-    if (error || !responseRecord) {
-      alert("❌ Failed to submit survey.");
-      console.error("Error inserting survey response:", error);
+      const { error: updateError } = await supabase
+        .from("surveys")
+        .update(updatePayload)
+        .eq("id", editingSurveyId);
+      if (updateError) {
+        console.error("Error updating survey:", updateError);
+        alert("Failed to update survey. Error: " + (updateError?.message || "Unknown error"));
+        return;
+      }
+
+      // Create new questions for the updated survey.
+      const questionInserts = questions.map((q) => ({
+        survey_id: editingSurveyId,
+        question_text: q.prompt,
+        category: q.type !== "radio" ? (q.category || "General") : null,
+        question_type: mapQuestionType(q.type),
+        options: q.type === "radio" ? q.options : null,
+        sub_type: q.type === "yes_no_metric" ? q.subType || null : null
+      }));
+
+      const { error: qError } = await supabase
+        .from("survey_questions")
+        .insert(questionInserts);
+      if (qError) {
+        console.error("Failed to insert questions for survey", editingSurveyId, "Error:", qError);
+        alert("Failed to insert questions. Error: " + (qError?.message || "Unknown error"));
+        return;
+      }
+
+      alert("Survey updated successfully!");
+      handleCancel();
+      fetchSurveys();
       return;
     }
 
-    // Build and insert answer records.
-    const answersToInsert = [];
-    for (const q of questions) {
-      const r = responses[q.id];
-      if (!r) continue;
-      answersToInsert.push({
-        response_id: responseRecord.id,
-        question_id: q.id,
-        rating: r.rating ?? null,
-        // Save answer_text if available. For yes_no_metric with text follow-up, you might choose to save followup_text instead.
-        answer_text: r.answer_text || r.followup_text || null,
-      });
+    // For creating a new survey, prepare payload(s) based on the survey type.
+    let surveyPayloads;
+    if (surveyType === "paired") {
+      surveyPayloads = [
+        { 
+          name: `${title} (Self)`, 
+          title: title,
+          is_self_survey: true, 
+          is_peer_survey: false, 
+          is_course_survey: false 
+        },
+        { 
+          name: `${title} (Peer)`, 
+          title: title,
+          is_peer_survey: true, 
+          is_self_survey: false, 
+          is_course_survey: false 
+        }
+      ];
+    } else if (surveyType === "self") {
+      surveyPayloads = [{
+        name: title,
+        title: title,
+        is_self_survey: true,
+        is_peer_survey: false,
+        is_course_survey: false
+      }];
+    } else {
+      surveyPayloads = [{
+        name: title,
+        title: title,
+        is_course_survey: true,
+        is_self_survey: false,
+        is_peer_survey: false
+      }];
     }
 
-    const { error: answersError } = await supabase
-      .from("survey_answers")
-      .insert(answersToInsert);
+    // Loop through the payloads to create survey records and questions.
+    for (const payload of surveyPayloads) {
+      console.log("Creating survey with payload:", payload);
+      const { data: survey, error } = await supabase
+        .from("surveys")
+        .insert(payload)
+        .select()
+        .single();
+      if (error || !survey) {
+        console.error("Failed to create survey with payload", payload, "Error:", error);
+        alert("Failed to create survey. Error: " + (error?.message || "Unknown error"));
+        return;
+      }
 
-    if (answersError) {
-      alert("❌ Failed to save your answers.");
-      console.error("Error inserting survey answers:", answersError);
-      return;
+      const questionInserts = questions.map((q) => ({
+        survey_id: survey.id,
+        question_text: q.prompt,
+        category: q.type !== "radio" ? (q.category || "General") : null,
+        question_type: mapQuestionType(q.type),
+        options: q.type === "radio" ? q.options : null,
+        sub_type: q.type === "yes_no_metric" ? q.subType || null : null
+      }));
+
+      const { error: qError } = await supabase
+        .from("survey_questions")
+        .insert(questionInserts);
+      if (qError) {
+        console.error("Failed to insert questions for survey", survey.id, "Error:", qError);
+        alert("Failed to insert questions. Error: " + (qError?.message || "Unknown error"));
+        return;
+      }
     }
 
-    alert("✅ Course survey submitted successfully!");
-    setSelectedSurveyId(null);
-    setQuestions([]);
-    setResponses({});
+    alert("Survey(s) created successfully!");
+    handleCancel();
+    fetchSurveys();
+  };
+
+  // Stub for delete survey functionality (implement as needed).
+  const handleDeleteSurvey = async (surveyId: string) => {
+    alert(`Delete survey ${surveyId} functionality not implemented.`);
   };
 
   return (
-    <BaseLayout>
-      <div className="max-w-3xl mx-auto p-6">
-        <h1 className="text-2xl font-bold mb-4">Course Survey</h1>
-        <p className="mb-6 text-gray-500 dark:text-gray-400">
-          Please complete this survey about your course experience.
-        </p>
+    <BaseLayout isAdmin showBackToDashboard>
+      <div className="max-w-4xl mx-auto p-6 space-y-6">
+        <h2 className="text-3xl font-bold text-white">
+          {isEditing ? "Edit Survey" : "Create New Survey"}
+        </h2>
+        <input
+          type="text"
+          placeholder="Survey Title"
+          className="w-full p-2 border rounded dark:bg-gray-800 dark:text-white bg-white"
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+        />
+        <label className="block text-sm font-medium mt-4 mb-1 text-white">
+          Survey Type
+        </label>
         <select
-          className="mb-6 p-2 border rounded dark:bg-gray-800 dark:text-white w-full"
-          value={selectedSurveyId || ""}
-          onChange={(e) => setSelectedSurveyId(e.target.value)}
+          value={surveyType}
+          onChange={(e) => setSurveyType(e.target.value as "course" | "self" | "paired")}
+          className="w-full p-2 border rounded dark:bg-gray-800 dark:text-white bg-white"
+          disabled={isEditing}
         >
-          <option value="" disabled>
-            Select a course survey...
-          </option>
-          {surveys.map((s) => (
-            <option key={s.id} value={s.id}>
-              {s.title || s.name}
-            </option>
-          ))}
+          <option value="course">Course Survey</option>
+          <option value="self">Self Reflection</option>
+          <option value="paired">Paired (Self + Peer)</option>
         </select>
-        {selectedSurveyId && questions.length === 0 && (
-          <div className="text-center py-8">
-            <p>Loading survey questions...</p>
-          </div>
-        )}
-        {questions.length > 0 && (
-          <div className="space-y-8 mt-4">
-            {questions.map((q) => (
-              <div
-                key={q.id}
-                className="p-4 border rounded bg-gray-50 dark:bg-gray-800"
-              >
-                <p className="font-semibold mb-2">
-                  {q.prompt || q.question_text}
-                </p>
-                {q.category && (
-                  <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">
-                    Category: {q.category}
-                  </p>
-                )}
-                {renderQuestionInput(q)}
-              </div>
-            ))}
-            <button
-              onClick={handleSubmit}
-              className="bg-blue-600 hover:bg-blue-500 text-white px-6 py-2 rounded font-medium mt-4"
+        <div className="space-y-4">
+          {questions.map((q, index) => (
+            <div
+              key={index}
+              className="p-4 border rounded bg-gradient-to-br from-gray-800 to-gray-900 dark:border-gray-700 text-white shadow space-y-3"
             >
-              Submit Course Survey
+              <input
+                type="text"
+                placeholder="Question Prompt"
+                className="w-full p-2 border rounded bg-gray-800 text-white"
+                value={q.prompt}
+                onChange={(e) => handleChange(index, "prompt", e.target.value)}
+              />
+              {q.type !== "radio" && (
+                <input
+                  type="text"
+                  placeholder="Category (e.g. Communication)"
+                  className="w-full p-2 border rounded bg-gray-800 text-white"
+                  value={q.category}
+                  onChange={(e) => handleChange(index, "category", e.target.value)}
+                />
+              )}
+              <select
+                className="w-full p-2 border rounded bg-gray-800 text-white"
+                value={q.type}
+                onChange={(e) => handleChange(index, "type", e.target.value)}
+              >
+                <option value="stars">⭐ 1–5 Star Rating</option>
+                <option value="radio">🔘 Multiple Choice (Radio)</option>
+                <option value="text">✍️ Short Text</option>
+                <option value="yes_no_metric">Yes/No with Metric</option>
+              </select>
+              {q.type === "radio" && (
+                <div className="mt-2 space-y-2">
+                  <p className="text-sm font-medium">Options:</p>
+                  {q.options && q.options.map((option, optIndex) => (
+                    <div key={optIndex} className="flex gap-2 items-center">
+                      <input
+                        type="text"
+                        placeholder={`Option ${optIndex + 1}`}
+                        className="w-full p-2 border rounded bg-gray-800 text-white"
+                        value={option}
+                        onChange={(e) => handleChangeOption(index, optIndex, e.target.value)}
+                      />
+                      <button
+                        onClick={() => handleRemoveOption(index, optIndex)}
+                        className="text-red-500 text-sm"
+                      >
+                        ❌
+                      </button>
+                    </div>
+                  ))}
+                  <button
+                    onClick={() => handleAddOption(index)}
+                    className="text-blue-400 text-sm hover:underline"
+                  >
+                    ➕ Add Option
+                  </button>
+                </div>
+              )}
+              {q.type === "yes_no_metric" && (
+                <div className="mt-2 space-y-2">
+                  <label className="block text-sm font-medium">Follow-up Type</label>
+                  <select
+                    className="w-full p-2 border rounded bg-gray-800 text-white"
+                    value={q.subType || "stars"}
+                    onChange={(e) => handleChangeSubType(index, e.target.value)}
+                  >
+                    <option value="stars">1–5 Star Rating</option>
+                    <option value="text">Short Text</option>
+                  </select>
+                </div>
+              )}
+              <div className="flex justify-end space-x-2 mt-2">
+                <button
+                  onClick={() => handleRemoveQuestion(index)}
+                  className="bg-red-600 hover:bg-red-500 text-white px-3 py-1 rounded text-sm flex items-center"
+                >
+                  <FaTrash className="mr-1" /> Remove
+                </button>
+                {index === questions.length - 1 && (
+                  <button
+                    onClick={handleAddQuestion}
+                    className="bg-blue-600 hover:bg-blue-500 text-white px-3 py-1 rounded text-sm flex items-center"
+                  >
+                    <FaPlus className="mr-1" /> Add Question
+                  </button>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+        <div className="flex gap-3">
+          {isEditing && (
+            <button
+              onClick={handleCancel}
+              className="bg-gray-600 hover:bg-gray-500 text-white px-6 py-2 rounded"
+            >
+              Cancel
             </button>
-          </div>
-        )}
+          )}
+          <button
+            onClick={handleSubmit}
+            className="bg-indigo-600 hover:bg-indigo-500 text-white px-6 py-2 rounded"
+          >
+            {isEditing ? "Update Survey" : "Save Survey"}
+          </button>
+        </div>
+        <div className="mt-10 space-y-4">
+          <h2 className="text-2xl font-bold text-white">Existing Surveys</h2>
+          {existingSurveys.length === 0 ? (
+            <p className="text-white">No surveys found.</p>
+          ) : (
+            <ul className="space-y-2">
+              {existingSurveys.map((survey) => (
+                <li key={survey.id} className="flex justify-between items-center bg-gray-800 p-3 rounded">
+                  <div>
+                    <span className="text-white">{survey.name}</span>
+                    <div className="flex gap-1 mt-1">
+                      {survey.is_course_survey && (
+                        <span className="bg-blue-600 text-white px-2 py-0.5 rounded-full text-xs">
+                          Course
+                        </span>
+                      )}
+                      {survey.is_self_survey && (
+                        <span className="bg-green-600 text-white px-2 py-0.5 rounded-full text-xs">
+                          Self
+                        </span>
+                      )}
+                      {survey.is_peer_survey && (
+                        <span className="bg-yellow-600 text-white px-2 py-0.5 rounded-full text-xs">
+                          Peer
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => loadSurveyForEdit(survey.id)}
+                      className="bg-blue-600 hover:bg-blue-500 text-white px-3 py-1 rounded text-sm flex items-center"
+                      disabled={isEditing}
+                    >
+                      <FaPencilAlt className="mr-1" /> Edit
+                    </button>
+                    <button
+                      onClick={() => handleDeleteSurvey(survey.id)}
+                      className="bg-red-600 hover:bg-red-500 text-white px-3 py-1 rounded text-sm"
+                      disabled={isEditing}
+                    >
+                      Delete
+                    </button>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
       </div>
     </BaseLayout>
   );
