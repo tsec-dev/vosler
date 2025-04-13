@@ -26,9 +26,13 @@ export default function SelfSurveyPage() {
       .from("surveys")
       .select("id, title, name")
       .eq("is_self_survey", true)
-      .then(({ data }) => {
-        console.log("Fetched self surveys:", data);
-        setSurveys(data || []);
+      .then(({ data, error }) => {
+        if (error) {
+          console.error("Error fetching self surveys:", error);
+        } else {
+          console.log("Fetched self surveys:", data);
+          setSurveys(data || []);
+        }
       });
   }, [user]);
 
@@ -39,7 +43,13 @@ export default function SelfSurveyPage() {
       .from("survey_questions")
       .select("*")
       .eq("survey_id", selectedSurveyId)
-      .then(({ data }) => setQuestions(data || []));
+      .then(({ data, error }) => {
+        if (error) {
+          console.error("Error fetching survey questions:", error);
+        } else {
+          setQuestions(data || []);
+        }
+      });
   }, [selectedSurveyId]);
 
   const handleRate = (questionId: string, value: number) => {
@@ -65,19 +75,20 @@ export default function SelfSurveyPage() {
   const handleSubmit = async () => {
     if (!user || !selectedSurveyId) return;
 
-    // Insert survey response without additional fields not present in the schema
+    // Insert survey response
     const { data: responseRecord, error } = await supabase
       .from("survey_responses")
       .insert({
         user_id: user.id,
         survey_id: selectedSurveyId,
+        // If your table requires additional columns (like submitted_at), ensure they have default values or include them here.
       })
       .select()
       .single();
 
     if (error || !responseRecord) {
-      alert("❌ Failed to submit survey.");
-      console.error(error);
+      console.error("Error inserting survey response:", error);
+      alert("❌ Failed to submit survey. Check the console for error details.");
       return;
     }
 
@@ -86,12 +97,15 @@ export default function SelfSurveyPage() {
       const r = responses[q.id];
       if (!r) continue;
 
-      await supabase.from("survey_answers").insert({
+      const { error: answerError } = await supabase.from("survey_answers").insert({
         response_id: responseRecord.id,
         question_id: q.id,
         rating: r.rating ?? null,
         comment: r.comment ?? null,
       });
+      if (answerError) {
+        console.error(`Error inserting answer for question ${q.id}:`, answerError);
+      }
     }
 
     alert("✅ Self survey submitted!");
