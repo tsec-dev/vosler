@@ -1,184 +1,206 @@
-// app/api/announcements/route.ts
+// src/app/api/admin/announcements/route.ts
+import { NextRequest, NextResponse } from "next/server";
+import { createClient } from '@supabase/supabase-js';
+import { getAuth, clerkClient } from "@clerk/nextjs/server";
 
-import { NextResponse } from "next/server";
-import { supabase } from "@/lib/supabaseClient";
+// Create a supabase client with service role key
+const supabaseAdmin = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+);
 
-export async function GET(request: Request) {
-  // Parse query parameters from the URL
-  const { searchParams } = new URL(request.url);
-  const classId = searchParams.get("classId");
-
-  console.log("API GET /announcements called with:", { classId });
-
-  if (!classId) {
-    console.error("Missing classId parameter.");
-    return NextResponse.json(
-      { error: "Missing classId parameter." },
-      { status: 400 }
-    );
-  }
-
+export async function POST(req: NextRequest) {
   try {
-    // Fetch announcements for the specified class
-    const { data: announcements, error: announcementsError } = await supabase
-      .from("class_announcements")
-      .select("*")
-      .eq("class_id", classId)
-      .eq("is_active", true)
-      .order("created_at", { ascending: false })
-      .limit(5); // Only fetch the 5 most recent announcements
-
-    if (announcementsError) {
-      console.error("Error fetching announcements:", announcementsError);
-      return NextResponse.json(
-        { error: "Error fetching announcements.", detail: announcementsError },
-        { status: 500 }
-      );
+    const { userId } = getAuth(req);
+    if (!userId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    console.log("Fetched announcements:", announcements);
-    return NextResponse.json(announcements || []);
-  } catch (error: any) {
-    console.error("API Error:", error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
-  }
-}
+    // Get Clerk user data
+    const clerk = await clerkClient();
+    const userData = await clerk.users.getUser(userId);
+    const email = userData.emailAddresses?.[0]?.emailAddress;
+    if (!email) {
+      return NextResponse.json({ error: "Email not found" }, { status: 400 });
+    }
 
-export async function POST(request: Request) {
-  try {
     // Parse request body
-    const requestBody = await request.json();
-    const { classId, title, content, userEmail } = requestBody;
-
-    console.log("API POST /announcements called with:", { classId, title, userEmail });
-
-    if (!classId || !title || !content || !userEmail) {
-      console.error("Missing required parameters.");
+    const { classId, title, content } = await req.json();
+    
+    if (!classId || !title || !content) {
       return NextResponse.json(
-        { error: "Missing required parameters (classId, title, content, userEmail)." },
+        { error: 'Missing required fields' }, 
         { status: 400 }
       );
     }
-
-    // Verify user is an admin by checking the instructors table
-    const { data: instructor, error: instructorError } = await supabase
-      .from("instructors")
-      .select("is_admin")
-      .eq("email", userEmail)
+    
+    // Check if user is admin in the instructors table
+    const { data: instructor, error: instructorError } = await supabaseAdmin
+      .from('instructors')
+      .select('is_admin')
+      .eq('email', email)
       .single();
-
+      
     if (instructorError) {
-      console.error("Error verifying admin status:", instructorError);
+      console.error('Error checking admin status:', instructorError);
       return NextResponse.json(
-        { error: "Unauthorized. User not found or not an admin." },
+        { error: 'Failed to verify admin status' }, 
+        { status: 500 }
+      );
+    }
+      
+    if (!instructor?.is_admin) {
+      return NextResponse.json(
+        { error: 'Not authorized to create announcements' }, 
         { status: 403 }
       );
     }
-
-    if (!instructor || !instructor.is_admin) {
-      console.error("User is not an admin:", userEmail);
-      return NextResponse.json(
-        { error: "Unauthorized. Admin privileges required." },
-        { status: 403 }
-      );
-    }
-
-    // Insert new announcement
-    const { data: announcement, error: announcementError } = await supabase
-      .from("class_announcements")
+    
+    // Insert the announcement using admin privileges
+    const { data, error } = await supabaseAdmin
+      .from('class_announcements')
       .insert([
         {
           class_id: classId,
           title,
           content,
-          created_by: userEmail,
+          created_by: email,
           created_at: new Date().toISOString(),
           is_active: true
-        },
+        }
       ])
-      .select()
-      .single();
-
-    if (announcementError) {
-      console.error("Error creating announcement:", announcementError);
+      .select();
+      
+    if (error) {
+      console.error('Error creating announcement:', error);
       return NextResponse.json(
-        { error: "Error creating announcement.", detail: announcementError },
+        { error: 'Failed to create announcement: ' + error.message }, 
         { status: 500 }
       );
     }
-
-    console.log("Created announcement:", announcement);
-    return NextResponse.json(announcement);
-  } catch (error: any) {
-    console.error("API Error:", error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    
+    return NextResponse.json(data[0]);
+  } catch (error) {
+    console.error('API error:', error);
+    return NextResponse.json(
+      { error: 'Server error: ' + (error instanceof Error ? error.message : 'Unknown error') }, 
+      { status: 500 }
+    );
   }
 }
 
-export async function DELETE(request: Request) {
-  // Parse query parameters from the URL
-  const { searchParams } = new URL(request.url);
-  const id = searchParams.get("id");
-  const userEmail = searchParams.get("userEmail");
-
-  console.log("API DELETE /announcements called with:", { id, userEmail });
-
-  if (!id || !userEmail) {
-    console.error("Missing id or userEmail parameter.");
-    return NextResponse.json(
-      { error: "Missing id or userEmail parameter." },
-      { status: 400 }
-    );
-  }
-
+export async function GET(req: NextRequest) {
   try {
-    // Verify user is an admin by checking the instructors table
-    const { data: instructor, error: instructorError } = await supabase
-      .from("instructors")
-      .select("is_admin")
-      .eq("email", userEmail)
-      .single();
-
-    if (instructorError) {
-      console.error("Error verifying admin status:", instructorError);
-      return NextResponse.json(
-        { error: "Unauthorized. User not found or not an admin." },
-        { status: 403 }
-      );
+    const { userId } = getAuth(req);
+    if (!userId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    if (!instructor || !instructor.is_admin) {
-      console.error("User is not an admin:", userEmail);
+    // Parse query parameters
+    const { searchParams } = new URL(req.url);
+    const classId = searchParams.get('classId');
+    
+    if (!classId) {
       return NextResponse.json(
-        { error: "Unauthorized. Admin privileges required." },
-        { status: 403 }
+        { error: 'Missing classId parameter' }, 
+        { status: 400 }
       );
     }
-
-    // Option 1: Hard delete
-    // const { error: deleteError } = await supabase
-    //   .from("class_announcements")
-    //   .delete()
-    //   .eq("id", id);
-
-    // Option 2: Soft delete (recommended)
-    const { error: deleteError } = await supabase
-      .from("class_announcements")
-      .update({ is_active: false })
-      .eq("id", id);
-
-    if (deleteError) {
-      console.error("Error deleting announcement:", deleteError);
+    
+    // Fetch announcements using admin privileges
+    const { data, error } = await supabaseAdmin
+      .from('class_announcements')
+      .select('*')
+      .eq('class_id', classId)
+      .eq('is_active', true)
+      .order('created_at', { ascending: false });
+      
+    if (error) {
+      console.error('Error fetching announcements:', error);
       return NextResponse.json(
-        { error: "Error deleting announcement.", detail: deleteError },
+        { error: 'Failed to fetch announcements' }, 
         { status: 500 }
       );
     }
+    
+    return NextResponse.json(data || []);
+  } catch (error) {
+    console.error('API error:', error);
+    return NextResponse.json(
+      { error: 'Server error' }, 
+      { status: 500 }
+    );
+  }
+}
 
-    console.log("Deleted announcement:", id);
-    return NextResponse.json({ success: true, message: "Announcement deleted" });
-  } catch (error: any) {
-    console.error("API Error:", error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+export async function DELETE(req: NextRequest) {
+  try {
+    const { userId } = getAuth(req);
+    if (!userId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // Get Clerk user data
+    const clerk = await clerkClient();
+    const userData = await clerk.users.getUser(userId);
+    const email = userData.emailAddresses?.[0]?.emailAddress;
+    if (!email) {
+      return NextResponse.json({ error: "Email not found" }, { status: 400 });
+    }
+
+    // Parse query parameters
+    const { searchParams } = new URL(req.url);
+    const id = searchParams.get('id');
+    
+    if (!id) {
+      return NextResponse.json(
+        { error: 'Missing id parameter' }, 
+        { status: 400 }
+      );
+    }
+    
+    // Check if user is admin in the instructors table
+    const { data: instructor, error: instructorError } = await supabaseAdmin
+      .from('instructors')
+      .select('is_admin')
+      .eq('email', email)
+      .single();
+      
+    if (instructorError) {
+      console.error('Error checking admin status:', instructorError);
+      return NextResponse.json(
+        { error: 'Failed to verify admin status' }, 
+        { status: 500 }
+      );
+    }
+      
+    if (!instructor?.is_admin) {
+      return NextResponse.json(
+        { error: 'Not authorized to delete announcements' }, 
+        { status: 403 }
+      );
+    }
+    
+    // Soft delete the announcement using admin privileges
+    const { error } = await supabaseAdmin
+      .from('class_announcements')
+      .update({ is_active: false })
+      .eq('id', id);
+      
+    if (error) {
+      console.error('Error deleting announcement:', error);
+      return NextResponse.json(
+        { error: 'Failed to delete announcement' }, 
+        { status: 500 }
+      );
+    }
+    
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error('API error:', error);
+    return NextResponse.json(
+      { error: 'Server error' }, 
+      { status: 500 }
+    );
   }
 }

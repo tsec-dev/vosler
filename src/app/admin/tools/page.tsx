@@ -42,7 +42,6 @@ export default function AdminToolsPage() {
   const [trends, setTrends] = useState<Trend[]>([]);
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [activeTab, setActiveTab] = useState<string>("moderation");
-  const [userEmail, setUserEmail] = useState<string>("");
   const [isAdmin, setIsAdmin] = useState<boolean>(false);
   
   // Get Clerk user
@@ -54,6 +53,7 @@ export default function AdminToolsPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formError, setFormError] = useState("");
   const [formSuccess, setFormSuccess] = useState("");
+  const [isLoading, setIsLoading] = useState(true);
 
   // Fetch initial data: classes and user email
   useEffect(() => {
@@ -62,7 +62,6 @@ export default function AdminToolsPage() {
       const email = clerkUser.primaryEmailAddress?.emailAddress;
       if (email) {
         console.log("Current user email from Clerk:", email);
-        setUserEmail(email);
         
         // Check if user is admin in instructors table
         supabase
@@ -79,10 +78,15 @@ export default function AdminToolsPage() {
               const meta = clerkUser.publicMetadata as { admin?: boolean };
               setIsAdmin(meta.admin || false);
             }
+            setIsLoading(false);
           });
       } else {
         console.error("No user email found in Clerk auth");
+        setIsLoading(false);
       }
+    } else if (isLoaded) {
+      // User is not logged in
+      setIsLoading(false);
     }
     
     // Fetch classes
@@ -113,7 +117,7 @@ export default function AdminToolsPage() {
     // Load trends
     loadTrends(selectedClassId);
     
-    // Load announcements
+    // Load announcements via API
     loadAnnouncements(selectedClassId);
   }, [selectedClassId]);
 
@@ -131,19 +135,17 @@ export default function AdminToolsPage() {
   };
   
   const loadAnnouncements = async (classId: string) => {
-    const { data, error } = await supabase
-      .from('class_announcements')
-      .select('*')
-      .eq('class_id', classId)
-      .eq('is_active', true)
-      .order('created_at', { ascending: false });
-      
-    if (error) {
-      console.error("Announcements query error:", error);
-      return;
+    try {
+      const response = await fetch(`/api/admin/announcements?classId=${classId}`);
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to fetch announcements');
+      }
+      const data = await response.json();
+      setAnnouncements(data);
+    } catch (error) {
+      console.error("Failed to load announcements:", error);
     }
-    
-    setAnnouncements(data || []);
   };
 
   const updateApproval = async (id: string, approved: boolean) => {
@@ -166,33 +168,29 @@ export default function AdminToolsPage() {
       return;
     }
     
-    if (!userEmail) {
-      setFormError("Unable to identify current user");
+    if (!clerkUser) {
+      setFormError("You must be logged in to create announcements");
       return;
     }
     
     setIsSubmitting(true);
     
     try {
-      console.log("Submitting announcement with user email:", userEmail);
+      const response = await fetch('/api/admin/announcements', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          classId: selectedClassId,
+          title: title.trim(),
+          content: content.trim()
+        }),
+      });
       
-      const { data, error } = await supabase
-        .from('class_announcements')
-        .insert([
-          { 
-            class_id: selectedClassId, 
-            title: title.trim(), 
-            content: content.trim(),
-            created_by: userEmail,
-            created_at: new Date().toISOString(),
-            is_active: true
-          }
-        ])
-        .select();
-        
-      if (error) {
-        console.error("Error creating announcement:", error);
-        throw new Error(error.message);
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to create announcement');
       }
       
       // Clear form and show success message
@@ -215,14 +213,13 @@ export default function AdminToolsPage() {
     }
     
     try {
-      // Option 2: Soft delete
-      const { error } = await supabase
-        .from('class_announcements')
-        .update({ is_active: false })
-        .eq('id', id);
+      const response = await fetch(`/api/admin/announcements?id=${id}`, {
+        method: 'DELETE',
+      });
       
-      if (error) {
-        throw new Error(error.message);
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to delete announcement');
       }
       
       // Reload announcements after successful deletion
@@ -234,7 +231,7 @@ export default function AdminToolsPage() {
   };
 
   // Show loading state while checking admin status
-  if (!isLoaded) {
+  if (isLoading) {
     return (
       <BaseLayout isAdmin showBackToDashboard>
         <div className="max-w-7xl mx-auto p-6">
@@ -407,9 +404,9 @@ export default function AdminToolsPage() {
                 
                 <button
                   type="submit"
-                  disabled={isSubmitting || !selectedClassId}
+                  disabled={isSubmitting || !selectedClassId || !clerkUser}
                   className={`px-4 py-2 rounded text-white font-medium ${
-                    isSubmitting || !selectedClassId
+                    isSubmitting || !selectedClassId || !clerkUser
                       ? "bg-gray-500 cursor-not-allowed" 
                       : "bg-blue-600 hover:bg-blue-500"
                   }`}
