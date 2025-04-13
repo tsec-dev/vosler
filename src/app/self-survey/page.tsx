@@ -53,11 +53,12 @@ export default function SelfSurveyPage() {
   }, [selectedSurveyId]);
 
   const handleRate = (questionId: string, value: number) => {
+    console.log(`Setting rating for question ${questionId}:`, value);
     setResponses((prev) => ({
       ...prev,
       [questionId]: {
         ...prev[questionId],
-        rating: value,
+        rating: value, // Saving the number 1-5
       },
     }));
   };
@@ -75,11 +76,11 @@ export default function SelfSurveyPage() {
   const handleSubmit = async () => {
     if (!user || !selectedSurveyId) return;
 
-    // Insert survey response. Note: We are directly inserting the Clerk user ID.
+    // Insert survey response into survey_responses table first.
     const { data: responseRecord, error } = await supabase
       .from("survey_responses")
       .insert({
-        user_id: user.id, // Clerk user id, which is a string like "user_XXXX"
+        user_id: user.id, // Clerk user id (a string) – ensure your survey_responses.user_id column accepts this format.
         survey_id: selectedSurveyId,
       })
       .select()
@@ -91,19 +92,36 @@ export default function SelfSurveyPage() {
       return;
     }
 
-    // Insert answers for each question
+    console.log("Survey response record:", responseRecord);
+    console.log("Questions:", questions);
+    console.log("Responses:", responses);
+
+    // Loop through each question and insert the corresponding answer.
     for (const q of questions) {
       const r = responses[q.id];
-      if (!r) continue;
+      if (!r) {
+        console.warn(`No response found for question ${q.id}`);
+        continue;
+      }
 
-      const { error: answerError } = await supabase.from("survey_answers").insert({
+      // Build the payload:
+      // - Use r.rating as the numeric rating (if provided)
+      // - Use r.comment as the answer_text (if provided)
+      const payload = {
         response_id: responseRecord.id,
         question_id: q.id,
-        rating: r.rating ?? null,
-        comment: r.comment ?? null,
-      });
+        rating: r.rating ?? null, // numeric
+        answer_text: r.comment ? r.comment : null, // Optional text comment; for star ratings, you can leave this null
+      };
+
+      const { error: answerError } = await supabase
+        .from("survey_answers")
+        .insert(payload);
+
       if (answerError) {
         console.error(`Error inserting answer for question ${q.id}:`, answerError);
+      } else {
+        console.log(`Inserted answer for question ${q.id}`, payload);
       }
     }
 
@@ -142,7 +160,6 @@ export default function SelfSurveyPage() {
             {questions.map((q) => (
               <div key={q.id}>
                 <p className="font-semibold mb-2">{q.prompt || q.question_text}</p>
-
                 <div className="flex items-center gap-1 mb-2">
                   {[1, 2, 3, 4, 5].map((num) => (
                     <FaStar
@@ -154,7 +171,6 @@ export default function SelfSurveyPage() {
                     />
                   ))}
                 </div>
-
                 <textarea
                   placeholder="Optional comments..."
                   value={responses[q.id]?.comment || ""}
