@@ -87,7 +87,7 @@ export default function CourseSurveyPage() {
 
   // New handler for yes/no questions
   const handleYesNo = (questionId: string, value: "yes" | "no") => {
-    // When the answer is "no", you might want to clear any star rating.
+    // When "no" is chosen, clear any star rating
     setResponses((prev) => ({
       ...prev,
       [questionId]: {
@@ -104,7 +104,8 @@ export default function CourseSurveyPage() {
       return;
     }
 
-    // Validate required answers for each question
+    // Validate required answers for each question.
+    // For yes_no_metric, verify that an answer is selected and if "yes", the star rating is provided.
     const unansweredQuestions = questions.filter((q) => {
       const response = responses[q.id];
       if (!response) return true;
