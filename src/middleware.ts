@@ -1,48 +1,42 @@
 // src/middleware.ts
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
+import { auth } from "@clerk/nextjs/server";
 
-// This function will handle the profile check part
-export function middleware(req: NextRequest) {
-  // Get the current path
-  const path = req.nextUrl.pathname;
+export async function middleware(req: NextRequest) {
+  // Await auth() (no arguments needed) to get authentication details.
+  const { userId, sessionId } = await auth();
+  const { pathname } = req.nextUrl;
   
-  // Skip checking for API routes, Next.js internals, or static files
-  if (path.startsWith("/api") || 
-      path.includes("/_next") || 
-      path.includes(".") ||
-      path === "/sign-in" || 
-      path === "/sign-up") {
-    return NextResponse.next();
+  // Example: if the user is logged in and on the profile-setup page,
+  // check if their profile is completed (based on a cookie) and redirect accordingly.
+  if (userId && pathname === "/profile-setup") {
+    const profileCompleted =
+      req.cookies.get("profile_completed")?.value === "true";
+    if (profileCompleted) {
+      return NextResponse.redirect(new URL("/dashboard", req.url));
+    }
   }
   
-  // Check for existing user cookie and profile completion
-  const existingUserCookie = req.cookies.get("existing_user")?.value === "true";
-  const profileCompleted = req.cookies.get("profile_completed")?.value === "true";
-  
-  // If profile isn't completed and user isn't on the profile-setup page, redirect
-  if (!profileCompleted && !existingUserCookie && path !== "/profile-setup") {
-    console.log("Redirecting to profile setup");
-    const profileSetupUrl = new URL("/profile-setup", req.url);
-    return NextResponse.redirect(profileSetupUrl);
-  }
-  
-  // If profile is completed and user is on the profile-setup page, redirect to dashboard
-  if (profileCompleted && path === "/profile-setup") {
-    const dashboardUrl = new URL("/dashboard", req.url);
-    return NextResponse.redirect(dashboardUrl);
+  // For authenticated users on non-public routes, enforce profile completion.
+  if (userId) {
+    if (
+      pathname.startsWith("/api") ||
+      pathname.includes("/_next") ||
+      pathname.includes(".")
+    ) {
+      return NextResponse.next();
+    }
+    const profileCompleted =
+      req.cookies.get("profile_completed")?.value === "true";
+    if (!profileCompleted && pathname !== "/profile-setup") {
+      return NextResponse.redirect(new URL("/profile-setup", req.url));
+    }
   }
   
   return NextResponse.next();
 }
 
-// Configure the matcher to apply middleware to all routes EXCEPT those that:
-// - Contain a dot (static files)
-// - Include _next (Next.js internal routes)
-// - Are sign-in or sign-up routes
 export const config = {
-  matcher: [
-    "/((?!.*\\..*|_next|sign-in|sign-up).*)",
-    "/dashboard(.*)",
-  ],
+  matcher: ["/((?!.*\\..*|_next).*)", "/", "/(api|trpc)(.*)"],
 };
