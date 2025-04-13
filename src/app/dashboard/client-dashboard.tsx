@@ -16,7 +16,7 @@ export interface UserProps {
 export interface StudentProps {
   first_name?: string;
   last_name?: string;
-  military_name?: string;
+  military_name?: string; // no longer used for display
   rank?: string;
 }
 
@@ -58,31 +58,24 @@ export default function ClientDashboard({ user, student }: DashboardProps): JSX.
   const weekNumber: number = data?.weekNumber || 1;
   const currentTheme: string = data?.currentTheme || "Growth";
 
-  // Helper function for welcome display name
+  // Helper for welcome display name using only "Rank Firstname Lastname"
   const getWelcomeDisplayName = () => {
-    if (student.military_name?.trim()) {
-      return student.military_name.trim();
-    } else if (student.rank?.trim() && student.last_name?.trim()) {
-      return `${student.rank.trim()} ${student.last_name.trim()}`;
-    } else if (student.first_name?.trim()) {
+    if (student.rank?.trim() && student.first_name?.trim() && student.last_name?.trim()) {
+      return `${student.rank.trim()} ${student.first_name.trim()} ${student.last_name.trim()}`;
+    }
+    if (student.first_name?.trim()) {
       const first = student.first_name.trim();
       return first.charAt(0).toUpperCase() + first.slice(1).toLowerCase();
     }
     return user.email;
   };
 
-  // Helper to display classmate full info.
-  // If military_name exists, use that alone.
-  // Otherwise, combine rank, first_name, and last_name.
+  // Helper for classmate display: always combine "Rank Firstname Lastname"
   const getClassmateFullDisplayInfo = (s: any): string => {
-    if (s.military_name?.trim()) {
-      return s.military_name.trim();
+    if (s.rank?.trim() && s.first_name?.trim() && s.last_name?.trim()) {
+      return `${s.rank.trim()} ${s.first_name.trim()} ${s.last_name.trim()}`;
     }
-    const parts: string[] = [];
-    if (s.rank?.trim()) parts.push(s.rank.trim());
-    if (s.first_name?.trim()) parts.push(s.first_name.trim());
-    if (s.last_name?.trim()) parts.push(s.last_name.trim());
-    return parts.length > 0 ? parts.join(" ") : s.email;
+    return s.email;
   };
 
   const displayName = getWelcomeDisplayName();
