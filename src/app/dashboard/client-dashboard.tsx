@@ -161,19 +161,19 @@ export default function ClientDashboard({ user, student }: DashboardProps): JSX.
 
   return (
     <>
-      {/* Announcement Bar */}
+      {/* Announcement Bar - Full width, 30% transparency, directly under nav */}
       {hasAnnouncements && (
-        <div className="w-full bg-orange-600/80 py-2 px-4 shadow-md border-b border-orange-700">
-          <div className="max-w-7xl mx-auto flex items-center">
-            <div className="font-bold text-white mr-3">ANNOUNCEMENT:</div>
+        <div className="w-full bg-orange-600/30 py-2">
+          <div className="mx-auto flex items-center">
+            <div className="font-bold text-white ml-4 mr-3">ANNOUNCEMENT:</div>
             <div className="text-white flex-1 overflow-hidden">
-              <div className="animate-pulse whitespace-nowrap overflow-hidden text-ellipsis">
+              <div className="whitespace-nowrap overflow-hidden text-ellipsis">
                 <span className="font-semibold">{announcements[currentAnnouncement].title}:</span>{" "}
                 {announcements[currentAnnouncement].content}
               </div>
             </div>
             {announcements.length > 1 && (
-              <div className="text-xs text-white opacity-80 ml-2">
+              <div className="text-xs text-white opacity-80 mr-4">
                 {currentAnnouncement + 1}/{announcements.length}
               </div>
             )}
@@ -191,11 +191,11 @@ export default function ClientDashboard({ user, student }: DashboardProps): JSX.
             Week {weekNumber}: {currentTheme}
           </h2>
           
-          {/* Inspirational Quote */}
+          {/* Lighter, Less Bulky Quote Box */}
           {quote.text && (
-            <div className="mt-4 p-4 mx-auto max-w-2xl bg-gray-800 rounded-lg border border-gray-700">
-              <p className="italic text-gray-300">"{quote.text}"</p>
-              <p className="text-right text-gray-400 mt-2">— {quote.author}</p>
+            <div className="mt-4 p-3 mx-auto max-w-2xl bg-gray-800/40 rounded-lg">
+              <p className="italic text-gray-200">"{quote.text}"</p>
+              <p className="text-right text-gray-400 mt-1 text-sm">— {quote.author}</p>
             </div>
           )}
         </div>
