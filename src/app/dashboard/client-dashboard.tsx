@@ -9,15 +9,12 @@ export interface UserProps {
   lastName: string;
   email: string;
   isAdmin?: boolean;
-  // you can include rank if needed—but we expect the student profile to have military_name
-  rank?: string;
 }
 
 export interface StudentProps {
   first_name: string;
   last_name: string;
   military_name?: string;
-  // Optionally, you might also include rank if needed:
   rank?: string;
 }
 
@@ -32,14 +29,14 @@ interface TraitData {
   peer: number;
 }
 
-// Instead of capitalizing first name, we can create a helper
-// for combining military_name or falling back to first name.
+/**
+ * Returns the appropriate display name.
+ * If military_name exists, returns that; otherwise falls back to a capitalized first name.
+ */
 function getDisplayName(student: StudentProps, user: UserProps): string {
   if (student.military_name && student.military_name.trim() !== "") {
-    // Use the military_name from the profile (e.g. "Captain Smith")
     return student.military_name;
   }
-  // Otherwise, fall back to capitalizing the first name.
   const name = student.first_name || user.firstName;
   return name.charAt(0).toUpperCase() + name.slice(1).toLowerCase();
 }
@@ -59,14 +56,17 @@ export default function ClientDashboard({ user, student }: DashboardProps): JSX.
     const sDate = new Date(start);
     const now = new Date();
     const diff = now.getTime() - sDate.getTime();
-    const weeks = Math.floor(diff / (1000 * 60 * 60 * 24 * 7)) + 1;
-    return weeks;
+    return Math.floor(diff / (1000 * 60 * 60 * 24 * 7)) + 1;
   }
 
   useEffect(() => {
+    // Debug: log incoming student prop
+    console.log("Student prop:", student);
+    
     // Get the class ID from Clerk's public metadata.
     const classMeta = (window as any).Clerk?.user?.publicMetadata?.class_id;
     setClassId(classMeta);
+    console.log("Class Meta:", classMeta);
 
     if (classMeta) {
       // Fetch class record to obtain start_date and fellowship_name.
@@ -76,6 +76,7 @@ export default function ClientDashboard({ user, student }: DashboardProps): JSX.
         .eq("id", classMeta)
         .single()
         .then(({ data, error }) => {
+          if (error) console.error("Error fetching class record:", error);
           if (data && data.start_date) {
             const weekNumber = calculateCurrentWeek(data.start_date);
             setCurrentWeek(weekNumber);
@@ -113,7 +114,8 @@ export default function ClientDashboard({ user, student }: DashboardProps): JSX.
           target_user: user.email,
           class_filter: classMeta,
         })
-        .then(({ data }) => {
+        .then(({ data, error }) => {
+          if (error) console.error("Error in get_self_peer_avg_by_category:", error);
           if (data) {
             setTraitData(
               data.map((d: any) => ({
@@ -125,15 +127,15 @@ export default function ClientDashboard({ user, student }: DashboardProps): JSX.
           }
         });
 
-      // Load classmates.
-      // Here we assume your view 'student_profiles' is used to return enhanced profile info.
+      // Load classmates using the student_profiles view.
       supabase
-        // Adjust the table name if necessary; this query expects a record with:
-        // email, military_name, first_name, last_name, and optionally rank.
         .from("student_profiles")
         .select("email, military_name, first_name, last_name, rank")
         .eq("class_id", classMeta)
-        .then(({ data }) => {
+        .then(({ data, error }) => {
+          if (error) console.error("Error fetching classmates:", error);
+          // Debug: log the classmates data.
+          console.log("Fetched classmates:", data);
           // Filter out the current user's email.
           const others = (data || []).filter((s: any) => s.email !== user.email);
           setClassmates(others);
@@ -146,13 +148,16 @@ export default function ClientDashboard({ user, student }: DashboardProps): JSX.
         .eq("user_id", user.email)
         .eq("response_type", "peer")
         .eq("class_id", classMeta)
-        .then(({ data }) => {
+        .then(({ data, error }) => {
+          if (error) console.error("Error fetching feedback responses:", error);
           if (data) {
+            // Debug: log the feedback response data.
+            console.log("Feedback responses:", data);
             setGivenFeedback(data.map((r: any) => r.target_user_id));
           }
         });
     }
-  }, [user.email]);
+  }, [user.email, student]);
 
   return (
     <div className="max-w-6xl mx-auto p-6 space-y-8">
@@ -199,8 +204,8 @@ export default function ClientDashboard({ user, student }: DashboardProps): JSX.
         )}
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
           {classmates.map((s) => {
-            // Construct a display string using military_name if available;
-            // otherwise build it from rank, first_name, and last_name.
+            // Construct a display string using military_name if available,
+            // otherwise build from rank, first_name, and last_name.
             const displayStudent = s.military_name && s.military_name.trim() !== ""
               ? s.military_name
               : s.rank && s.first_name && s.last_name
