@@ -7,7 +7,7 @@ import { supabase } from "@/lib/supabaseClient";
 export default function SurveyPage() {
   const [title, setTitle] = useState("");
   // Each question now includes an "options" array for radio questions.
-  // We still use "prompt" for our local state but when inserting we map it to "question_text".
+  // We still use "prompt" for our local state but will map it to "question_text" on insert.
   const [questions, setQuestions] = useState([
     { prompt: "", category: "", type: "stars", options: [] as string[] }
   ]);
@@ -33,7 +33,7 @@ export default function SurveyPage() {
     const updated = [...questions];
     if (field === "type") {
       updated[index][field] = value;
-      // If changing to "radio", initialize the options if not set.
+      // If changing to "radio", ensure the options array is initialized.
       if (value === "radio" && !updated[index].options) {
         updated[index].options = [];
       } else if (value !== "radio") {
@@ -83,7 +83,7 @@ export default function SurveyPage() {
     console.log("Survey title:", title);
 
     // Build the payload array.
-    // We use the "name" column for the survey title, which matches your surveys table.
+    // We use the "name" column in surveys for the title.
     let surveyPayloads;
     if (surveyType === "paired") {
       surveyPayloads = [
@@ -109,12 +109,12 @@ export default function SurveyPage() {
       }
 
       // Prepare question inserts.
-      // Map the local "prompt" to the "question_text" column.
+      // Map our local "prompt" to "question_text" and "type" to "question_type".
       const questionInserts = questions.map((q) => ({
         survey_id: survey.id,
-        question_text: q.prompt, // Changed from prompt: to question_text:
+        question_text: q.prompt,
         category: q.type !== "radio" ? (q.category || "General") : null,
-        type: q.type,
+        question_type: q.type, // Updated key to match schema.
         options: q.type === "radio" ? q.options : null
       }));
 
