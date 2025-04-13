@@ -6,20 +6,65 @@ import { supabase } from "@/lib/supabaseClient";
 
 export default function SurveyPage() {
   const [title, setTitle] = useState("");
-  const [questions, setQuestions] = useState([{ prompt: "", category: "", type: "stars" }]);
+  // Added `options` field to each question.
+  const [questions, setQuestions] = useState([
+    { prompt: "", category: "", type: "stars", options: [] as string[] }
+  ]);
   const [surveyType, setSurveyType] = useState<"course" | "self" | "paired">("course");
 
   const handleAddQuestion = () => {
-    setQuestions([...questions, { prompt: "", category: "", type: "stars" }]);
+    setQuestions([
+      ...questions,
+      { prompt: "", category: "", type: "stars", options: [] as string[] }
+    ]);
   };
 
   const handleRemoveQuestion = (index: number) => {
     setQuestions(questions.filter((_, i) => i !== index));
   };
 
-  const handleChange = (index: number, field: "prompt" | "category" | "type", value: string) => {
+  // Update question value; when type changes ensure options are set appropriately.
+  const handleChange = (
+    index: number,
+    field: "prompt" | "category" | "type",
+    value: string
+  ) => {
     const updated = [...questions];
-    updated[index][field] = value;
+    if (field === "type") {
+      updated[index][field] = value;
+      if (value === "radio" && !updated[index].options) {
+        updated[index].options = [];
+      } else if (value !== "radio") {
+        // Optionally, clear out options for non-radio questions.
+        updated[index].options = [];
+      }
+    } else {
+      updated[index][field] = value;
+    }
+    setQuestions(updated);
+  };
+
+  // Handlers for radio options
+  const handleAddOption = (questionIndex: number) => {
+    const updated = [...questions];
+    if (!updated[questionIndex].options) {
+      updated[questionIndex].options = [];
+    }
+    updated[questionIndex].options.push("");
+    setQuestions(updated);
+  };
+
+  const handleRemoveOption = (questionIndex: number, optionIndex: number) => {
+    const updated = [...questions];
+    updated[questionIndex].options = updated[questionIndex].options.filter(
+      (_, i) => i !== optionIndex
+    );
+    setQuestions(updated);
+  };
+
+  const handleChangeOption = (questionIndex: number, optionIndex: number, newValue: string) => {
+    const updated = [...questions];
+    updated[questionIndex].options[optionIndex] = newValue;
     setQuestions(updated);
   };
 
@@ -55,11 +100,13 @@ export default function SurveyPage() {
         return;
       }
 
+      // Build the question inserts; include options if the question type is radio.
       const questionInserts = questions.map((q) => ({
         survey_id: survey.id,
         prompt: q.prompt,
-        category: q.category || "General",
-        type: q.type
+        category: q.type !== "radio" ? (q.category || "General") : null,
+        type: q.type,
+        options: q.type === "radio" ? q.options : null
       }));
 
       const { error: qError } = await supabase.from("survey_questions").insert(questionInserts);
@@ -73,7 +120,7 @@ export default function SurveyPage() {
 
     alert("✅ Survey(s) created successfully!");
     setTitle("");
-    setQuestions([{ prompt: "", category: "", type: "stars" }]);
+    setQuestions([{ prompt: "", category: "", type: "stars", options: [] }]);
     setSurveyType("course");
   };
 
@@ -114,13 +161,16 @@ export default function SurveyPage() {
                 value={q.prompt}
                 onChange={(e) => handleChange(index, "prompt", e.target.value)}
               />
-              <input
-                type="text"
-                placeholder="Category (e.g. Communication)"
-                className="w-full p-2 border rounded bg-gray-800 text-white"
-                value={q.category}
-                onChange={(e) => handleChange(index, "category", e.target.value)}
-              />
+              {/* Only show category input if the question type is NOT radio */}
+              {q.type !== "radio" && (
+                <input
+                  type="text"
+                  placeholder="Category (e.g. Communication)"
+                  className="w-full p-2 border rounded bg-gray-800 text-white"
+                  value={q.category}
+                  onChange={(e) => handleChange(index, "category", e.target.value)}
+                />
+              )}
               <select
                 className="w-full p-2 border rounded bg-gray-800 text-white"
                 value={q.type}
@@ -130,11 +180,43 @@ export default function SurveyPage() {
                 <option value="radio">🔘 Multiple Choice (Radio)</option>
                 <option value="text">✍️ Short Text</option>
               </select>
+              {/* If type is radio, display options controls */}
+              {q.type === "radio" && (
+                <div className="mt-2 space-y-2">
+                  <p className="text-sm font-medium">Options:</p>
+                  {q.options &&
+                    q.options.map((option: string, optIndex: number) => (
+                      <div key={optIndex} className="flex gap-2 items-center">
+                        <input
+                          type="text"
+                          placeholder={`Option ${optIndex + 1}`}
+                          className="w-full p-2 border rounded bg-gray-800 text-white"
+                          value={option}
+                          onChange={(e) =>
+                            handleChangeOption(index, optIndex, e.target.value)
+                          }
+                        />
+                        <button
+                          onClick={() => handleRemoveOption(index, optIndex)}
+                          className="text-red-500 text-sm"
+                        >
+                          ❌
+                        </button>
+                      </div>
+                    ))}
+                  <button
+                    onClick={() => handleAddOption(index)}
+                    className="text-blue-400 text-sm hover:underline"
+                  >
+                    ➕ Add Option
+                  </button>
+                </div>
+              )}
               <button
                 className="text-red-500 text-sm mt-1"
                 onClick={() => handleRemoveQuestion(index)}
               >
-                ❌ Remove
+                ❌ Remove Question
               </button>
             </div>
           ))}
