@@ -61,7 +61,8 @@ export default function ClientDashboard({ user, student }: DashboardProps): JSX.
   );
 
   // Map feedback using the correct column name "target"
-  const givenFeedback: string[] = (data?.feedback || []).map((r: any) => r.target);
+  const givenFeedback: string[] = (data?.feedback || []).map((r: any) => r.target_id);
+
 
   // Set defaults for week & theme
   const weekNumber: number = data?.weekNumber || 1;

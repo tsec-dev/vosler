@@ -85,8 +85,7 @@ export async function GET(request: Request) {
         { status: 500 }
       );
     }
-    // If no surveys have been completed, averages may be null.
-    // Ensure we return an empty array to maintain a consistent data structure.
+    // Use an empty array if no surveys have been completed
     const safeAverages = averages || [];
     console.log("Fetched averages (safe):", safeAverages);
 
@@ -108,14 +107,17 @@ export async function GET(request: Request) {
     );
     console.log("Fetched classmates:", filteredClassmates);
 
-    // 5. Fetch feedback responses
+    // 5. Fetch feedback responses from the feedback table
+    // Here we assume that:
+    // - 'submitted_by' contains the email of the user who gave the feedback.
+    // - 'target_type' is 'peer' for peer feedback.
+    // - 'target_id' stores the email of the student receiving the feedback.
     const { data: feedback, error: feedbackError } = await supabase
-      .from("survey_responses")
-      .select("target")
-      .eq("user_id", userEmail)
-      .eq("response_type", "peer")
-      .eq("class_id", classId);
-
+      .from("feedback")
+      .select("target_id")
+      .eq("submitted_by", userEmail)
+      .eq("target_type", "peer");
+      
     if (feedbackError) {
       console.error("Error fetching feedback responses:", feedbackError);
       return NextResponse.json(
@@ -125,14 +127,14 @@ export async function GET(request: Request) {
     }
     console.log("Fetched feedback responses:", feedback);
 
-    // Prepare aggregated response data
+    // Prepare the aggregated response data
     const responseData = {
       classRecord,
       weekNumber,
       currentTheme,
       averages: safeAverages,
       classmates: filteredClassmates,
-      feedback,
+      feedback, // array of objects with key "target_id"
     };
 
     return NextResponse.json(responseData);
