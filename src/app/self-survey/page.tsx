@@ -21,12 +21,15 @@ export default function SelfSurveyPage() {
     const classIdFromMeta = user?.publicMetadata?.class_id as string;
     setClassId(classIdFromMeta);
 
-    // Load all self surveys
+    // Load all self surveys - only those explicitly marked as self surveys
     supabase
       .from("surveys")
-      .select("id, title")
+      .select("id, title, name")
       .eq("is_self_survey", true)
-      .then(({ data }) => setSurveys(data || []));
+      .then(({ data }) => {
+        console.log("Fetched self surveys:", data);
+        setSurveys(data || []);
+      });
   }, [user]);
 
   useEffect(() => {
@@ -114,7 +117,7 @@ export default function SelfSurveyPage() {
         >
           <option value="" disabled>Select a self survey...</option>
           {surveys.map((s) => (
-            <option key={s.id} value={s.id}>{s.title}</option>
+            <option key={s.id} value={s.id}>{s.title || s.name}</option>
           ))}
         </select>
 
@@ -122,7 +125,7 @@ export default function SelfSurveyPage() {
           <div className="space-y-8">
             {questions.map((q) => (
               <div key={q.id}>
-                <p className="font-semibold mb-2">{q.prompt}</p>
+                <p className="font-semibold mb-2">{q.prompt || q.question_text}</p>
 
                 <div className="flex items-center gap-1 mb-2">
                   {[1, 2, 3, 4, 5].map((num) => (

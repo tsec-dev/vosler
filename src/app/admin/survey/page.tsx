@@ -10,7 +10,7 @@ const mapQuestionType = (type: string) => {
     case "stars":
       return "scale"; // Maps to the allowed 'scale' value
     case "radio":
-      return "boolean"; // Closest match for multiple choice
+      return "text"; // Store multiple choice as text
     case "text":
       return "text"; // This one already matches
     default:
@@ -113,14 +113,41 @@ export default function SurveyPage() {
     console.log("Survey title:", title);
 
     // Build survey payload using "name" (as defined in your surveys table)
+    // Properly flag each survey type
     let surveyPayloads;
     if (surveyType === "paired") {
       surveyPayloads = [
-        { name: `${title} (Self)` },
-        { name: `${title} (Peer)` }
+        { 
+          name: `${title} (Self)`, 
+          title: title,
+          is_self_survey: true, 
+          is_peer_survey: false, 
+          is_course_survey: false 
+        },
+        { 
+          name: `${title} (Peer)`, 
+          title: title,
+          is_peer_survey: true, 
+          is_self_survey: false, 
+          is_course_survey: false 
+        }
       ];
-    } else {
-      surveyPayloads = [{ name: title }];
+    } else if (surveyType === "self") {
+      surveyPayloads = [{ 
+        name: title, 
+        title: title,
+        is_self_survey: true, 
+        is_peer_survey: false, 
+        is_course_survey: false 
+      }];
+    } else { // "course"
+      surveyPayloads = [{ 
+        name: title, 
+        title: title,
+        is_course_survey: true, 
+        is_self_survey: false, 
+        is_peer_survey: false 
+      }];
     }
 
     for (const payload of surveyPayloads) {
@@ -296,7 +323,14 @@ export default function SurveyPage() {
             <ul className="space-y-2">
               {existingSurveys.map((survey) => (
                 <li key={survey.id} className="flex justify-between items-center bg-gray-800 p-2 rounded">
-                  <span className="text-white">{survey.name}</span>
+                  <div>
+                    <span className="text-white">{survey.name}</span>
+                    <span className="ml-2 text-xs">
+                      {survey.is_course_survey && <span className="bg-blue-600 text-white px-2 py-0.5 rounded-full">Course</span>}
+                      {survey.is_self_survey && <span className="bg-green-600 text-white px-2 py-0.5 rounded-full">Self</span>}
+                      {survey.is_peer_survey && <span className="bg-yellow-600 text-white px-2 py-0.5 rounded-full">Peer</span>}
+                    </span>
+                  </div>
                   <button
                     onClick={() => handleDeleteSurvey(survey.id)}
                     className="text-red-400 hover:text-red-600 text-sm"
