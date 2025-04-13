@@ -25,16 +25,47 @@ export interface DashboardProps {
   student: StudentProps; // Full profile from the student_profiles view
 }
 
+// Define the quotes array
+const inspirationalQuotes = [
+  { text: "The only way to do great work is to love what you do.", author: "Steve Jobs" },
+  { text: "Believe you can and you're halfway there.", author: "Theodore Roosevelt" },
+  { text: "It does not matter how slowly you go as long as you do not stop.", author: "Confucius" },
+  { text: "Everything you've ever wanted is on the other side of fear.", author: "George Addair" },
+  { text: "Success is not final, failure is not fatal: It is the courage to continue that counts.", author: "Winston Churchill" },
+  { text: "The future belongs to those who believe in the beauty of their dreams.", author: "Eleanor Roosevelt" },
+  { text: "Hardships often prepare ordinary people for an extraordinary destiny.", author: "C.S. Lewis" },
+  { text: "Your time is limited, don't waste it living someone else's life.", author: "Steve Jobs" },
+  { text: "The best way to predict the future is to create it.", author: "Abraham Lincoln" },
+  { text: "In the middle of difficulty lies opportunity.", author: "Albert Einstein" },
+  { text: "You are never too old to set another goal or to dream a new dream.", author: "C.S. Lewis" },
+  { text: "The only limit to our realization of tomorrow will be our doubts of today.", author: "Franklin D. Roosevelt" },
+  { text: "What you get by achieving your goals is not as important as what you become by achieving your goals.", author: "Zig Ziglar" }
+];
+
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
 export default function ClientDashboard({ user, student }: DashboardProps): JSX.Element {
   const { user: clerkUser, isLoaded } = useUser();
   const [classId, setClassId] = useState<string | null>(null);
+  const [quote, setQuote] = useState({ text: "", author: "" });
   
   // Modal state for peer feedback
   const [feedbackModalOpen, setFeedbackModalOpen] = useState(false);
   const [modalTargetEmail, setModalTargetEmail] = useState("");
   const [modalSelfResponseId, setModalSelfResponseId] = useState("");
+
+  // Set a random quote on component mount and every 30 seconds
+  useEffect(() => {
+    const getRandomQuote = () => {
+      const randomIndex = Math.floor(Math.random() * inspirationalQuotes.length);
+      setQuote(inspirationalQuotes[randomIndex]);
+    };
+    
+    getRandomQuote(); // Set initial quote
+    const interval = setInterval(getRandomQuote, 30000); // Change quote every 30 seconds
+    
+    return () => clearInterval(interval); // Clean up on component unmount
+  }, []);
 
   // Extract class_id from Clerk metadata when loaded
   useEffect(() => {
@@ -60,6 +91,13 @@ export default function ClientDashboard({ user, student }: DashboardProps): JSX.
     user.email ? `/api/approved-feedback?targetEmail=${user.email}` : null,
     fetcher,
     { refreshInterval: 30000 } // Adjust as needed for real-time updates
+  );
+
+  // SWR fetch for course announcements
+  const { data: announcements, error: announcementsError, isLoading: announcementsLoading } = useSWR(
+    classId ? `/api/announcements?classId=${classId}` : null,
+    fetcher,
+    { refreshInterval: 60000 } // Refresh every minute
   );
 
   const givenFeedback: string[] = (data?.feedback || []).map((r: any) => r.target_id);
@@ -108,9 +146,49 @@ export default function ClientDashboard({ user, student }: DashboardProps): JSX.
 
   return (
     <div className="max-w-6xl mx-auto p-6 space-y-8">
-      <h1 className="text-2xl font-bold text-white">
-        Welcome, {displayName}, to Week {weekNumber}: {currentTheme}
-      </h1>
+      {/* Centered Welcome Message */}
+      <div className="text-center mb-8">
+        <h1 className="text-3xl font-bold text-white">
+          Welcome, {displayName}
+        </h1>
+        <h2 className="text-xl text-white mt-2">
+          Week {weekNumber}: {currentTheme}
+        </h2>
+        
+        {/* Inspirational Quote */}
+        {quote.text && (
+          <div className="mt-4 p-4 mx-auto max-w-2xl bg-gray-800 rounded-lg border border-gray-700">
+            <p className="italic text-gray-300">"{quote.text}"</p>
+            <p className="text-right text-gray-400 mt-2">— {quote.author}</p>
+          </div>
+        )}
+      </div>
+
+      {/* Announcements Box */}
+      <div className="p-6 border rounded-lg bg-orange-600 shadow-lg mb-8">
+        <h2 className="text-xl font-bold text-white mb-4">
+          Course Announcements
+        </h2>
+        {announcementsLoading ? (
+          <p className="text-white opacity-80">Loading announcements...</p>
+        ) : announcementsError ? (
+          <p className="text-white opacity-80">Unable to load announcements.</p>
+        ) : announcements && announcements.length > 0 ? (
+          <div className="space-y-4">
+            {announcements.map((announcement: any) => (
+              <div key={announcement.id} className="p-4 bg-orange-700 rounded-lg border border-orange-500">
+                <h3 className="font-semibold text-white">{announcement.title}</h3>
+                <p className="text-white opacity-90 mt-2">{announcement.content}</p>
+                <p className="text-xs text-orange-200 mt-2">
+                  Posted: {new Date(announcement.created_at).toLocaleDateString()}
+                </p>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="text-white opacity-80">No announcements at this time.</p>
+        )}
+      </div>
 
       {/* Self vs Peer Averages Chart */}
       <div className="p-6 border rounded-lg bg-white dark:bg-gray-900 shadow">
