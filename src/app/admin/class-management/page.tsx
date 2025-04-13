@@ -25,6 +25,13 @@ interface Class {
   end_date: string;
   instructor_id: string;
   instructor?: Instructor;
+  fellowship_name?: string;
+}
+
+interface ClassWeek {
+  class_id: string;
+  week_number: number;
+  theme: string;
 }
 
 interface StudentInvite {
@@ -38,6 +45,7 @@ export default function ClassManagementPage() {
   const [classTemplates, setClassTemplates] = useState<ClassTemplate[]>([]);
   const [classes, setClasses] = useState<Class[]>([]);
   const [invites, setInvites] = useState<StudentInvite[]>([]);
+  const [classWeeks, setClassWeeks] = useState<ClassWeek[]>([]);
   const [userEmails, setUserEmails] = useState<string[]>([]);
 
   const [className, setClassName] = useState("");
@@ -45,17 +53,16 @@ export default function ClassManagementPage() {
   const [endDate, setEndDate] = useState("");
   const [instructorId, setInstructorId] = useState<string>("");
 
-  const [submitting, setSubmitting] = useState(false);
-  const [message, setMessage] = useState("");
-
   const [inviteEmail, setInviteEmail] = useState("");
   const [selectedClass, setSelectedClass] = useState<string | null>(null);
   const [viewingClass, setViewingClass] = useState<Class | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [message, setMessage] = useState("");
 
   useEffect(() => {
     const fetchData = async () => {
-      const [inst, templates, cls, invitesRes] = await Promise.all([
+      const [inst, templates, cls, invitesRes, weeksRes] = await Promise.all([
         supabase.from("instructors").select("*"),
         supabase.from("class_templates").select("*"),
         supabase
@@ -63,12 +70,14 @@ export default function ClassManagementPage() {
           .select("*, instructor:instructor_id (id, full_name, email)")
           .order("created_at", { ascending: false }),
         supabase.from("class_students").select("*"),
+        supabase.from("class_weeks").select("*"),
       ]);
 
       if (inst.data) setInstructors(inst.data);
       if (templates.data) setClassTemplates(templates.data);
       if (cls.data) setClasses(cls.data);
       if (invitesRes.data) setInvites(invitesRes.data);
+      if (weeksRes.data) setClassWeeks(weeksRes.data);
     };
 
     fetchData();
@@ -89,142 +98,20 @@ export default function ClassManagementPage() {
     fetchClerkUsers();
   }, []);
 
-  const handleCreateClass = async () => {
-    if (!className || !startDate || !endDate || !instructorId) {
-      alert("Please fill out all fields.");
-      return;
-    }
-
-    setSubmitting(true);
-    const { error } = await supabase.from("classes").insert({
-      name: className,
-      start_date: startDate,
-      end_date: endDate,
-      instructor_id: instructorId,
-    });
-
-    if (error) {
-      console.error("Failed to create class:", error);
-      setMessage("❌ Failed to create class.");
-    } else {
-      setMessage("✅ Class created successfully!");
-      setClassName("");
-      setStartDate("");
-      setEndDate("");
-      setInstructorId("");
-      const { data } = await supabase
-        .from("classes")
-        .select("*, instructor:instructor_id (id, full_name, email)")
-        .order("created_at", { ascending: false });
-      setClasses(data || []);
-    }
-
-    setSubmitting(false);
+  const calculateCurrentWeekNumber = (start: string): number => {
+    const startDate = new Date(start);
+    const now = new Date();
+    const diffTime = now.getTime() - startDate.getTime();
+    const diffWeeks = Math.floor(diffTime / (1000 * 60 * 60 * 24 * 7));
+    return diffWeeks + 1;
   };
 
-  const handleInvite = async (classId: string) => {
-    if (!inviteEmail.trim()) return;
-
-    try {
-      const response = await fetch("/api/invite-student", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: inviteEmail, class_id: classId }),
-      });
-
-      const result = await response.json();
-
-      if (response.ok && result.success) {
-        alert("✅ Invitation sent!");
-        setInviteEmail("");
-        const { data } = await supabase.from("class_students").select("*");
-        setInvites(data || []);
-      } else {
-        console.error("❌ Invite failed:", result);
-        alert("❌ Failed to invite student: " + (result?.error || "Unknown error"));
-      }
-    } catch (err) {
-      console.error("🚨 Invite request error:", err);
-      alert("❌ An unexpected error occurred while inviting.");
-    }
-  };
-
-  const handleMassUpload = async (file: File, classId: string) => {
-    const ext = file.name.split(".").pop()?.toLowerCase();
-    let emails: string[] = [];
-
-    if (ext === "csv") {
-      const text = await file.text();
-      emails = text
-        .split("\n")
-        .map((line) => line.trim())
-        .filter((line) => line.length > 0);
-    } else if (ext === "xlsx") {
-      const data = await file.arrayBuffer();
-      const workbook = XLSX.read(data, { type: "array" });
-      const sheet = workbook.Sheets[workbook.SheetNames[0]];
-      const parsed = XLSX.utils.sheet_to_json<{ email: string }>(sheet);
-      emails = parsed
-        .map((row) => row.email?.trim())
-        .filter((email): email is string => !!email);
-    } else {
-      alert("Only .csv and .xlsx files are supported.");
-      return;
-    }
-
-    if (!emails.length) {
-      alert("No emails found in the file.");
-      return;
-    }
-
-    const confirmed = confirm(`Invite ${emails.length} students to this class?`);
-    if (!confirmed) return;
-
-    for (const email of emails) {
-      await fetch("/api/invite-student", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, class_id: classId }),
-      });
-    }
-
-    alert(`✅ Invited ${emails.length} students.`);
-    const { data } = await supabase.from("class_students").select("*");
-    setInvites(data || []);
-  };
-
-  const handleDeleteClass = async (classId: string) => {
-    const confirmDelete = confirm("Are you sure you want to delete this class?");
-    if (!confirmDelete) return;
-
-    const { error } = await supabase.from("classes").delete().eq("id", classId);
-    if (error) {
-      alert("❌ Failed to delete class.");
-      console.error(error);
-      return;
-    }
-
-    const { data } = await supabase
-      .from("classes")
-      .select("*, instructor:instructor_id (id, full_name, email)")
-      .order("created_at", { ascending: false });
-    setClasses(data || []);
-    setInvites((prev) => prev.filter((i) => i.class_id !== classId));
-  };
-
-  const handleDeleteStudent = async (inviteId: string) => {
-    const confirmRemove = confirm("Remove this student from the class?");
-    if (!confirmRemove) return;
-
-    const { error } = await supabase.from("class_students").delete().eq("id", inviteId);
-    if (error) {
-      alert("❌ Failed to remove student.");
-      console.error(error);
-      return;
-    }
-
-    const { data } = await supabase.from("class_students").select("*");
-    setInvites(data || []);
+  const getCurrentWeekTheme = (classId: string, start: string) => {
+    const currentWeek = calculateCurrentWeekNumber(start);
+    const match = classWeeks.find(
+      (cw) => cw.class_id === classId && cw.week_number === currentWeek
+    );
+    return match?.theme || null;
   };
 
   const handleViewClass = (cls: Class) => {
@@ -237,125 +124,39 @@ export default function ClassManagementPage() {
       <div className="max-w-5xl mx-auto p-6">
         <h1 className="text-3xl font-bold mb-6">📚 Class Management</h1>
 
-        {/* Class Creation Form */}
-        <div className="space-y-4 mb-12">
-          <select
-            value={className}
-            onChange={(e) => setClassName(e.target.value)}
-            className="w-full p-2 border rounded dark:bg-gray-800 dark:text-white"
-          >
-            <option value="" disabled>Select Class Name</option>
-            {classTemplates.map((t) => (
-              <option key={t.id} value={t.name}>
-                {t.name}
-              </option>
-            ))}
-          </select>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <input
-              type="date"
-              value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
-              className="p-2 border rounded dark:bg-gray-800 dark:text-white"
-            />
-            <input
-              type="date"
-              value={endDate}
-              onChange={(e) => setEndDate(e.target.value)}
-              className="p-2 border rounded dark:bg-gray-800 dark:text-white"
-            />
-          </div>
-
-          <select
-            value={instructorId}
-            onChange={(e) => setInstructorId(e.target.value)}
-            className="w-full p-2 border rounded dark:bg-gray-800 dark:text-white"
-          >
-            <option value="" disabled>Select Instructor</option>
-            {instructors.map((i) => (
-              <option key={i.id} value={i.id}>
-                {i.full_name || i.email}
-              </option>
-            ))}
-          </select>
-
-          <button
-            onClick={handleCreateClass}
-            disabled={submitting}
-            className="bg-indigo-600 text-white px-4 py-2 rounded"
-          >
-            {submitting ? "Creating..." : "Create Class"}
-          </button>
-
-          {message && <p className="text-sm text-green-500">{message}</p>}
-        </div>
-
-        {/* Class List */}
+        {/* Class Cards */}
         <div className="space-y-6">
-          {classes.map((cls) => (
-            <div key={cls.id} className="p-6 border rounded bg-white dark:bg-gray-900 shadow space-y-4">
-              <div className="flex justify-between items-center">
-                <div>
-                  <h2 className="text-lg font-bold">{cls.name}</h2>
-                  <p className="text-sm text-gray-500">
-                    Instructor: {cls.instructor?.full_name || cls.instructor?.email}
-                  </p>
-                  <p className="text-sm text-gray-500">
-                    {cls.start_date} → {cls.end_date}
-                  </p>
-                </div>
-                <div className="flex gap-2">
-                  <label className="text-sm bg-yellow-500 hover:bg-yellow-400 text-white px-3 py-1 rounded cursor-pointer">
-                    📁 Mass Invite
-                    <input
-                      type="file"
-                      accept=".csv,.xlsx"
-                      onChange={(e) => {
-                        const file = e.target.files?.[0];
-                        if (file) handleMassUpload(file, cls.id);
-                      }}
-                      className="hidden"
-                    />
-                  </label>
-                  <button
-                    onClick={() => handleViewClass(cls)}
-                    className="text-sm bg-blue-600 text-white px-3 py-1 rounded"
-                  >
-                    👁️ View Class
-                  </button>
-                  <button
-                    onClick={() => handleDeleteClass(cls.id)}
-                    className="text-sm bg-red-600 text-white px-3 py-1 rounded"
-                  >
-                    🗑️ Delete
-                  </button>
+          {classes.map((cls) => {
+            const theme = getCurrentWeekTheme(cls.id, cls.start_date);
+            return (
+              <div key={cls.id} className="p-6 border rounded bg-white dark:bg-gray-900 shadow space-y-4">
+                <div className="flex justify-between items-center">
+                  <div>
+                    <h2 className="text-lg font-bold">{cls.name}</h2>
+                    <p className="text-sm text-gray-500">
+                      Instructor: {cls.instructor?.full_name || cls.instructor?.email}
+                    </p>
+                    <p className="text-sm text-gray-500">
+                      {cls.start_date} → {cls.end_date}
+                    </p>
+                    {theme && (
+                      <p className="text-sm text-indigo-600 dark:text-indigo-400 mt-1">
+                        📅 This Week's Theme: <span className="font-medium">{theme}</span>
+                      </p>
+                    )}
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => handleViewClass(cls)}
+                      className="text-sm bg-blue-600 text-white px-3 py-1 rounded"
+                    >
+                      👁️ View Class
+                    </button>
+                  </div>
                 </div>
               </div>
-
-              <div className="border-t pt-4">
-                <h3 className="font-semibold mb-2">📨 Invite Students</h3>
-                <div className="flex gap-2 mb-2">
-                  <input
-                    type="email"
-                    value={selectedClass === cls.id ? inviteEmail : ""}
-                    onChange={(e) => {
-                      setInviteEmail(e.target.value);
-                      setSelectedClass(cls.id);
-                    }}
-                    placeholder="student@email.com"
-                    className="flex-1 p-2 border rounded dark:bg-gray-800 dark:text-white"
-                  />
-                  <button
-                    onClick={() => handleInvite(cls.id)}
-                    className="bg-green-600 text-white px-4 py-2 rounded text-sm"
-                  >
-                    Invite
-                  </button>
-                </div>
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
 
         {/* View Class Modal */}
@@ -371,18 +172,18 @@ export default function ClassManagementPage() {
                   .filter((inv) => inv.class_id === viewingClass?.id)
                   .map((inv) => (
                     <li key={inv.id} className="flex justify-between items-center">
-                      <div>
-                        <span>{inv.email}</span>
-                        <span className={`ml-3 text-xs font-medium ${userEmails.includes(inv.email.toLowerCase()) ? "text-green-600" : "text-yellow-500"}`}>
-                          {userEmails.includes(inv.email.toLowerCase()) ? "Signed Up" : "Pending"}
-                        </span>
-                      </div>
-                      <button
-                        onClick={() => handleDeleteStudent(inv.id)}
-                        className="text-red-600 hover:text-red-400 text-xs"
+                      <span>{inv.email}</span>
+                      <span
+                        className={`text-xs font-medium ${
+                          userEmails.includes(inv.email.toLowerCase())
+                            ? "text-green-600"
+                            : "text-yellow-500"
+                        }`}
                       >
-                        ❌ Remove
-                      </button>
+                        {userEmails.includes(inv.email.toLowerCase())
+                          ? "Signed Up"
+                          : "Pending"}
+                      </span>
                     </li>
                   ))}
               </ul>
