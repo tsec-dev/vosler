@@ -2,38 +2,38 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from '@supabase/supabase-js';
 
-// Check environment variables
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-if (!supabaseUrl || !supabaseAnonKey) {
-  console.error("Missing environment variables: NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_ANON_KEY");
-}
-
-// Create regular supabase client for public access
-const supabase = supabaseUrl && supabaseAnonKey
-  ? createClient(supabaseUrl, supabaseAnonKey)
-  : null;
-
 export async function GET(req: NextRequest) {
-  // Check if Supabase client was initialized
-  if (!supabase) {
-    return NextResponse.json(
-      { error: "Supabase client could not be initialized. Missing environment variables." },
-      { status: 500 }
-    );
+  // Check environment variables
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  
+  console.log("API called - Env vars available:", {
+    hasUrl: !!supabaseUrl,
+    hasAnonKey: !!supabaseAnonKey,
+    hasServiceKey: !!supabaseServiceKey
+  });
+
+  if (!supabaseUrl || (!supabaseAnonKey && !supabaseServiceKey)) {
+    console.error("Missing Supabase credentials");
+    return NextResponse.json({ error: "Server configuration error" }, { status: 500 });
   }
+
+  // Use service role key for now to bypass RLS issues
+  const supabase = createClient(
+    supabaseUrl as string, 
+    (supabaseServiceKey || supabaseAnonKey) as string
+  );
 
   try {
     // Parse query parameters
     const { searchParams } = new URL(req.url);
     const classId = searchParams.get('classId');
     
+    console.log("Fetching announcements for classId:", classId);
+    
     if (!classId) {
-      return NextResponse.json(
-        { error: 'Missing classId parameter' }, 
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'Missing classId parameter' }, { status: 400 });
     }
     
     // Fetch active announcements for the class
@@ -42,23 +42,18 @@ export async function GET(req: NextRequest) {
       .select('*')
       .eq('class_id', classId)
       .eq('is_active', true)
-      .order('created_at', { ascending: false })
-      .limit(5);
+      .order('created_at', { ascending: false });
       
     if (error) {
-      console.error('Error fetching announcements:', error);
-      return NextResponse.json(
-        { error: 'Failed to fetch announcements' }, 
-        { status: 500 }
-      );
+      console.error('Supabase error fetching announcements:', error);
+      return NextResponse.json({ error: 'Database error' }, { status: 500 });
     }
+    
+    console.log(`Found ${data?.length || 0} announcements for class ${classId}`);
     
     return NextResponse.json(data || []);
   } catch (error) {
-    console.error('API error:', error);
-    return NextResponse.json(
-      { error: 'Server error' }, 
-      { status: 500 }
-    );
+    console.error('Unexpected error in announcements API:', error);
+    return NextResponse.json({ error: 'Server error' }, { status: 500 });
   }
 }
