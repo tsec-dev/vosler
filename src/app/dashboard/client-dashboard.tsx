@@ -9,11 +9,16 @@ export interface UserProps {
   lastName: string;
   email: string;
   isAdmin?: boolean;
+  // you can include rank if needed—but we expect the student profile to have military_name
+  rank?: string;
 }
 
 export interface StudentProps {
   first_name: string;
   last_name: string;
+  military_name?: string;
+  // Optionally, you might also include rank if needed:
+  rank?: string;
 }
 
 export interface DashboardProps {
@@ -27,28 +32,36 @@ interface TraitData {
   peer: number;
 }
 
-function capitalizeFirstName(name?: string): string {
-  if (!name) return "";
+// Instead of capitalizing first name, we can create a helper
+// for combining military_name or falling back to first name.
+function getDisplayName(student: StudentProps, user: UserProps): string {
+  if (student.military_name && student.military_name.trim() !== "") {
+    // Use the military_name from the profile (e.g. "Captain Smith")
+    return student.military_name;
+  }
+  // Otherwise, fall back to capitalizing the first name.
+  const name = student.first_name || user.firstName;
   return name.charAt(0).toUpperCase() + name.slice(1).toLowerCase();
 }
 
-// Helper function to compute the current week based on the class start_date.
-function calculateCurrentWeek(start: string): number {
-  const sDate = new Date(start);
-  const now = new Date();
-  const diff = now.getTime() - sDate.getTime();
-  const weeks = Math.floor(diff / (1000 * 60 * 60 * 24 * 7)) + 1;
-  return weeks;
-}
-
 export default function ClientDashboard({ user, student }: DashboardProps): JSX.Element {
-  const displayName = capitalizeFirstName(student.first_name || user.firstName);
+  const displayName = getDisplayName(student, user);
+  
   const [traitData, setTraitData] = useState<TraitData[]>([]);
   const [classmates, setClassmates] = useState<any[]>([]);
   const [givenFeedback, setGivenFeedback] = useState<string[]>([]);
   const [classId, setClassId] = useState<string | null>(null);
   const [currentWeek, setCurrentWeek] = useState<number>(1);
   const [currentTheme, setCurrentTheme] = useState<string>("Growth"); // Fallback theme
+
+  // Helper function to compute the current week based on the class start_date.
+  function calculateCurrentWeek(start: string): number {
+    const sDate = new Date(start);
+    const now = new Date();
+    const diff = now.getTime() - sDate.getTime();
+    const weeks = Math.floor(diff / (1000 * 60 * 60 * 24 * 7)) + 1;
+    return weeks;
+  }
 
   useEffect(() => {
     // Get the class ID from Clerk's public metadata.
@@ -112,12 +125,16 @@ export default function ClientDashboard({ user, student }: DashboardProps): JSX.
           }
         });
 
-      // Load classmates (filter out current user's email)
+      // Load classmates.
+      // Here we assume your view 'student_profiles' is used to return enhanced profile info.
       supabase
-        .from("class_students")
-        .select("email")
+        // Adjust the table name if necessary; this query expects a record with:
+        // email, military_name, first_name, last_name, and optionally rank.
+        .from("student_profiles")
+        .select("email, military_name, first_name, last_name, rank")
         .eq("class_id", classMeta)
         .then(({ data }) => {
+          // Filter out the current user's email.
           const others = (data || []).filter((s: any) => s.email !== user.email);
           setClassmates(others);
         });
@@ -181,22 +198,31 @@ export default function ClientDashboard({ user, student }: DashboardProps): JSX.
           </p>
         )}
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-          {classmates.map((s) => (
-            <div key={s.email} className="p-4 border rounded bg-gray-100 dark:bg-gray-800 text-sm">
-              <p className="mb-2">{s.email}</p>
-              <button
-                className={`w-full px-3 py-1 rounded text-sm font-medium transition ${
-                  givenFeedback.includes(s.email)
-                    ? "bg-green-500 text-white cursor-not-allowed"
-                    : "bg-blue-600 hover:bg-blue-500 text-white"
-                }`}
-                disabled={givenFeedback.includes(s.email)}
-                onClick={() => alert(`Open peer feedback modal for ${s.email}`)}
-              >
-                {givenFeedback.includes(s.email) ? "✅ Feedback Given" : "Give Feedback"}
-              </button>
-            </div>
-          ))}
+          {classmates.map((s) => {
+            // Construct a display string using military_name if available;
+            // otherwise build it from rank, first_name, and last_name.
+            const displayStudent = s.military_name && s.military_name.trim() !== ""
+              ? s.military_name
+              : s.rank && s.first_name && s.last_name
+              ? `${s.rank} ${s.first_name} ${s.last_name}`
+              : s.email;
+            return (
+              <div key={s.email} className="p-4 border rounded bg-gray-100 dark:bg-gray-800 text-sm">
+                <p className="mb-2">{displayStudent}</p>
+                <button
+                  className={`w-full px-3 py-1 rounded text-sm font-medium transition ${
+                    givenFeedback.includes(s.email)
+                      ? "bg-green-500 text-white cursor-not-allowed"
+                      : "bg-blue-600 hover:bg-blue-500 text-white"
+                  }`}
+                  disabled={givenFeedback.includes(s.email)}
+                  onClick={() => alert(`Open peer feedback modal for ${displayStudent}`)}
+                >
+                  {givenFeedback.includes(s.email) ? "✅ Feedback Given" : "Give Feedback"}
+                </button>
+              </div>
+            );
+          })}
         </div>
       </div>
     </div>
