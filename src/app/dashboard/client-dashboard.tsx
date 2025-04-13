@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import useSWR from "swr";
 import { motion } from "framer-motion";
 import { useUser } from "@clerk/nextjs";
-import { supabase } from "@/lib/supabaseClient";
 
 // Define your types
 export interface UserProps {
@@ -19,7 +18,6 @@ export interface StudentProps {
   last_name?: string;
   military_name?: string;
   rank?: string;
-  // Additional fields as needed…
 }
 
 export interface DashboardProps {
@@ -27,17 +25,10 @@ export interface DashboardProps {
   student: StudentProps; // Full profile from the student_profiles view
 }
 
-interface TraitData {
-  trait: string;
-  self: number;
-  peer: number;
-}
-
 // SWR fetcher function
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
 export default function ClientDashboard({ user, student }: DashboardProps): JSX.Element {
-  // Use Clerk's useUser hook for reliable user data
   const { user: clerkUser, isLoaded } = useUser();
   const [classId, setClassId] = useState<string | null>(null);
 
@@ -54,26 +45,20 @@ export default function ClientDashboard({ user, student }: DashboardProps): JSX.
   }, [isLoaded, clerkUser]);
 
   // Use SWR to fetch dashboard data once we have a valid classId
-  const { data, error, isLoading, mutate } = useSWR(
+  const { data, error, isLoading } = useSWR(
     classId ? `/api/dashboard?classId=${classId}&userEmail=${user.email}` : null,
     fetcher,
     { revalidateOnFocus: true }
   );
 
-  // Map feedback using the correct column name "target"
+  // Map feedback using the correct column name "target_id"
   const givenFeedback: string[] = (data?.feedback || []).map((r: any) => r.target_id);
-
 
   // Set defaults for week & theme
   const weekNumber: number = data?.weekNumber || 1;
   const currentTheme: string = data?.currentTheme || "Growth";
 
-  // For debugging, add a manual "Refresh Dashboard" button
-  const handleRefresh = () => {
-    mutate();
-  };
-
-  // Helper functions for display names
+  // Helper function for welcome display name (unchanged)
   const getWelcomeDisplayName = () => {
     if (student.military_name?.trim()) {
       return student.military_name.trim();
@@ -86,17 +71,14 @@ export default function ClientDashboard({ user, student }: DashboardProps): JSX.
     return user.email;
   };
 
-  const getClassmateDisplayName = (s: any): string => {
-    if (s.military_name?.trim()) {
-      return s.military_name.trim();
-    } else if (s.rank?.trim() && s.last_name?.trim()) {
-      return `${s.rank.trim()} ${s.last_name.trim()}`;
-    } else if (s.first_name?.trim() && s.last_name?.trim()) {
-      return `${s.first_name.trim()} ${s.last_name.trim()}`;
-    } else if (s.first_name?.trim()) {
-      return s.first_name.trim();
-    }
-    return s.email;
+  // Updated helper to display full classmate info: military name, rank, first name, and last name.
+  const getClassmateFullDisplayInfo = (s: any): string => {
+    const parts: string[] = [];
+    if (s.military_name?.trim()) parts.push(s.military_name.trim());
+    if (s.rank?.trim()) parts.push(s.rank.trim());
+    if (s.first_name?.trim()) parts.push(s.first_name.trim());
+    if (s.last_name?.trim()) parts.push(s.last_name.trim());
+    return parts.length > 0 ? parts.join(" ") : s.email;
   };
 
   const displayName = getWelcomeDisplayName();
@@ -112,9 +94,6 @@ export default function ClientDashboard({ user, student }: DashboardProps): JSX.
 
   return (
     <div className="max-w-6xl mx-auto p-6 space-y-8">
-      <button onClick={handleRefresh} className="mb-4 p-2 bg-gray-200 dark:bg-gray-700">
-        Refresh Dashboard
-      </button>
       <h1 className="text-2xl font-bold text-white">
         Welcome, {displayName}, to Week {weekNumber}: {currentTheme}
       </h1>
@@ -127,7 +106,9 @@ export default function ClientDashboard({ user, student }: DashboardProps): JSX.
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
           {(data?.averages || []).map((d: any) => (
             <div key={d.category}>
-              <p className="text-sm font-medium text-gray-600 dark:text-gray-300 mb-1">{d.category}</p>
+              <p className="text-sm font-medium text-gray-600 dark:text-gray-300 mb-1">
+                {d.category}
+              </p>
               <div className="h-4 w-full bg-gray-200 dark:bg-gray-800 rounded overflow-hidden flex">
                 <motion.div
                   className="bg-indigo-500"
@@ -162,7 +143,7 @@ export default function ClientDashboard({ user, student }: DashboardProps): JSX.
         )}
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
           {(data?.classmates || []).map((s: any) => {
-            const displayStudent = getClassmateDisplayName(s);
+            const displayStudent = getClassmateFullDisplayInfo(s);
             return (
               <div key={s.email} className="p-4 border rounded bg-gray-100 dark:bg-gray-800 text-sm">
                 <p className="mb-2">{displayStudent}</p>
