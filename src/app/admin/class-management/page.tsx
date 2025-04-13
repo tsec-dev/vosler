@@ -5,7 +5,6 @@ import BaseLayout from "@/components/BaseLayout";
 import { supabase } from "@/lib/supabaseClient";
 import { Dialog } from "@headlessui/react";
 import * as XLSX from "xlsx";
-import { clerkClient } from "@clerk/clerk-sdk-node"; // Only if needed on client side, otherwise remove
 
 interface Instructor {
   id: string;
@@ -239,27 +238,41 @@ export default function ClassManagementPage() {
     }
   };
 
-  // Single invite
+  // Single invite with debugging logs
   const handleInvite = async (classId: string) => {
-    if (!inviteEmail.trim()) return;
+    console.debug("handleInvite invoked");
+    console.debug("Invite Email:", inviteEmail);
+    console.debug("Class ID:", classId);
 
-    const res = await fetch("/api/invite-student", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email: inviteEmail, class_id: classId }),
-    });
+    if (!inviteEmail.trim()) {
+      console.warn("Invite email is empty, aborting invite");
+      return;
+    }
 
-    const result = await res.json();
-    if (!res.ok) {
-      alert("❌ Failed to invite: " + (result?.error || "Unknown error"));
-    } else {
-      alert("✅ Invitation sent!");
-      setInviteEmail("");
+    try {
+      const res = await fetch("/api/invite-student", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: inviteEmail, class_id: classId }),
+      });
+      console.debug("Response status:", res.status);
+      const result = await res.json();
+      console.debug("Response body:", result);
+      if (!res.ok) {
+        alert("❌ Failed to invite: " + (result?.error || "Unknown error"));
+      } else {
+        alert("✅ Invitation sent!");
+        setInviteEmail("");
+      }
+    } catch (error) {
+      console.error("❌ Error in handleInvite:", error);
+      alert("❌ An error occurred during invitation.");
     }
   };
 
-  // Mass invite (bulk upload)
+  // Mass invite (bulk upload) with debugging logs
   const handleMassUpload = async (file: File, classId: string) => {
+    console.debug("handleMassUpload invoked with file:", file.name, "and classId:", classId);
     const ext = file.name.split(".").pop()?.toLowerCase();
     let emails: string[] = [];
 
@@ -276,10 +289,12 @@ export default function ClassManagementPage() {
       alert("Only .csv or .xlsx files are supported");
       return;
     }
+    console.debug("Emails extracted from file:", emails);
 
     if (!confirm(`Invite ${emails.length} students?`)) return;
 
     for (const email of emails) {
+      console.debug("Inviting email:", email);
       await fetch("/api/invite-student", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
