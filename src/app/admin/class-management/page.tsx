@@ -322,7 +322,7 @@ export default function ClassManagementPage() {
   return (
     <BaseLayout isAdmin showBackToDashboard>
       <div className="max-w-5xl mx-auto p-6">
-        <h1 className="text-3xl font-bold mb-6">📚 Class Management</h1>
+        <h1 className="text-3xl font-bold mb-6">Class Management</h1>
 
         {/* Create New Class */}
         <div className="space-y-4 mb-12">
@@ -413,7 +413,7 @@ export default function ClassManagementPage() {
                     )}
                     {theme && (
                       <p className="text-sm text-indigo-600 dark:text-indigo-400 mt-1">
-                        📅 This Week's Theme: <span className="font-medium">{theme}</span>
+                        This Week's Theme: <span className="font-medium">{theme}</span>
                       </p>
                     )}
                   </div>
@@ -422,26 +422,26 @@ export default function ClassManagementPage() {
                       onClick={() => setEditingClass(cls)}
                       className="text-sm bg-yellow-500 text-white px-3 py-1 rounded"
                     >
-                      ✏️ Edit
+                      Edit
                     </button>
                     <button
                       onClick={() => handleViewClass(cls)}
                       className="text-sm bg-blue-600 text-white px-3 py-1 rounded"
                     >
-                      👁️ View
+                      View
                     </button>
                     <button
                       onClick={() => handleDeleteClass(cls.id)}
                       className="text-sm bg-red-600 text-white px-3 py-1 rounded"
                     >
-                      🗑️ Delete
+                      Delete
                     </button>
                   </div>
                 </div>
 
                 {/* Invite Section */}
                 <div className="border-t pt-4">
-                  <h3 className="font-semibold mb-2">📨 Invite Students</h3>
+                  <h3 className="font-semibold mb-2">Invite Students</h3>
                   <div className="flex gap-2 mb-2 items-center">
                     <input
                       type="email"
@@ -528,7 +528,7 @@ export default function ClassManagementPage() {
           <div className="fixed inset-0 flex items-center justify-center p-4">
             <Dialog.Panel className="w-full max-w-xl rounded bg-white dark:bg-gray-900 p-6 shadow-xl space-y-4">
               <Dialog.Title className="text-xl font-bold mb-2">
-                ✏️ Edit Class
+                Edit Class
               </Dialog.Title>
 
               <input

@@ -285,7 +285,7 @@ export default function AdminToolsPage() {
               : 'text-gray-500 hover:text-gray-700'}`}
             onClick={() => setActiveTab('moderation')}
           >
-            📝 Moderation & Trends
+            Moderation & Trends
           </button>
           <button
             className={`py-2 px-4 font-medium ${activeTab === 'announcements' 
@@ -293,7 +293,7 @@ export default function AdminToolsPage() {
               : 'text-gray-500 hover:text-gray-700'}`}
             onClick={() => setActiveTab('announcements')}
           >
-            📢 Announcements
+            Announcements
           </button>
         </div>
         
@@ -301,7 +301,7 @@ export default function AdminToolsPage() {
           <div className="flex flex-col lg:flex-row gap-6">
             {/* LEFT SIDE: TRENDS */}
             <div className="w-full lg:w-1/2 space-y-4">
-              <h2 className="text-xl font-bold">📉 Trends</h2>
+              <h2 className="text-xl font-bold">Trends</h2>
               {trends.length === 0 && selectedClassId && (
                 <p className="text-sm text-gray-500">No trends found.</p>
               )}
@@ -319,7 +319,7 @@ export default function AdminToolsPage() {
 
             {/* RIGHT SIDE: MODERATION */}
             <div className="w-full lg:w-1/2">
-              <h2 className="text-xl font-bold mb-2">📝 Peer Feedback Moderation</h2>
+              <h2 className="text-xl font-bold mb-2">Peer Feedback Moderation</h2>
 
               {comments.length === 0 && selectedClassId && (
                 <p className="text-gray-500 text-sm">✅ No pending comments for this class.</p>

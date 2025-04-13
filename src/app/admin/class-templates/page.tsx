@@ -43,12 +43,12 @@ export default function ClassTemplatesPage() {
   return (
     <BaseLayout isAdmin showBackToDashboard>
       <div className="max-w-3xl mx-auto p-6">
-        <h1 className="text-3xl font-bold mb-6">🏷️ Manage Class Name Templates</h1>
+        <h1 className="text-3xl font-bold mb-6">Manage Class Name Templates</h1>
 
         <div className="flex gap-4 mb-6">
           <input
             type="text"
-            placeholder="New Class Name (e.g. SNCOA Bravo)"
+            placeholder="New Class Name (e.g. Falcon)"
             value={newName}
             onChange={(e) => setNewName(e.target.value)}
             className="w-full p-2 border border-gray-300 dark:border-gray-700 dark:bg-gray-800 dark:text-white rounded"

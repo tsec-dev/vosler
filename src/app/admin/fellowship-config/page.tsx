@@ -67,7 +67,7 @@ export default function FellowshipConfigPage() {
   return (
     <BaseLayout isAdmin showBackToDashboard>
       <div className="max-w-3xl mx-auto p-6">
-        <h1 className="text-2xl font-bold text-white mb-4">🎓 Fellowship Theme Config</h1>
+        <h1 className="text-2xl font-bold text-white mb-4">Fellowship Theme Config</h1>
 
         <select
           className="mb-6 w-full p-2 border rounded dark:bg-gray-800 dark:text-white"

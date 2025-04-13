@@ -76,7 +76,7 @@ export default function InstructorOnboarding() {
   return (
     <BaseLayout isAdmin showBackToDashboard>
       <div className="max-w-4xl mx-auto p-6">
-        <h1 className="text-3xl font-bold mb-6">👨‍🏫 Instructor Onboarding</h1>
+        <h1 className="text-3xl font-bold mb-6">Instructor Onboarding</h1>
 
         <div className="mb-8">
           <h2 className="text-xl font-semibold mb-4">Add New Instructor</h2>

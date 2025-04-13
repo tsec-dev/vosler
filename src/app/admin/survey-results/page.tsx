@@ -94,7 +94,7 @@ export default function SurveyResultsPage() {
   return (
     <BaseLayout isAdmin showBackToDashboard>
       <div className="max-w-5xl mx-auto p-8">
-        <h1 className="text-3xl font-bold mb-6">📈 Survey Results Viewer</h1>
+        <h1 className="text-3xl font-bold mb-6">Survey Results Viewer</h1>
 
         {/* Survey Dropdown */}
         <div className="mb-8">
