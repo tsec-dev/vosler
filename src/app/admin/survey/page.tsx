@@ -8,13 +8,13 @@ import { supabase } from "@/lib/supabaseClient";
 const mapQuestionType = (type: string) => {
   switch (type) {
     case "stars":
-      return "star_rating"; // assuming check constraint uses "star_rating"
+      return "scale"; // Maps to the allowed 'scale' value
     case "radio":
-      return "multiple_choice";
+      return "boolean"; // Closest match for multiple choice
     case "text":
-      return "short_text";
+      return "text"; // This one already matches
     default:
-      return "star_rating";
+      return "scale"; // Default to scale
   }
 };
 
