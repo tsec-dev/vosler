@@ -75,13 +75,12 @@ export default function SelfSurveyPage() {
   const handleSubmit = async () => {
     if (!user || !selectedSurveyId) return;
 
-    // Insert survey response
+    // Insert survey response. Note: We are directly inserting the Clerk user ID.
     const { data: responseRecord, error } = await supabase
       .from("survey_responses")
       .insert({
-        user_id: user.id,
+        user_id: user.id, // Clerk user id, which is a string like "user_XXXX"
         survey_id: selectedSurveyId,
-        // If your table requires additional columns (like submitted_at), ensure they have default values or include them here.
       })
       .select()
       .single();
