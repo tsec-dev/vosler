@@ -23,7 +23,6 @@ export default function SurveyPage() {
     setQuestions(questions.filter((_, i) => i !== index));
   };
 
-  // Update question value; when type changes ensure options are set appropriately.
   const handleChange = (
     index: number,
     field: "prompt" | "category" | "type",
@@ -35,7 +34,6 @@ export default function SurveyPage() {
       if (value === "radio" && !updated[index].options) {
         updated[index].options = [];
       } else if (value !== "radio") {
-        // Optionally, clear out options for non-radio questions.
         updated[index].options = [];
       }
     } else {
@@ -62,7 +60,11 @@ export default function SurveyPage() {
     setQuestions(updated);
   };
 
-  const handleChangeOption = (questionIndex: number, optionIndex: number, newValue: string) => {
+  const handleChangeOption = (
+    questionIndex: number,
+    optionIndex: number,
+    newValue: string
+  ) => {
     const updated = [...questions];
     updated[questionIndex].options[optionIndex] = newValue;
     setQuestions(updated);
@@ -88,6 +90,7 @@ export default function SurveyPage() {
     }
 
     for (const payload of surveyPayloads) {
+      console.log("Creating survey with payload:", payload);
       const { data: survey, error } = await supabase
         .from("surveys")
         .insert(payload)
@@ -95,25 +98,28 @@ export default function SurveyPage() {
         .single();
 
       if (error || !survey) {
-        alert("Failed to create survey.");
-        console.error(error);
+        console.error("Failed to create survey with payload", payload, "Error:", error);
+        alert("Failed to create survey. Error: " + (error?.message || "Unknown error"));
         return;
       }
 
-      // Build the question inserts; include options if the question type is radio.
       const questionInserts = questions.map((q) => ({
         survey_id: survey.id,
         prompt: q.prompt,
+        // Use category if not a radio question; otherwise, set to null.
         category: q.type !== "radio" ? (q.category || "General") : null,
         type: q.type,
+        // Include options only for radio questions.
         options: q.type === "radio" ? q.options : null
       }));
 
-      const { error: qError } = await supabase.from("survey_questions").insert(questionInserts);
+      const { error: qError } = await supabase
+        .from("survey_questions")
+        .insert(questionInserts);
 
       if (qError) {
-        alert("Failed to insert questions.");
-        console.error(qError);
+        console.error("Failed to insert questions for survey", survey.id, "Error:", qError);
+        alert("Failed to insert questions. Error: " + (qError?.message || "Unknown error"));
         return;
       }
     }
@@ -161,7 +167,6 @@ export default function SurveyPage() {
                 value={q.prompt}
                 onChange={(e) => handleChange(index, "prompt", e.target.value)}
               />
-              {/* Only show category input if the question type is NOT radio */}
               {q.type !== "radio" && (
                 <input
                   type="text"
@@ -180,7 +185,6 @@ export default function SurveyPage() {
                 <option value="radio">🔘 Multiple Choice (Radio)</option>
                 <option value="text">✍️ Short Text</option>
               </select>
-              {/* If type is radio, display options controls */}
               {q.type === "radio" && (
                 <div className="mt-2 space-y-2">
                   <p className="text-sm font-medium">Options:</p>
