@@ -1,9 +1,8 @@
-// app/api/dashboard/route.ts
 import { NextResponse } from "next/server";
 import { supabase } from "@/lib/supabaseClient";
 
 export async function GET(request: Request) {
-  // Parse query parameters from the URL
+  // Parse query parameters
   const { searchParams } = new URL(request.url);
   const classId = searchParams.get("classId");
   const userEmail = searchParams.get("userEmail");
@@ -73,13 +72,14 @@ export async function GET(request: Request) {
     }
     console.log("Current theme:", currentTheme);
 
-    // 3. Fetch self vs. peer averages using RPC
-    const { data: averagesRaw, error: averagesError } = await supabase.rpc("get_self_peer_gaps", {
-      class_filter: classId,
+    // 3. Fetch dynamic self vs. peer averages using our RPC function
+    const { data: averagesRaw, error: averagesError } = await supabase.rpc("get_dynamic_self_peer_averages", {
+      p_class_id: classId,
+      p_user_email: userEmail,
     });
     
     if (averagesError) {
-      console.error("Error in RPC get_self_peer_gaps:", averagesError);
+      console.error("Error in RPC get_dynamic_self_peer_averages:", averagesError);
       return NextResponse.json(
         { error: "Error fetching self-peer data.", detail: averagesError },
         { status: 500 }
@@ -91,12 +91,12 @@ export async function GET(request: Request) {
       category: item.category || 'Unknown',
       selfavg: typeof item.selfavg === 'number' ? item.selfavg : 0,
       peeravg: typeof item.peeravg === 'number' ? item.peeravg : 0,
-      gap: typeof item.gap === 'number' ? item.gap : 0
+      gap: typeof item.gap === 'number' ? item.gap : 0,
     }));
     
     console.log("Processed averages:", safeAverages);
 
-    // 4. Fetch classmates (excluding the current user) from student_profiles
+    // 4. Fetch classmates (excluding current user) from student_profiles
     const { data: classmates, error: classmatesError } = await supabase
       .from("student_profiles")
       .select("id, email, military_name, rank, first_name, last_name, class_id")
@@ -115,16 +115,15 @@ export async function GET(request: Request) {
     );
     console.log("Fetched classmates:", filteredClassmates);
 
-    // 4.1. Fetch self survey responses for these students.
-    // We assume self survey submissions store the student's email in user_id.
+    // 4.1. Fetch self survey responses for these classmates
     const { data: selfResponses, error: selfResponsesError } = await supabase
       .from("survey_responses")
       .select("user_id, id")
       .in("user_id", filteredClassmates.map((s: any) => s.email));
-
+      
     if (selfResponsesError) {
       console.error("Error fetching self responses:", selfResponsesError);
-      // Optionally continue even if this fails
+      // Optionally continue even if self survey fetching fails
     }
     console.log("Fetched self survey responses:", selfResponses);
 
@@ -137,12 +136,12 @@ export async function GET(request: Request) {
     });
     console.log("Updated classmates with selfResponseId:", classmatesWithSelf);
 
-    // 5. Fetch feedback responses from the feedback table.
-    // Make sure we match 'submitted_by' with the user's email.
+    // 5. Fetch feedback responses (peer feedback) from the feedback table.
+    // Here, we're matching feedback submitted by the current user.
     const { data: feedback, error: feedbackError } = await supabase
       .from("feedback")
       .select("target_id")
-      .eq("submitted_by", userEmail)  // Using email to match what FeedbackModal sends
+      .eq("submitted_by", userEmail)
       .eq("target_type", "peer");
 
     if (feedbackError) {
@@ -154,14 +153,14 @@ export async function GET(request: Request) {
     }
     console.log("Fetched feedback responses:", feedback);
 
-    // Prepare the aggregated response data.
+    // Prepare the aggregated response data
     const responseData = {
       classRecord,
       weekNumber,
       currentTheme,
       averages: safeAverages,
-      classmates: classmatesWithSelf, // includes selfResponseId (if present)
-      feedback: feedback || [],       // feedback data, ensure it's an array
+      classmates: classmatesWithSelf, // includes selfResponseId if present
+      feedback: feedback || [],       // ensure feedback is an array
     };
 
     return NextResponse.json(responseData);
