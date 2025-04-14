@@ -14,6 +14,10 @@ export default function SelfSurveyPage() {
   // We'll store responses in an object keyed by question id.
   const [responses, setResponses] = useState<Record<string, any>>({});
 
+  // IMPORTANT: Replace this with your actual logic to retrieve the current class id.
+  // For example, you may obtain this from Clerk metadata or via props.
+  const yourClassId = "3425c0be-9b31-4b10-acec-dac72866f8c7"; 
+
   // Load available self surveys
   useEffect(() => {
     if (!user) return;
@@ -29,7 +33,7 @@ export default function SelfSurveyPage() {
         } else {
           setSurveys(data || []);
           if (data && data.length > 0) {
-            setSelectedSurveyId(data[0].id); // auto-select most recent survey
+            setSelectedSurveyId(data[0].id); // auto-select the most recent survey
           }
         }
       });
@@ -83,7 +87,7 @@ export default function SelfSurveyPage() {
     }));
   };
 
-  // Render different question types
+  // Render different question types based on question.question_type
   const renderQuestionInput = (question: any) => {
     switch (question.question_type) {
       case "scale":
@@ -130,6 +134,7 @@ export default function SelfSurveyPage() {
           />
         );
       default:
+        // Fallback to star rating if question_type is unrecognized
         return (
           <div className="flex items-center gap-1 mb-2">
             {[1, 2, 3, 4, 5].map((num) => (
@@ -146,18 +151,17 @@ export default function SelfSurveyPage() {
     }
   };
 
-  // Submit the self survey
+  // Submit the self survey. This function builds a JSON object for answers and includes class_id.
   const handleSubmit = async () => {
     if (!user || !selectedSurveyId) return;
 
     try {
       // Build a JSON object for answers.
-      // Use the question's "category" if available for a canonical key.
+      // We prefer using the question's category if available, otherwise fallback to question_text.
       const answersPayload: Record<string, any> = {};
       for (const q of questions) {
         const r = responses[q.id];
         if (!r) continue; // skip unanswered questions
-        // Use q.category if it exists; otherwise fallback to q.question_text.
         const key = q.category || q.question_text || `question_${q.id}`;
         answersPayload[key] = {
           rating: r.rating ?? null,
@@ -165,15 +169,13 @@ export default function SelfSurveyPage() {
         };
       }
 
-      // Insert a row into survey_responses with the answers JSON.
-      // Include class_id if required by your aggregator.
+      // Insert a new row into survey_responses with the answers JSON and include a valid class_id.
       const { data: responseRecord, error: insertError } = await supabase
         .from("survey_responses")
         .insert({
           user_id: user.primaryEmailAddress?.emailAddress,
           survey_id: selectedSurveyId,
-          // For example, if you have a class_id variable, include it here:
-          // class_id: yourClassId,
+          class_id: yourClassId, // Ensure this is a valid non-null class ID.
           answers: answersPayload
         })
         .select()
@@ -222,7 +224,9 @@ export default function SelfSurveyPage() {
           <div className="space-y-8 mt-6">
             {questions.map((q) => (
               <div key={q.id} className="border-b pb-4">
-                <p className="font-semibold mb-2">{q.prompt || q.question_text}</p>
+                <p className="font-semibold mb-2">
+                  {q.prompt || q.question_text}
+                </p>
                 {renderQuestionInput(q)}
                 {q.question_type === "scale" && (
                   <textarea
