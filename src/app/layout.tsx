@@ -6,7 +6,7 @@ const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
 const sourceCodePro = Source_Code_Pro({ subsets: ["latin"], variable: "--font-mono" });
 
 export const metadata = {
-  title: "Vosler | Team Builder",
+  title: "Vosler | Proving Grounds",
   description: "Mission-Ready Team Builder",
 };
 
