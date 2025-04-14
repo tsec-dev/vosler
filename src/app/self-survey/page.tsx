@@ -11,9 +11,10 @@ export default function SelfSurveyPage() {
   const [surveys, setSurveys] = useState<any[]>([]);
   const [selectedSurveyId, setSelectedSurveyId] = useState<string | null>(null);
   const [questions, setQuestions] = useState<any[]>([]);
-  // We'll store all user input in this object, keyed by question ID
+  // We'll store responses in an object keyed by question id.
   const [responses, setResponses] = useState<Record<string, any>>({});
 
+  // Load available self surveys
   useEffect(() => {
     if (!user) return;
 
@@ -28,13 +29,13 @@ export default function SelfSurveyPage() {
         } else {
           setSurveys(data || []);
           if (data && data.length > 0) {
-            setSelectedSurveyId(data[0].id); // auto-select most recent
+            setSelectedSurveyId(data[0].id); // auto-select the most recent survey
           }
         }
       });
   }, [user]);
 
-  // When a survey is selected, load its questions
+  // Load survey questions when a survey is selected
   useEffect(() => {
     if (!selectedSurveyId) return;
 
@@ -51,7 +52,7 @@ export default function SelfSurveyPage() {
       });
   }, [selectedSurveyId]);
 
-  // Handle star rating
+  // Handlers for rating and text input
   const handleRate = (questionId: string, value: number) => {
     setResponses((prev) => ({
       ...prev,
@@ -62,7 +63,6 @@ export default function SelfSurveyPage() {
     }));
   };
 
-  // Handle typed text answers
   const handleTextAnswer = (questionId: string, value: string) => {
     setResponses((prev) => ({
       ...prev,
@@ -73,7 +73,6 @@ export default function SelfSurveyPage() {
     }));
   };
 
-  // Handle radio multiple-choice
   const handleMultipleChoice = (questionId: string, value: string) => {
     setResponses((prev) => ({
       ...prev,
@@ -84,7 +83,7 @@ export default function SelfSurveyPage() {
     }));
   };
 
-  // Render question input by type
+  // Render different question types
   const renderQuestionInput = (question: any) => {
     switch (question.question_type) {
       case "scale":
@@ -131,7 +130,6 @@ export default function SelfSurveyPage() {
           />
         );
       default:
-        // Fallback to star rating if type is unrecognized
         return (
           <div className="flex items-center gap-1 mb-2">
             {[1, 2, 3, 4, 5].map((num) => (
@@ -148,35 +146,34 @@ export default function SelfSurveyPage() {
     }
   };
 
-  // Submit entire survey
+  // Submit the self survey
   const handleSubmit = async () => {
     if (!user || !selectedSurveyId) return;
 
     try {
-      // 1) Build a JSON object of answers keyed by question_text (or category)
-      //    We'll store star rating & optional comments
+      // Build a JSON object for answers.
+      // IMPORTANT: Use the question's "category" if available for a canonical key.
       const answersPayload: Record<string, any> = {};
-
       for (const q of questions) {
         const r = responses[q.id];
-        if (!r) continue; // user didn't answer
-        // We'll use question.question_text as the key
-        // If you prefer using q.category, that's also fine.
-        const key = q.question_text || `question_${q.id}`;
+        if (!r) continue;
+        // Prefer using q.category, fallback to q.question_text if category is not provided.
+        const key = q.category || q.question_text || `question_${q.id}`;
         answersPayload[key] = {
           rating: r.rating ?? null,
           answer_text: r.answer_text ?? null,
-          // Or any additional fields you want
         };
       }
 
-      // 2) Insert a row into survey_responses, storing entire JSON in 'answers'
+      // Insert the self survey row with the answers JSON.
+      // Make sure to include class_id here if your aggregator requires it.
       const { data: responseRecord, error: insertError } = await supabase
         .from("survey_responses")
         .insert({
-          user_id: user.primaryEmailAddress?.emailAddress,  // or user.emailAddresses[0].emailAddress
+          user_id: user.primaryEmailAddress?.emailAddress,
           survey_id: selectedSurveyId,
-          // This is the key part to fix "answers" = null
+          // Include class_id if applicable, e.g.:
+          // class_id: yourClassIdVariable,
           answers: answersPayload
         })
         .select()
@@ -187,9 +184,6 @@ export default function SelfSurveyPage() {
         alert("❌ Failed to submit survey.");
         return;
       }
-
-      // We skip the loop that inserts to 'survey_answers' now, 
-      // because we store everything in 'answers' JSON above.
 
       alert("✅ Self survey submitted!");
       setSelectedSurveyId(null);
@@ -228,13 +222,10 @@ export default function SelfSurveyPage() {
           <div className="space-y-8 mt-6">
             {questions.map((q) => (
               <div key={q.id} className="border-b pb-4">
-                <p className="font-semibold mb-2">{q.prompt || q.question_text}</p>
+                <p className="font-semibold mb-2">
+                  {q.prompt || q.question_text}
+                </p>
                 {renderQuestionInput(q)}
-                
-                {/* 
-                  If your 'scale' questions also need a comment box, 
-                  you can do something like this:
-                */}
                 {q.question_type === "scale" && (
                   <textarea
                     placeholder="Optional comments..."
