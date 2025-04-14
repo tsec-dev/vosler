@@ -298,6 +298,7 @@ export default function ClientDashboard({ user, student }: DashboardProps): JSX.
             targetUserEmail={modalTargetEmail}
             targetResponseId={modalSelfResponseId}
             onClose={() => setFeedbackModalOpen(false)}
+            classId={classId} // ✅ Add this line
           />
         )}
       </div>
