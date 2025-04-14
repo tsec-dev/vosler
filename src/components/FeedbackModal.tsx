@@ -10,6 +10,7 @@ interface FeedbackModalProps {
   targetResponseId: string;
   onClose: () => void;
   classId: string;
+  onFeedbackSubmitted?: () => void; // ✅ Added the onFeedbackSubmitted prop
 }
 
 interface Question {
@@ -19,7 +20,13 @@ interface Question {
   question_type: string;
 }
 
-export default function FeedbackModal({ targetUserEmail, targetResponseId, onClose, classId }: FeedbackModalProps) {
+export default function FeedbackModal({
+  targetUserEmail,
+  targetResponseId,
+  onClose,
+  classId,
+  onFeedbackSubmitted, // ✅ Destructured onFeedbackSubmitted from props
+}: FeedbackModalProps) {
   const { user } = useUser();
   const peerId = user?.id || "";
 
@@ -100,6 +107,7 @@ export default function FeedbackModal({ targetUserEmail, targetResponseId, onClo
     } else {
       alert("Feedback submitted successfully!");
       onClose();
+      onFeedbackSubmitted?.(); // ✅ Trigger refresh if provided
     }
   };
 

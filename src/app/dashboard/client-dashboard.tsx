@@ -1,307 +1,143 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import useSWR from "swr";
-import { motion } from "framer-motion";
-import { useUser } from "@clerk/nextjs";
+import { FaStar } from "react-icons/fa";
 import FeedbackModal from "@/components/FeedbackModal";
 
-export interface UserProps {
-  firstName: string;
-  lastName: string;
+interface Classmate {
+  id: string;
   email: string;
-  isAdmin?: boolean;
-}
-
-export interface StudentProps {
+  military_name?: string;
   first_name?: string;
   last_name?: string;
-  military_name?: string; // no longer used for display
-  rank?: string;
+  selfResponseId: string | null;
 }
 
-export interface DashboardProps {
-  user: UserProps;
-  student: StudentProps; // Full profile from the student_profiles view
+interface Props {
+  classId: string;
+  userEmail: string;
 }
 
-// Define the quotes array
-const inspirationalQuotes = [
-  { text: "The only way to do great work is to love what you do.", author: "Steve Jobs" },
-  { text: "Believe you can and you're halfway there.", author: "Theodore Roosevelt" },
-  { text: "It does not matter how slowly you go as long as you do not stop.", author: "Confucius" },
-  { text: "Everything you've ever wanted is on the other side of fear.", author: "George Addair" },
-  { text: "Success is not final, failure is not fatal: It is the courage to continue that counts.", author: "Winston Churchill" },
-  { text: "The future belongs to those who believe in the beauty of their dreams.", author: "Eleanor Roosevelt" },
-  { text: "Hardships often prepare ordinary people for an extraordinary destiny.", author: "C.S. Lewis" },
-  { text: "Your time is limited, don't waste it living someone else's life.", author: "Steve Jobs" },
-  { text: "The best way to predict the future is to create it.", author: "Abraham Lincoln" },
-  { text: "In the middle of difficulty lies opportunity.", author: "Albert Einstein" },
-  { text: "You are never too old to set another goal or to dream a new dream.", author: "C.S. Lewis" },
-  { text: "The only limit to our realization of tomorrow will be our doubts of today.", author: "Franklin D. Roosevelt" },
-  { text: "What you get by achieving your goals is not as important as what you become by achieving your goals.", author: "Zig Ziglar" }
-];
+interface AverageRating {
+  category: string;
+  self: number;
+  peer: number;
+}
 
-const fetcher = (url: string) => fetch(url).then((res) => res.json());
-
-export default function ClientDashboard({ user, student }: DashboardProps): JSX.Element {
-  const { user: clerkUser, isLoaded } = useUser();
-  const [classId, setClassId] = useState<string | null>(null);
-  const [quote, setQuote] = useState({ text: "", author: "" });
-  const [currentAnnouncement, setCurrentAnnouncement] = useState<number>(0);
-  
-  // Modal state for peer feedback
+export default function ClientDashboard({ classId, userEmail }: Props) {
+  const [averages, setAverages] = useState<AverageRating[]>([]);
+  const [classmates, setClassmates] = useState<Classmate[]>([]);
+  const [submittedFeedback, setSubmittedFeedback] = useState<string[]>([]);
   const [feedbackModalOpen, setFeedbackModalOpen] = useState(false);
   const [modalTargetEmail, setModalTargetEmail] = useState("");
   const [modalSelfResponseId, setModalSelfResponseId] = useState("");
 
-  // SWR fetch for dashboard main data
-  const { data, error, isLoading } = useSWR(
-    classId ? `/api/dashboard?classId=${classId}&userEmail=${user.email}` : null,
-    fetcher,
-    { revalidateOnFocus: true }
-  );
+  const fetchDashboardData = async () => {
+    const res = await fetch(`/api/dashboard?classId=${classId}&userEmail=${userEmail}`);
+    const json = await res.json();
 
-  // SWR fetch for approved feedback comments
-  const { data: feedback, error: feedbackError, isLoading: feedbackLoading } = useSWR(
-    user.email ? `/api/approved-feedback?targetEmail=${user.email}` : null,
-    fetcher,
-    { refreshInterval: 30000 } // Adjust as needed for real-time updates
-  );
-
-  // SWR fetch for announcements
-  const { data: announcements, error: announcementsError, isLoading: announcementsLoading } = useSWR(
-    classId ? `/api/announcements?classId=${classId}` : null,
-    fetcher,
-    { refreshInterval: 60000 } // Refresh every minute
-  );
-
-  // Set a random quote on component mount and every 30 seconds
-  useEffect(() => {
-    const getRandomQuote = () => {
-      const randomIndex = Math.floor(Math.random() * inspirationalQuotes.length);
-      setQuote(inspirationalQuotes[randomIndex]);
-    };
-    
-    getRandomQuote(); // Set initial quote
-    const interval = setInterval(getRandomQuote, 30000); // Change quote every 30 seconds
-    
-    return () => clearInterval(interval); // Clean up on component unmount
-  }, []);
-
-  // Extract class_id from Clerk metadata when loaded
-  useEffect(() => {
-    if (isLoaded && clerkUser) {
-      const meta = clerkUser.publicMetadata as { class_id?: string };
-      const classMeta = meta.class_id;
-      if (!classMeta) {
-        console.warn("classMeta is not defined. Please complete your profile.");
-      }
-      setClassId(classMeta || null);
-    }
-  }, [isLoaded, clerkUser]);
-
-  // Rotate through announcements every 10 seconds if there are multiple
-  useEffect(() => {
-    if (announcements && announcements.length > 1) {
-      const interval = setInterval(() => {
-        setCurrentAnnouncement((current) => (current + 1) % announcements.length);
-      }, 10000);
-      
-      return () => clearInterval(interval);
-    }
-  }, [announcements]);
-
-  const givenFeedback: string[] = (data?.feedback || []).map((r: any) => r.target_id);
-  const weekNumber: number = data?.weekNumber || 1;
-  const currentTheme: string = data?.currentTheme || "Growth";
-
-  const getWelcomeDisplayName = () => {
-    if (student.rank?.trim() && student.first_name?.trim() && student.last_name?.trim()) {
-      return `${student.rank.trim()} ${student.first_name.trim()} ${student.last_name.trim()}`;
-    }
-    if (student.first_name?.trim()) {
-      const first = student.first_name.trim();
-      return first.charAt(0).toUpperCase() + first.slice(1).toLowerCase();
-    }
-    return user.email;
+    setAverages(json.averages || []);
+    setClassmates(json.classmates || []);
+    setSubmittedFeedback((json.feedback || []).map((f: any) => f.target_id));
   };
 
-  const getClassmateFullDisplayInfo = (s: any): string => {
-    if (s.rank?.trim() && s.first_name?.trim() && s.last_name?.trim()) {
-      return `${s.rank.trim()} ${s.first_name.trim()} ${s.last_name.trim()}`;
-    }
-    return s.email;
-  };
+  useEffect(() => {
+    fetchDashboardData();
+  }, [classId, userEmail]);
 
-  // Open the peer feedback modal: set target's email and selfResponseId
-  const openFeedbackModal = (classmate: any) => {
-    if (!classmate.selfResponseId) {
-      alert("This classmate hasn't submitted a self survey yet.");
-      return;
-    }
-    setModalTargetEmail(classmate.email);
-    setModalSelfResponseId(classmate.selfResponseId);
+  const openModal = (targetEmail: string, responseId: string) => {
+    setModalTargetEmail(targetEmail);
+    setModalSelfResponseId(responseId);
     setFeedbackModalOpen(true);
   };
 
-  const displayName = getWelcomeDisplayName();
+  const closeModal = () => {
+    setFeedbackModalOpen(false);
+  };
 
-  if (!classId) {
-    return <div>Please complete your profile to see dashboard data.</div>;
-  }
-  if (error) {
-    console.error("SWR error:", error);
-    return <div>Error loading dashboard data.</div>;
-  }
-  if (isLoading || !data) return <div>Loading dashboard...</div>;
-
-  // Determine if we have announcements to show
-  const hasAnnouncements = !announcementsLoading && !announcementsError && announcements && announcements.length > 0;
+  const availableClassmates = classmates.filter(
+    (c) => c.selfResponseId && !submittedFeedback.includes(c.email)
+  );
 
   return (
-    <>
-      {/* Announcement Bar - Full width, 30% transparency, directly under nav */}
-      {hasAnnouncements && (
-        <div className="w-full bg-orange-600/30 py-2 rounded-lg">
-          <div className="mx-auto flex items-center">
-            <div className="font-bold text-white ml-4 mr-3">ANNOUNCEMENT:</div>
-            <div className="text-white flex-1 overflow-hidden">
-              <div className="whitespace-nowrap overflow-hidden text-ellipsis">
-                <span className="font-semibold">{announcements[currentAnnouncement].title}:</span>{" "}
-                {announcements[currentAnnouncement].content}
+    <div className="max-w-5xl mx-auto p-6 space-y-8">
+      <h2 className="text-2xl font-bold text-white">Weekly Reflection Summary</h2>
+
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <h3 className="text-lg text-white mb-2">Your Self Ratings</h3>
+          {averages.map((item) => (
+            <div key={item.category} className="mb-2">
+              <p className="text-sm text-white mb-1">{item.category}</p>
+              <div className="flex gap-1">
+                {[1, 2, 3, 4, 5].map((n) => (
+                  <FaStar
+                    key={n}
+                    className={item.self >= n ? "text-yellow-400" : "text-gray-600"}
+                  />
+                ))}
               </div>
             </div>
-            {announcements.length > 1 && (
-              <div className="text-xs text-white opacity-80 mr-4">
-                {currentAnnouncement + 1}/{announcements.length}
+          ))}
+        </div>
+
+        <div>
+          <h3 className="text-lg text-white mb-2">Peer Ratings</h3>
+          {averages.map((item) => (
+            <div key={item.category} className="mb-2">
+              <p className="text-sm text-white mb-1">{item.category}</p>
+              <div className="flex gap-1">
+                {[1, 2, 3, 4, 5].map((n) => (
+                  <FaStar
+                    key={n}
+                    className={item.peer >= n ? "text-yellow-400" : "text-gray-600"}
+                  />
+                ))}
               </div>
-            )}
-          </div>
-        </div>
-      )}
-
-      
-      <div className="max-w-6xl mx-auto p-6 space-y-8">
-        {/* Centered Welcome Message */}
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-white">
-            Welcome, {displayName} 👋
-          </h1>
-          <h2 className="text-xl text-white mt-2">
-            Week {weekNumber}: {currentTheme}
-          </h2>
-          
-          {/* Lighter, Less Bulky Quote Box */}
-          {quote.text && (
-            <div className="mt-4 p-3 mx-auto max-w-2xl bg-gray-800/40 rounded-lg">
-              <p className="italic text-gray-200">"{quote.text}"</p>
-              <p className="text-right text-gray-400 mt-1 text-sm">— {quote.author}</p>
             </div>
-          )}
+          ))}
         </div>
+      </div>
 
-        {/* Self vs Peer Averages Chart */}
-        <div className="p-6 border rounded-lg bg-white dark:bg-gray-900 shadow">
-          <h2 className="text-lg font-semibold mb-4 text-gray-800 dark:text-white">
-            Self vs Peer Averages
-          </h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-            {(data?.averages || []).map((d: any) => (
-              <div key={d.category}>
-                <p className="text-sm font-medium text-gray-600 dark:text-gray-300 mb-1">{d.category}</p>
-                <div className="h-4 w-full bg-gray-200 dark:bg-gray-800 rounded overflow-hidden flex">
-                  <motion.div
-                    className="bg-indigo-500"
-                    style={{ width: `${(d.selfavg || 0) * 20}%` }}
-                    initial={{ width: 0 }}
-                    animate={{ width: `${(d.selfavg || 0) * 20}%` }}
-                  />
-                  <motion.div
-                    className="bg-green-500"
-                    style={{ width: `${(d.peeravg || 0) * 20}%` }}
-                    initial={{ width: 0 }}
-                    animate={{ width: `${(d.peeravg || 0) * 20}%` }}
-                  />
-                </div>
-                <p className="text-xs mt-1 text-gray-400">
-                  You: {d.selfavg || 0}/5 | Peers: {d.peeravg || 0}/5
+      <div className="mt-8">
+        <h3 className="text-xl font-semibold text-white mb-4">Give Peer Feedback</h3>
+        {availableClassmates.length === 0 ? (
+          <p className="text-gray-400">✅ You’ve submitted feedback for all classmates.</p>
+        ) : (
+          <div className="grid gap-3 md:grid-cols-2">
+            {availableClassmates.map((c) => (
+              <div
+                key={c.id}
+                className="p-4 border border-gray-700 rounded-md bg-gray-800 shadow"
+              >
+                <p className="text-white font-medium mb-2">
+                  {c.military_name || `${c.first_name} ${c.last_name}`}
                 </p>
+                <button
+                  onClick={() => openModal(c.email, c.selfResponseId!)}
+                  className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded text-sm"
+                >
+                  Give Feedback
+                </button>
               </div>
             ))}
           </div>
-        </div>
-
-        {/* Approved Peer Feedback Section */}
-        <div className="p-6 border rounded-lg bg-white dark:bg-gray-900 shadow">
-          <h2 className="text-lg font-semibold mb-4 text-gray-800 dark:text-white">
-            Your Peer Feedback
-          </h2>
-          {feedbackLoading ? (
-            <p>Loading your feedback comments...</p>
-          ) : feedbackError ? (
-            <p>Error loading feedback comments.</p>
-          ) : feedback && feedback.length > 0 ? (
-            feedback.map((comment: any) => (
-              <div key={comment.id} className="p-4 mb-4 border rounded bg-gray-50 dark:bg-gray-800">
-                <p className="text-sm font-semibold text-gray-700 dark:text-gray-200">
-                  {comment.category}
-                </p>
-                <p className="text-sm text-gray-600 dark:text-gray-400">{comment.comment_text}</p>
-                <div className="text-xs text-gray-500 mt-1">
-                  Rating: {comment.rating} |{" "}
-                  Submitted: {new Date(comment.submitted_at).toLocaleDateString()}
-                </div>
-              </div>
-            ))
-          ) : (
-            <p className="text-gray-500">No feedback comments available.</p>
-          )}
-        </div>
-
-        {/* Classmate Feedback Section */}
-        <div className="p-6 border rounded-lg bg-white dark:bg-gray-900 shadow space-y-4">
-          <h2 className="text-lg font-semibold text-gray-800 dark:text-white">
-            Classmates to Review
-          </h2>
-          {data?.classmates?.length === 0 && (
-            <p className="text-sm text-gray-500 dark:text-gray-400">
-              All feedback complete or no classmates found.
-            </p>
-          )}
-          <div className="flex flex-col space-y-3">
-            {(data?.classmates || []).map((s: any) => {
-              const displayStudent = getClassmateFullDisplayInfo(s);
-              return (
-                <div key={s.email} className="flex justify-between items-center w-full p-4 border rounded bg-gray-100 dark:bg-gray-800 text-sm">
-                  <p>{displayStudent}</p>
-                  <button
-                    className={`ml-4 px-3 py-1 rounded text-sm font-medium transition ${
-                      givenFeedback.includes(s.email)
-                        ? "bg-green-500 text-white cursor-not-allowed"
-                        : "bg-blue-600 hover:bg-blue-500 text-white"
-                    }`}
-                    disabled={givenFeedback.includes(s.email)}
-                    onClick={() => openFeedbackModal(s)}
-                  >
-                    {givenFeedback.includes(s.email) ? "Feedback Given" : "Give Feedback"}
-                  </button>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Feedback Modal */}
-        {feedbackModalOpen && (
-          <FeedbackModal
-            targetUserEmail={modalTargetEmail}
-            targetResponseId={modalSelfResponseId}
-            onClose={() => setFeedbackModalOpen(false)}
-            classId={classId} // ✅ Add this line
-          />
         )}
       </div>
-    </>
+
+      {/* Feedback Modal */}
+      {feedbackModalOpen && (
+        <FeedbackModal
+          targetUserEmail={modalTargetEmail}
+          targetResponseId={modalSelfResponseId}
+          onClose={closeModal}
+          classId={classId}
+          onFeedbackSubmitted={() => {
+            closeModal();
+            fetchDashboardData(); // Auto-refresh list + data after submission
+          }}
+        />
+      )}
+    </div>
   );
 }
