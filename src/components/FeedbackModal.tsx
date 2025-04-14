@@ -8,9 +8,8 @@ import { useUser } from "@clerk/nextjs";
 interface FeedbackModalProps {
   targetUserEmail: string;
   targetResponseId: string;
+  classId: string;                     // <-- Make sure we receive a valid classId
   onClose: () => void;
-  // If you have a class_id column, keep it; otherwise remove it
-  classId?: string;
   onFeedbackSubmitted?: () => void;
 }
 
@@ -24,13 +23,15 @@ interface Question {
 export default function FeedbackModal({
   targetUserEmail,
   targetResponseId,
-  onClose,
   classId,
+  onClose,
   onFeedbackSubmitted,
 }: FeedbackModalProps) {
+  // The Clerk user
   const { user } = useUser();
-
-  // Grab the email address from Clerk:
+  
+  // We can store both user ID and email for tracking
+  const peerId = user?.id || "";
   const peerEmail = user?.primaryEmailAddress?.emailAddress || "";
 
   const [surveyId, setSurveyId] = useState<string | null>(null);
@@ -40,7 +41,7 @@ export default function FeedbackModal({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
 
-  // Load the most recent peer survey
+  // Step 1: Load the most recent peer survey
   useEffect(() => {
     const loadPeerSurvey = async () => {
       const { data: surveys, error } = await supabase
@@ -65,7 +66,7 @@ export default function FeedbackModal({
     loadPeerSurvey();
   }, []);
 
-  // Load questions from that peer survey
+  // Step 2: Load questions from that peer survey
   useEffect(() => {
     if (!surveyId) return;
 
@@ -91,6 +92,7 @@ export default function FeedbackModal({
   };
 
   const handleSubmit = async () => {
+    // Ensure the user rates at least one question (if that's your requirement)
     if (Object.values(ratings).every((r) => r === 0)) {
       alert("Please rate at least one question.");
       return;
@@ -100,20 +102,17 @@ export default function FeedbackModal({
     setError("");
 
     try {
-      // Insert into the "feedback" table
-      // Make sure "submitted_by" is the same field the foreign key expects 
-      // and that it matches a row in your "users" table (users.email).
+      // 1) Insert into the feedback table
       const feedbackPayload = {
-        submitted_by: peerEmail,  // <<--- Must match users.email row
+        submitted_by: peerEmail,
         target_id: targetUserEmail,
         target_response_id: targetResponseId,
         ratings,
         comments: comment,
         target_type: "peer",
-        approved: false
-        // Add this only if you have columns for them:
-        // class_id,
-        // user_id (if needed and if your feedback table has a user_id column)
+        class_id: classId,       // <-- IMPORTANT: include the class ID here
+        user_id: peerId,
+        approved: false,         // Default to unapproved
       };
 
       const { error: feedbackError } = await supabase
@@ -124,16 +123,17 @@ export default function FeedbackModal({
         throw new Error(`Feedback error: ${feedbackError.message}`);
       }
 
-      // Optionally insert a separate comment record
+      // 2) (Optional) Insert textual comment into survey_comments if desired
+      // If your code also wants a separate row in `survey_comments`, do that here:
       if (comment.trim()) {
+        // This is a simplified version – adapt it to your schema
         const commentPayload = {
           target_user_id: targetUserEmail,
           comment_text: comment,
           approved: false,
+          class_id: classId,
           submitted_by: peerEmail,
-          // "category" is optional or based on your schema
-          category: Object.keys(ratings)[0] || "General",
-          // class_id (again, only if your table actually has it)
+          category: Object.keys(ratings)[0] || "General", 
         };
 
         const { error: commentError } = await supabase
@@ -142,9 +142,11 @@ export default function FeedbackModal({
 
         if (commentError) {
           console.error("Comment error:", commentError);
+          // Continue even if comment insert fails
         }
       }
 
+      // Success!
       alert("Feedback submitted successfully!");
       onClose();
       onFeedbackSubmitted?.();
