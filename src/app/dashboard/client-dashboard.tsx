@@ -5,7 +5,6 @@ import { FaStar } from "react-icons/fa";
 import FeedbackModal from "@/components/FeedbackModal";
 import { supabase } from "@/lib/supabaseClient";
 
-// Inline types
 interface Props {
   user: {
     email: string;
@@ -35,7 +34,6 @@ export default function ClientDashboard({ user, student }: Props) {
   const [selectedPeer, setSelectedPeer] = useState<Peer | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
 
-  // Load peer data and existing feedbacks
   const loadPeerData = async () => {
     if (!student.class_id || !user.email) return;
 
@@ -50,20 +48,22 @@ export default function ClientDashboard({ user, student }: Props) {
       .select("user_id, id")
       .in("user_id", students?.map((s) => s.email) || []);
 
-    const enriched = students?.map((s) => ({
-      ...s,
-      selfResponseId: responses?.find((r) => r.user_id === s.email)?.id || null,
-    })) || [];
+    const enrichedPeers =
+      students?.map((s) => ({
+        ...s,
+        selfResponseId:
+          responses?.find((r) => r.user_id === s.email)?.id || null,
+      })) || [];
 
-    setPeers(enriched);
+    setPeers(enrichedPeers);
 
-    const { data: feedback } = await supabase
+    const { data: feedbackGiven } = await supabase
       .from("feedback")
       .select("target_id")
       .eq("submitted_by", user.email)
       .eq("target_type", "peer");
 
-    setGivenFeedback(feedback || []);
+    setGivenFeedback(feedbackGiven || []);
   };
 
   useEffect(() => {
@@ -85,16 +85,13 @@ export default function ClientDashboard({ user, student }: Props) {
 
   return (
     <div className="max-w-4xl mx-auto p-6">
-      <h1 className="text-2xl font-bold mb-4">
-        Welcome back, {student.first_name}!
-      </h1>
+      <h1 className="text-2xl font-bold mb-4">Welcome back, {student.first_name}!</h1>
 
       <section className="mb-6">
         <h2 className="text-lg font-semibold mb-2">Give Peer Feedback</h2>
         <p className="text-sm text-gray-500 mb-4">
           Click a peer below to leave feedback.
         </p>
-
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {peers
             .filter((p) => p.selfResponseId && !hasGivenFeedback(p.email))
@@ -114,7 +111,6 @@ export default function ClientDashboard({ user, student }: Props) {
                 </button>
               </div>
             ))}
-
           {peers.filter((p) => p.selfResponseId && !hasGivenFeedback(p.email)).length === 0 && (
             <p className="text-sm text-gray-400 col-span-2">
               🎉 You've submitted all peer feedback!
@@ -131,7 +127,7 @@ export default function ClientDashboard({ user, student }: Props) {
           onClose={closeFeedbackModal}
           onFeedbackSubmitted={() => {
             closeFeedbackModal();
-            loadPeerData(); // ✅ Refresh after feedback
+            loadPeerData(); // ✅ auto-refresh
           }}
         />
       )}
