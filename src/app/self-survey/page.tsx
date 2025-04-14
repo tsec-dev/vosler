@@ -16,17 +16,19 @@ export default function SelfSurveyPage() {
   useEffect(() => {
     if (!user) return;
 
-    // Load all self surveys – only those marked explicitly as self surveys
     supabase
       .from("surveys")
-      .select("id, title, name")
+      .select("id, title, name, created_at")
       .eq("is_self_survey", true)
+      .order("created_at", { ascending: false })
       .then(({ data, error }) => {
         if (error) {
           console.error("Error fetching self surveys:", error);
         } else {
-          console.log("Fetched self surveys:", data);
           setSurveys(data || []);
+          if (data && data.length > 0) {
+            setSelectedSurveyId(data[0].id); // auto-select the most recent one
+          }
         }
       });
   }, [user]);
@@ -47,9 +49,7 @@ export default function SelfSurveyPage() {
       });
   }, [selectedSurveyId]);
 
-  // Handler for star rating inputs (for scale questions)
   const handleRate = (questionId: string, value: number) => {
-    console.log(`Setting rating for question ${questionId}:`, value);
     setResponses((prev) => ({
       ...prev,
       [questionId]: {
@@ -59,7 +59,6 @@ export default function SelfSurveyPage() {
     }));
   };
 
-  // Handler for free text answers (if the question type is "text")
   const handleTextAnswer = (questionId: string, value: string) => {
     setResponses((prev) => ({
       ...prev,
@@ -70,7 +69,6 @@ export default function SelfSurveyPage() {
     }));
   };
 
-  // Handler for multiple choice (radio) if needed in the future
   const handleMultipleChoice = (questionId: string, value: string) => {
     setResponses((prev) => ({
       ...prev,
@@ -81,7 +79,6 @@ export default function SelfSurveyPage() {
     }));
   };
 
-  // Render the question input based on its type.
   const renderQuestionInput = (question: any) => {
     switch (question.question_type) {
       case "scale":
@@ -126,7 +123,6 @@ export default function SelfSurveyPage() {
           />
         );
       default:
-        // Fallback to a star rating if no known type is specified.
         return (
           <div className="flex items-center gap-1 mb-2">
             {[1, 2, 3, 4, 5].map((num) => (
@@ -144,11 +140,10 @@ export default function SelfSurveyPage() {
   const handleSubmit = async () => {
     if (!user || !selectedSurveyId) return;
 
-    // Insert the survey response, storing the user's email for joining purposes
     const { data: responseRecord, error } = await supabase
       .from("survey_responses")
       .insert({
-        user_id: user.emailAddresses[0].emailAddress, // store email instead of user.id
+        user_id: user.emailAddresses[0].emailAddress,
         survey_id: selectedSurveyId,
       })
       .select()
@@ -156,23 +151,19 @@ export default function SelfSurveyPage() {
 
     if (error || !responseRecord) {
       console.error("Error inserting survey response:", error);
-      alert("❌ Failed to submit survey. Check the console for error details.");
+      alert("❌ Failed to submit survey.");
       return;
     }
 
-    // Loop through each question and insert an answer record.
     for (const q of questions) {
       const r = responses[q.id];
-      if (!r) {
-        console.warn(`No response found for question ${q.id}`);
-        continue;
-      }
+      if (!r) continue;
 
       const payload = {
         response_id: responseRecord.id,
         question_id: q.id,
         rating: r.rating ?? null,
-        answer_text: r.answer_text ?? (r.comment ? r.comment : null),
+        answer_text: r.answer_text ?? (r.comment || null),
       };
 
       const { error: answerError } = await supabase
@@ -181,8 +172,6 @@ export default function SelfSurveyPage() {
 
       if (answerError) {
         console.error(`Error inserting answer for question ${q.id}:`, answerError);
-      } else {
-        console.log(`Inserted answer for question ${q.id}`, payload);
       }
     }
 
@@ -201,7 +190,7 @@ export default function SelfSurveyPage() {
         </p>
 
         <select
-          className="block w-full p-3 border rounded-md focus:outline-none focus:ring focus:ring-indigo-100 focus:border-indigo-300 dark:bg-gray-800 dark:border-gray-600 dark:text-white"
+          className="block w-full p-3 border rounded-md dark:bg-gray-800 dark:border-gray-600 dark:text-white"
           value={selectedSurveyId || ""}
           onChange={(e) => setSelectedSurveyId(e.target.value)}
         >
@@ -240,7 +229,6 @@ export default function SelfSurveyPage() {
                 )}
               </div>
             ))}
-
             <button
               onClick={handleSubmit}
               className="bg-green-600 hover:bg-green-500 text-white px-6 py-2 rounded font-medium mt-4"
