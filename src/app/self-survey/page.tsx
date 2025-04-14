@@ -29,7 +29,7 @@ export default function SelfSurveyPage() {
         } else {
           setSurveys(data || []);
           if (data && data.length > 0) {
-            setSelectedSurveyId(data[0].id); // auto-select the most recent survey
+            setSelectedSurveyId(data[0].id); // auto-select most recent survey
           }
         }
       });
@@ -152,12 +152,12 @@ export default function SelfSurveyPage() {
 
     try {
       // Build a JSON object for answers.
-      // IMPORTANT: Use the question's "category" if available for a canonical key.
+      // Use the question's "category" if available for a canonical key.
       const answersPayload: Record<string, any> = {};
       for (const q of questions) {
         const r = responses[q.id];
-        if (!r) continue;
-        // Prefer using q.category, fallback to q.question_text if category is not provided.
+        if (!r) continue; // skip unanswered questions
+        // Use q.category if it exists; otherwise fallback to q.question_text.
         const key = q.category || q.question_text || `question_${q.id}`;
         answersPayload[key] = {
           rating: r.rating ?? null,
@@ -165,15 +165,15 @@ export default function SelfSurveyPage() {
         };
       }
 
-      // Insert the self survey row with the answers JSON.
-      // Make sure to include class_id here if your aggregator requires it.
+      // Insert a row into survey_responses with the answers JSON.
+      // Include class_id if required by your aggregator.
       const { data: responseRecord, error: insertError } = await supabase
         .from("survey_responses")
         .insert({
           user_id: user.primaryEmailAddress?.emailAddress,
           survey_id: selectedSurveyId,
-          // Include class_id if applicable, e.g.:
-          // class_id: yourClassIdVariable,
+          // For example, if you have a class_id variable, include it here:
+          // class_id: yourClassId,
           answers: answersPayload
         })
         .select()
@@ -222,9 +222,7 @@ export default function SelfSurveyPage() {
           <div className="space-y-8 mt-6">
             {questions.map((q) => (
               <div key={q.id} className="border-b pb-4">
-                <p className="font-semibold mb-2">
-                  {q.prompt || q.question_text}
-                </p>
+                <p className="font-semibold mb-2">{q.prompt || q.question_text}</p>
                 {renderQuestionInput(q)}
                 {q.question_type === "scale" && (
                   <textarea
