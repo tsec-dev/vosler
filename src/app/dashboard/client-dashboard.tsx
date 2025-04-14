@@ -185,7 +185,7 @@ export default function ClientDashboard({ user, student }: DashboardProps): JSX.
             feedback.map((comment: any) => (
               <div key={comment.id} className="p-4 mb-4 border rounded bg-gray-50 dark:bg-gray-800">
                 <p className="text-sm font-semibold text-gray-700 dark:text-gray-200">{comment.category}</p>
-                <p className="text-sm text-gray-600 dark:text-gray-400">{comment.comment_text}</p>
+                <p className="text-sm text-gray-600 dark:text-gray-400">{comment.comments}</p>
               </div>
             ))
           ) : (
