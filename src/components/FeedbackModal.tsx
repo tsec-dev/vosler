@@ -9,7 +9,8 @@ interface FeedbackModalProps {
   targetUserEmail: string;
   targetResponseId: string;
   onClose: () => void;
-  classId: string;
+  // If you have a class_id column, keep it; otherwise remove it
+  classId?: string;
   onFeedbackSubmitted?: () => void;
 }
 
@@ -28,9 +29,8 @@ export default function FeedbackModal({
   onFeedbackSubmitted,
 }: FeedbackModalProps) {
   const { user } = useUser();
-  
-  // Fix: Use both user ID and email for tracking
-  const peerId = user?.id || "";
+
+  // Grab the email address from Clerk:
   const peerEmail = user?.primaryEmailAddress?.emailAddress || "";
 
   const [surveyId, setSurveyId] = useState<string | null>(null);
@@ -40,7 +40,7 @@ export default function FeedbackModal({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
 
-  // Step 1: Load the most recent peer survey
+  // Load the most recent peer survey
   useEffect(() => {
     const loadPeerSurvey = async () => {
       const { data: surveys, error } = await supabase
@@ -65,7 +65,7 @@ export default function FeedbackModal({
     loadPeerSurvey();
   }, []);
 
-  // Step 2: Load questions from that peer survey
+  // Load questions from that peer survey
   useEffect(() => {
     if (!surveyId) return;
 
@@ -100,35 +100,40 @@ export default function FeedbackModal({
     setError("");
 
     try {
-      // 1. Insert into the feedback table
+      // Insert into the "feedback" table
+      // Make sure "submitted_by" is the same field the foreign key expects 
+      // and that it matches a row in your "users" table (users.email).
       const feedbackPayload = {
-        submitted_by: peerEmail, // Using email to match dashboard API
+        submitted_by: peerEmail,  // <<--- Must match users.email row
         target_id: targetUserEmail,
         target_response_id: targetResponseId,
         ratings,
         comments: comment,
         target_type: "peer",
-        class_id: classId,
-        user_id: peerId,
-        approved: false // Default to unapproved
+        approved: false
+        // Add this only if you have columns for them:
+        // class_id,
+        // user_id (if needed and if your feedback table has a user_id column)
       };
 
       const { error: feedbackError } = await supabase
         .from("feedback")
         .insert(feedbackPayload);
 
-      if (feedbackError) throw new Error(`Feedback error: ${feedbackError.message}`);
+      if (feedbackError) {
+        throw new Error(`Feedback error: ${feedbackError.message}`);
+      }
 
-      // 2. For each category with a comment, add to survey_comments
+      // Optionally insert a separate comment record
       if (comment.trim()) {
-        // This is a simplified version - you may need to adjust based on your schema
         const commentPayload = {
           target_user_id: targetUserEmail,
           comment_text: comment,
           approved: false,
-          class_id: classId,
           submitted_by: peerEmail,
-          category: Object.keys(ratings)[0] || "General" // Using first category or "General"
+          // "category" is optional or based on your schema
+          category: Object.keys(ratings)[0] || "General",
+          // class_id (again, only if your table actually has it)
         };
 
         const { error: commentError } = await supabase
@@ -137,14 +142,12 @@ export default function FeedbackModal({
 
         if (commentError) {
           console.error("Comment error:", commentError);
-          // Continue even if comment insert fails
         }
       }
 
-      // Success!
       alert("Feedback submitted successfully!");
       onClose();
-      onFeedbackSubmitted?.(); // Trigger dashboard refresh
+      onFeedbackSubmitted?.();
     } catch (err) {
       console.error("Error submitting feedback:", err);
       setError(err instanceof Error ? err.message : "Unknown error occurred");
@@ -210,11 +213,11 @@ export default function FeedbackModal({
           <button
             onClick={handleSubmit}
             className={`bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded ${
-              isSubmitting ? 'opacity-75 cursor-not-allowed' : ''
+              isSubmitting ? "opacity-75 cursor-not-allowed" : ""
             }`}
             disabled={isSubmitting}
           >
-            {isSubmitting ? 'Submitting...' : 'Submit Feedback'}
+            {isSubmitting ? "Submitting..." : "Submit Feedback"}
           </button>
         </div>
       </div>
