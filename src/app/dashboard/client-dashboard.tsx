@@ -178,20 +178,30 @@ export default function ClientDashboard({ user, student }: DashboardProps): JSX.
 
         {/* Feedback Comments */}
         <div className="p-6 border rounded-lg bg-white dark:bg-gray-900 shadow">
-          <h2 className="text-lg font-semibold mb-4 text-gray-800 dark:text-white">Your Peer Feedback</h2>
+          <h2 className="text-lg font-semibold mb-4 text-gray-800 dark:text-white">
+            Your Peer Feedback
+          </h2>
           {feedbackLoading ? (
             <p>Loading your feedback comments...</p>
           ) : feedback?.length > 0 ? (
             feedback.map((comment: any) => (
-              <div key={comment.id} className="p-4 mb-4 border rounded bg-gray-50 dark:bg-gray-800">
-                <p className="text-sm font-semibold text-gray-700 dark:text-gray-200">{comment.category}</p>
-                <p className="text-sm text-gray-600 dark:text-gray-400">{comment.comments}</p>
+              <div
+                key={comment.id}
+                className="p-4 mb-4 border rounded bg-gray-50 dark:bg-gray-800"
+              >
+                <p className="text-sm font-semibold text-gray-700 dark:text-gray-200">
+                  {comment.category || "General"}
+                </p>
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  {comment.comments}
+                </p>
               </div>
             ))
           ) : (
             <p className="text-gray-500">No feedback comments available.</p>
           )}
         </div>
+
 
         {/* Classmates To Review */}
         <div className="p-6 border rounded-lg bg-white dark:bg-gray-900 shadow space-y-4">
