@@ -1,5 +1,4 @@
 // app/api/dashboard/route.ts
-
 import { NextResponse } from "next/server";
 import { supabase } from "@/lib/supabaseClient";
 
@@ -88,12 +87,10 @@ export async function GET(request: Request) {
     }
     
     // Process the averages to ensure they have the expected format
-    // This fixes the Self vs Peer Averages section not populating
     const safeAverages = (averagesRaw || []).map((item: any) => ({
       category: item.category || 'Unknown',
       selfavg: typeof item.selfavg === 'number' ? item.selfavg : 0,
       peeravg: typeof item.peeravg === 'number' ? item.peeravg : 0,
-      // Add gap if it exists
       gap: typeof item.gap === 'number' ? item.gap : 0
     }));
     
@@ -118,16 +115,13 @@ export async function GET(request: Request) {
     );
     console.log("Fetched classmates:", filteredClassmates);
 
-    // Prepare a list of student emails for filtering self survey responses.
-    const studentEmails = filteredClassmates.map((s: any) => s.email);
-
     // 4.1. Fetch self survey responses for these students.
     // We assume self survey submissions store the student's email in user_id.
     const { data: selfResponses, error: selfResponsesError } = await supabase
       .from("survey_responses")
       .select("user_id, id")
-      .in("user_id", studentEmails);
-      
+      .in("user_id", filteredClassmates.map((s: any) => s.email));
+
     if (selfResponsesError) {
       console.error("Error fetching self responses:", selfResponsesError);
       // Optionally continue even if this fails
@@ -144,7 +138,7 @@ export async function GET(request: Request) {
     console.log("Updated classmates with selfResponseId:", classmatesWithSelf);
 
     // 5. Fetch feedback responses from the feedback table.
-    // FIX: Make sure we're checking 'submitted_by' with the right value (email)
+    // Make sure we match 'submitted_by' with the user's email.
     const { data: feedback, error: feedbackError } = await supabase
       .from("feedback")
       .select("target_id")
@@ -167,7 +161,7 @@ export async function GET(request: Request) {
       currentTheme,
       averages: safeAverages,
       classmates: classmatesWithSelf, // includes selfResponseId (if present)
-      feedback: feedback || [], // feedback data, ensure it's an array
+      feedback: feedback || [],       // feedback data, ensure it's an array
     };
 
     return NextResponse.json(responseData);
