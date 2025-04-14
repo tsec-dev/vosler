@@ -1,4 +1,3 @@
-// src/components/FeedbackModal.tsx
 "use client";
 
 import { useState } from "react";
@@ -7,30 +6,35 @@ import { supabase } from "@/lib/supabaseClient";
 import { useUser } from "@clerk/nextjs";
 
 interface FeedbackModalProps {
-  targetUserEmail: string;   // The email of the student receiving feedback
-  targetResponseId: string;  // Self survey response ID for that student
+  targetUserEmail: string;
+  targetResponseId: string;
   onClose: () => void;
 }
 
+const traits = ["communication", "leadership", "social_awareness", "boldness"];
+
 export default function FeedbackModal({ targetUserEmail, targetResponseId, onClose }: FeedbackModalProps) {
   const { user } = useUser();
-  const [rating, setRating] = useState<number>(0);
+  const peerId = user?.id || "";
+  const [ratings, setRatings] = useState<Record<string, number>>({});
   const [comment, setComment] = useState("");
 
-  // Use the unique id from the Clerk user, which should match students.id.
-  const peerId = user?.id || "";
+  const handleRate = (trait: string, value: number) => {
+    setRatings((prev) => ({ ...prev, [trait]: value }));
+  };
 
   const handleSubmit = async () => {
-    if (rating === 0) {
-      alert("Please select a star rating.");
+    // Ensure at least one trait is rated
+    if (Object.keys(ratings).length === 0) {
+      alert("Please rate at least one trait.");
       return;
     }
-    // Build the payload for peer feedback with ratings as an object.
+
     const payload = {
-      submitted_by: peerId,               // Using the student's unique id instead of email
-      target_id: targetUserEmail,         // Recipient's email remains as defined
+      submitted_by: peerId,
+      target_id: targetUserEmail,
       target_response_id: targetResponseId,
-      ratings: { score: rating },         // Now ratings is a JSON object
+      ratings,
       comments: comment,
       target_type: "peer"
     };
@@ -49,18 +53,24 @@ export default function FeedbackModal({ targetUserEmail, targetResponseId, onClo
     <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
       <div className="bg-white dark:bg-gray-800 p-6 rounded shadow-lg max-w-md w-full">
         <h2 className="text-xl font-bold mb-4">Feedback for {targetUserEmail}</h2>
-        <div className="mb-4">
-          <p className="mb-2 font-semibold">Star Rating:</p>
-          <div className="flex gap-1">
-            {[1, 2, 3, 4, 5].map(num => (
-              <FaStar
-                key={num}
-                onClick={() => setRating(num)}
-                className={`cursor-pointer ${rating >= num ? 'text-yellow-400' : 'text-gray-400'}`}
-              />
-            ))}
+
+        {traits.map((trait) => (
+          <div key={trait} className="mb-4">
+            <p className="mb-2 font-semibold capitalize">{trait.replace("_", " ")}:</p>
+            <div className="flex gap-1">
+              {[1, 2, 3, 4, 5].map((num) => (
+                <FaStar
+                  key={num}
+                  onClick={() => handleRate(trait, num)}
+                  className={`cursor-pointer ${
+                    ratings[trait] >= num ? "text-yellow-400" : "text-gray-400"
+                  }`}
+                />
+              ))}
+            </div>
           </div>
-        </div>
+        ))}
+
         <div className="mb-4">
           <textarea
             value={comment}
@@ -70,14 +80,15 @@ export default function FeedbackModal({ targetUserEmail, targetResponseId, onClo
             rows={3}
           />
         </div>
+
         <div className="flex justify-end gap-2">
-          <button 
+          <button
             className="bg-gray-400 hover:bg-gray-300 text-white px-4 py-2 rounded"
             onClick={onClose}
           >
             Cancel
           </button>
-          <button 
+          <button
             onClick={handleSubmit}
             className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded"
           >
