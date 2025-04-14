@@ -16,7 +16,7 @@ interface Comment {
   approved: boolean;
   category: string;
   target_user_id: string;
-  feedback_source?: boolean; // Flag to mark if from feedback table
+  feedback_source?: boolean; // Flag if it's from feedback table
 }
 
 interface Trend {
@@ -56,9 +56,8 @@ export default function AdminToolsPage() {
   const [formSuccess, setFormSuccess] = useState("");
   const [isLoading, setIsLoading] = useState(true);
 
-  // Fetch initial data: classes and user email
+  // Fetch classes and check if user is admin
   useEffect(() => {
-    // Get current user email from Clerk
     if (isLoaded && clerkUser) {
       const email = clerkUser.primaryEmailAddress?.emailAddress;
       if (email) {
@@ -75,14 +74,14 @@ export default function AdminToolsPage() {
               setIsAdmin(data.is_admin || false);
             } else {
               console.warn("Could not verify admin status:", error);
-              // Check Clerk metadata as fallback for admin status
+              // Check Clerk metadata as fallback
               const meta = clerkUser.publicMetadata as { admin?: boolean };
-              setIsAdmin(meta.admin || false);
+              setIsAdmin(meta?.admin || false);
             }
             setIsLoading(false);
           });
       } else {
-        console.error("No user email found in Clerk auth");
+        console.error("No user email found in Clerk auth.");
         setIsLoading(false);
       }
     } else if (isLoaded) {
@@ -94,7 +93,7 @@ export default function AdminToolsPage() {
     supabase.from("classes").select("id, name").then(({ data }) => {
       if (data) {
         setClasses(data);
-        // Select the first class by default if available
+        // If there's at least one class, auto-select the first
         if (data.length > 0 && !selectedClassId) {
           setSelectedClassId(data[0].id);
         }
@@ -102,34 +101,31 @@ export default function AdminToolsPage() {
     });
   }, [isLoaded, clerkUser]);
 
-  // Load class-specific data when a class is selected
+  // Whenever the user picks a class, load that class's data
   useEffect(() => {
     if (!selectedClassId) return;
 
-    // Load comments from both survey_comments and feedback tables
     loadComments(selectedClassId);
-
-    // Load trends
     loadTrends(selectedClassId);
-    
-    // Load announcements via API
     loadAnnouncements(selectedClassId);
   }, [selectedClassId]);
 
+  // Load comments from both tables (survey_comments, feedback)
   const loadComments = async (classId: string) => {
-    // First fetch from survey_comments table (original method)
+    // 1) Survey comments
     const { data: surveyComments, error: surveyError } = await supabase
       .from("survey_comments")
       .select("*")
       .eq("approved", false)
       .eq("class_id", classId)
+      // This table presumably has created_at? If so, you can keep it:
       .order("created_at", { ascending: true });
 
     if (surveyError) {
       console.error("Error fetching survey comments:", surveyError);
     }
 
-    // Then also fetch from feedback table (since comments are stored there too)
+    // 2) Feedback-based comments
     const { data: feedbackComments, error: feedbackError } = await supabase
       .from("feedback")
       .select("*")
@@ -137,23 +133,24 @@ export default function AdminToolsPage() {
       .eq("class_id", classId)
       .not("comments", "is", null)
       .not("comments", "eq", "")
-      .order("created_at", { ascending: true });
+      // The feedback table does NOT have created_at, but it DOES have submitted_at
+      .order("submitted_at", { ascending: true });
 
     if (feedbackError) {
       console.error("Error fetching feedback comments:", feedbackError);
     }
 
-    // Transform feedback comments to match survey_comments structure
-    const transformedFeedbackComments = (feedbackComments || []).map(feedback => ({
-      id: feedback.id,
-      comment_text: feedback.comments,
-      approved: feedback.approved || false,
-      target_user_id: feedback.target_id,
-      category: Object.keys(feedback.ratings || {})[0] || "General",
-      feedback_source: true // Mark this as coming from feedback table
+    // Transform feedback rows to match the shape of survey_comments
+    const transformedFeedbackComments = (feedbackComments || []).map(fb => ({
+      id: fb.id,
+      comment_text: fb.comments,      // rename "comments" to "comment_text"
+      approved: fb.approved || false,
+      target_user_id: fb.target_id,
+      category: Object.keys(fb.ratings || {})[0] || "General",
+      feedback_source: true           // mark as from 'feedback' table
     }));
 
-    // Combine both sources (default to empty arrays if either had an error)
+    // Combine the two lists
     const combinedComments = [
       ...(surveyComments || []), 
       ...transformedFeedbackComments
@@ -163,6 +160,7 @@ export default function AdminToolsPage() {
     console.log("Loaded comments:", combinedComments);
   };
 
+  // Load self vs. peer gaps via RPC
   const loadTrends = async (classId: string) => {
     const { data, error } = await supabase.rpc("get_self_peer_gaps", {
       class_filter: classId,
@@ -175,13 +173,14 @@ export default function AdminToolsPage() {
 
     setTrends(data || []);
   };
-  
+
+  // Load announcements via an API route
   const loadAnnouncements = async (classId: string) => {
     try {
       const response = await fetch(`/api/admin/announcements?classId=${classId}`);
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to fetch announcements');
+        throw new Error(errorData.error || "Failed to fetch announcements");
       }
       const data = await response.json();
       setAnnouncements(data);
@@ -190,58 +189,56 @@ export default function AdminToolsPage() {
     }
   };
 
+  // Approve or reject a comment
   const updateApproval = async (id: string, approved: boolean, isFeedbackSource?: boolean) => {
     if (isFeedbackSource) {
-      // Update in the feedback table
+      // Update the feedback table
       await supabase.from("feedback").update({ approved }).eq("id", id);
     } else {
-      // Update in the survey_comments table
+      // Update the survey_comments table
       await supabase.from("survey_comments").update({ approved }).eq("id", id);
     }
-    setComments((prev) => prev.filter((c) => c.id !== id));
+    // Remove it from the list once updated
+    setComments(prev => prev.filter(c => c.id !== id));
   };
-  
+
+  // Announcement submission handler
   const handleAnnouncementSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setFormError("");
     setFormSuccess("");
-    
+
     if (!selectedClassId) {
       setFormError("Please select a class first");
       return;
     }
-    
     if (!title.trim() || !content.trim()) {
       setFormError("Title and content are required");
       return;
     }
-    
     if (!clerkUser) {
       setFormError("You must be logged in to create announcements");
       return;
     }
     
     setIsSubmitting(true);
-    
     try {
-      const response = await fetch('/api/admin/announcements', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+      const response = await fetch("/api/admin/announcements", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           classId: selectedClassId,
           title: title.trim(),
-          content: content.trim()
+          content: content.trim(),
         }),
       });
       
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to create announcement');
+        throw new Error(errorData.error || "Failed to create announcement");
       }
       
-      // Clear form and show success message
+      // Clear form and show success
       setTitle("");
       setContent("");
       setFormSuccess("Announcement posted successfully!");
@@ -254,27 +251,26 @@ export default function AdminToolsPage() {
       setIsSubmitting(false);
     }
   };
-  
+
   const handleDeleteAnnouncement = async (id: string) => {
     if (!confirm("Are you sure you want to delete this announcement?")) {
       return;
     }
-    
     try {
       const response = await fetch(`/api/admin/announcements?id=${id}`, {
-        method: 'DELETE',
+        method: "DELETE",
       });
-      
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to delete announcement');
+        throw new Error(errorData.error || "Failed to delete announcement");
       }
-      
-      // Reload announcements after successful deletion
-      loadAnnouncements(selectedClassId!);
+      // Reload announcements
+      if (selectedClassId) {
+        loadAnnouncements(selectedClassId);
+      }
     } catch (error) {
-      console.error('Error deleting announcement:', error);
-      alert('Failed to delete announcement: ' + (error instanceof Error ? error.message : 'Unknown error'));
+      console.error("Error deleting announcement:", error);
+      alert("Failed to delete announcement: " + (error instanceof Error ? error.message : "Unknown error"));
     }
   };
 
@@ -289,7 +285,7 @@ export default function AdminToolsPage() {
     );
   }
 
-  // Show error if not an admin
+  // Show error if not admin
   if (!isAdmin) {
     return (
       <BaseLayout isAdmin showBackToDashboard>
@@ -307,7 +303,10 @@ export default function AdminToolsPage() {
       <div className="max-w-7xl mx-auto p-6">
         {/* Class Selector */}
         <div className="mb-6">
-          <label htmlFor="class-select" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+          <label
+            htmlFor="class-select"
+            className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+          >
             Select Class
           </label>
           <select
@@ -328,24 +327,29 @@ export default function AdminToolsPage() {
         {/* Tab Navigation */}
         <div className="flex border-b mb-6">
           <button
-            className={`py-2 px-4 font-medium ${activeTab === 'moderation' 
-              ? 'border-b-2 border-blue-500 text-blue-600' 
-              : 'text-gray-500 hover:text-gray-700'}`}
-            onClick={() => setActiveTab('moderation')}
+            className={`py-2 px-4 font-medium ${
+              activeTab === "moderation"
+                ? "border-b-2 border-blue-500 text-blue-600"
+                : "text-gray-500 hover:text-gray-700"
+            }`}
+            onClick={() => setActiveTab("moderation")}
           >
             Moderation & Trends
           </button>
           <button
-            className={`py-2 px-4 font-medium ${activeTab === 'announcements' 
-              ? 'border-b-2 border-blue-500 text-blue-600' 
-              : 'text-gray-500 hover:text-gray-700'}`}
-            onClick={() => setActiveTab('announcements')}
+            className={`py-2 px-4 font-medium ${
+              activeTab === "announcements"
+                ? "border-b-2 border-blue-500 text-blue-600"
+                : "text-gray-500 hover:text-gray-700"
+            }`}
+            onClick={() => setActiveTab("announcements")}
           >
             Announcements
           </button>
         </div>
-        
-        {activeTab === 'moderation' && (
+
+        {/* MODERATION & TRENDS TAB */}
+        {activeTab === "moderation" && (
           <div className="flex flex-col lg:flex-row gap-6">
             {/* LEFT SIDE: TRENDS */}
             <div className="w-full lg:w-1/2 space-y-4">
@@ -354,7 +358,10 @@ export default function AdminToolsPage() {
                 <p className="text-sm text-gray-500">No trends found.</p>
               )}
               {trends.slice(0, 5).map((t, index) => (
-                <div key={index} className="p-4 border rounded bg-white dark:bg-gray-900 shadow">
+                <div
+                  key={index}
+                  className="p-4 border rounded bg-white dark:bg-gray-900 shadow"
+                >
                   <p className="text-sm text-gray-600 dark:text-gray-300">
                     <strong>{t.user}</strong> may need support in <strong>{t.category}</strong>
                   </p>
@@ -375,10 +382,16 @@ export default function AdminToolsPage() {
 
               <div className="space-y-4">
                 {comments.map((comment) => (
-                  <div key={comment.id} className="p-4 border rounded bg-white dark:bg-gray-900 shadow">
+                  <div
+                    key={comment.id}
+                    className="p-4 border rounded bg-white dark:bg-gray-900 shadow"
+                  >
                     <div className="text-sm text-gray-500 mb-1">
-                      <strong>Student:</strong> {comment.target_user_id} | <strong>Category:</strong> {comment.category}
-                      {comment.feedback_source && <span className="ml-2 text-blue-500">(from Feedback)</span>}
+                      <strong>Student:</strong> {comment.target_user_id} |{" "}
+                      <strong>Category:</strong> {comment.category}
+                      {comment.feedback_source && (
+                        <span className="ml-2 text-blue-500">(from Feedback)</span>
+                      )}
                     </div>
                     <p className="mb-3 text-sm">{comment.comment_text}</p>
                     <div className="flex gap-2">
@@ -401,8 +414,9 @@ export default function AdminToolsPage() {
             </div>
           </div>
         )}
-        
-        {activeTab === 'announcements' && (
+
+        {/* ANNOUNCEMENTS TAB */}
+        {activeTab === "announcements" && (
           <div className="space-y-8">
             {/* Create Announcement Form */}
             <div className="p-6 border rounded-lg bg-white dark:bg-gray-900 shadow">
@@ -424,7 +438,10 @@ export default function AdminToolsPage() {
               
               <form onSubmit={handleAnnouncementSubmit}>
                 <div className="mb-4">
-                  <label htmlFor="title" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  <label
+                    htmlFor="title"
+                    className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                  >
                     Announcement Title
                   </label>
                   <input
@@ -438,7 +455,10 @@ export default function AdminToolsPage() {
                 </div>
                 
                 <div className="mb-4">
-                  <label htmlFor="content" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  <label
+                    htmlFor="content"
+                    className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                  >
                     Announcement Content
                   </label>
                   <textarea
@@ -456,7 +476,7 @@ export default function AdminToolsPage() {
                   disabled={isSubmitting || !selectedClassId || !clerkUser}
                   className={`px-4 py-2 rounded text-white font-medium ${
                     isSubmitting || !selectedClassId || !clerkUser
-                      ? "bg-gray-500 cursor-not-allowed" 
+                      ? "bg-gray-500 cursor-not-allowed"
                       : "bg-blue-600 hover:bg-blue-500"
                   }`}
                 >
@@ -478,16 +498,23 @@ export default function AdminToolsPage() {
               ) : (
                 <div className="space-y-4">
                   {announcements.map((announcement) => (
-                    <div key={announcement.id} className="p-4 border rounded bg-gray-50 dark:bg-gray-800">
-                      <h3 className="font-semibold text-gray-800 dark:text-white">{announcement.title}</h3>
-                      <p className="text-gray-600 dark:text-gray-300 mt-2 whitespace-pre-line">{announcement.content}</p>
+                    <div
+                      key={announcement.id}
+                      className="p-4 border rounded bg-gray-50 dark:bg-gray-800"
+                    >
+                      <h3 className="font-semibold text-gray-800 dark:text-white">
+                        {announcement.title}
+                      </h3>
+                      <p className="text-gray-600 dark:text-gray-300 mt-2 whitespace-pre-line">
+                        {announcement.content}
+                      </p>
                       <p className="text-xs text-gray-500 mt-2">
                         Posted: {new Date(announcement.created_at).toLocaleDateString()} at{" "}
                         {new Date(announcement.created_at).toLocaleTimeString()}
                         {announcement.created_by && ` by ${announcement.created_by}`}
                       </p>
                       <div className="flex mt-3">
-                        <button 
+                        <button
                           onClick={() => handleDeleteAnnouncement(announcement.id)}
                           className="text-xs text-red-600 hover:text-red-800"
                         >
