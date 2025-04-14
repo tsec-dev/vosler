@@ -28,14 +28,13 @@ export default function FeedbackModal({ targetUserEmail, targetResponseId, onClo
   const [ratings, setRatings] = useState<Record<string, number>>({});
   const [comment, setComment] = useState("");
 
-  // Load peer survey for this class
+  // Step 1: Load the most recent peer survey
   useEffect(() => {
     const loadPeerSurvey = async () => {
       const { data: surveys, error } = await supabase
         .from("surveys")
-        .select("id, name")
+        .select("id, name, is_peer_survey")
         .eq("is_peer_survey", true)
-        .like("name", `%${classId}%`) // Optional: match class identifier in the name if needed
         .order("created_at", { ascending: false });
 
       if (error) {
@@ -43,16 +42,18 @@ export default function FeedbackModal({ targetUserEmail, targetResponseId, onClo
         return;
       }
 
-      const peerSurvey = surveys?.find((s) => s.name.includes("(Peer)"));
-      if (peerSurvey) {
-        setSurveyId(peerSurvey.id);
+      const mostRecentPeerSurvey = surveys?.[0];
+      if (mostRecentPeerSurvey) {
+        setSurveyId(mostRecentPeerSurvey.id);
+      } else {
+        console.warn("No peer survey found.");
       }
     };
 
     loadPeerSurvey();
-  }, [classId]);
+  }, []);
 
-  // Load questions for selected survey
+  // Step 2: Load questions from that peer survey
   useEffect(() => {
     if (!surveyId) return;
 
