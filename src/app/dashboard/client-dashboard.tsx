@@ -5,6 +5,8 @@ import useSWR from "swr";
 import { motion } from "framer-motion";
 import { useUser } from "@clerk/nextjs";
 import FeedbackModal from "@/components/FeedbackModal";
+import SelfPeerChart from '@/components/SelfPeerChart';
+
 
 export interface UserProps {
   firstName: string;
@@ -150,31 +152,9 @@ export default function ClientDashboard({ user, student }: DashboardProps): JSX.
           <h2 className="text-lg font-semibold mb-4 text-gray-800 dark:text-white">
             Self vs Peer Averages
           </h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-            {(data?.averages || []).map((d: any) => (
-              <div key={d.category}>
-                <p className="text-sm font-medium text-gray-600 dark:text-gray-300 mb-1">{d.category}</p>
-                <div className="h-4 w-full bg-gray-200 dark:bg-gray-800 rounded overflow-hidden flex">
-                  <motion.div
-                    className="bg-indigo-500"
-                    style={{ width: `${(d.selfavg || 0) * 20}%` }}
-                    initial={{ width: 0 }}
-                    animate={{ width: `${(d.selfavg || 0) * 20}%` }}
-                  />
-                  <motion.div
-                    className="bg-green-500"
-                    style={{ width: `${(d.peeravg || 0) * 20}%` }}
-                    initial={{ width: 0 }}
-                    animate={{ width: `${(d.peeravg || 0) * 20}%` }}
-                  />
-                </div>
-                <p className="text-xs mt-1 text-gray-400">
-                  You: {d.selfavg || 0}/5 | Peers: {d.peeravg || 0}/5
-                </p>
-              </div>
-            ))}
-          </div>
+          <SelfPeerChart data={data?.averages || []} />
         </div>
+
 
         {/* Feedback Comments */}
         <div className="p-6 border rounded-lg bg-white dark:bg-gray-900 shadow">
