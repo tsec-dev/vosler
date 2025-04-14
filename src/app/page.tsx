@@ -20,8 +20,8 @@ export default function Home() {
             <Image 
               src="/unit-logo.png" 
               alt="Vosler Logo" 
-              width={200} 
-              height={80} 
+              width={300} 
+              height={450} 
               className="h-auto" 
               priority
             />
