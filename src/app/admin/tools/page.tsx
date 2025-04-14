@@ -16,6 +16,7 @@ interface Comment {
   approved: boolean;
   category: string;
   target_user_id: string;
+  feedback_source?: boolean; // Flag to mark if from feedback table
 }
 
 interface Trend {
@@ -105,14 +106,8 @@ export default function AdminToolsPage() {
   useEffect(() => {
     if (!selectedClassId) return;
 
-    // Load comments
-    supabase
-      .from("survey_comments")
-      .select("*")
-      .eq("approved", false)
-      .eq("class_id", selectedClassId)
-      .order("created_at", { ascending: true })
-      .then(({ data }) => setComments(data || []));
+    // Load comments from both survey_comments and feedback tables
+    loadComments(selectedClassId);
 
     // Load trends
     loadTrends(selectedClassId);
@@ -120,6 +115,53 @@ export default function AdminToolsPage() {
     // Load announcements via API
     loadAnnouncements(selectedClassId);
   }, [selectedClassId]);
+
+  const loadComments = async (classId: string) => {
+    // First fetch from survey_comments table (original method)
+    const { data: surveyComments, error: surveyError } = await supabase
+      .from("survey_comments")
+      .select("*")
+      .eq("approved", false)
+      .eq("class_id", classId)
+      .order("created_at", { ascending: true });
+
+    if (surveyError) {
+      console.error("Error fetching survey comments:", surveyError);
+    }
+
+    // Then also fetch from feedback table (since comments are stored there too)
+    const { data: feedbackComments, error: feedbackError } = await supabase
+      .from("feedback")
+      .select("*")
+      .eq("approved", false)
+      .eq("class_id", classId)
+      .not("comments", "is", null)
+      .not("comments", "eq", "")
+      .order("created_at", { ascending: true });
+
+    if (feedbackError) {
+      console.error("Error fetching feedback comments:", feedbackError);
+    }
+
+    // Transform feedback comments to match survey_comments structure
+    const transformedFeedbackComments = (feedbackComments || []).map(feedback => ({
+      id: feedback.id,
+      comment_text: feedback.comments,
+      approved: feedback.approved || false,
+      target_user_id: feedback.target_id,
+      category: Object.keys(feedback.ratings || {})[0] || "General",
+      feedback_source: true // Mark this as coming from feedback table
+    }));
+
+    // Combine both sources (default to empty arrays if either had an error)
+    const combinedComments = [
+      ...(surveyComments || []), 
+      ...transformedFeedbackComments
+    ];
+    
+    setComments(combinedComments);
+    console.log("Loaded comments:", combinedComments);
+  };
 
   const loadTrends = async (classId: string) => {
     const { data, error } = await supabase.rpc("get_self_peer_gaps", {
@@ -148,8 +190,14 @@ export default function AdminToolsPage() {
     }
   };
 
-  const updateApproval = async (id: string, approved: boolean) => {
-    await supabase.from("survey_comments").update({ approved }).eq("id", id);
+  const updateApproval = async (id: string, approved: boolean, isFeedbackSource?: boolean) => {
+    if (isFeedbackSource) {
+      // Update in the feedback table
+      await supabase.from("feedback").update({ approved }).eq("id", id);
+    } else {
+      // Update in the survey_comments table
+      await supabase.from("survey_comments").update({ approved }).eq("id", id);
+    }
     setComments((prev) => prev.filter((c) => c.id !== id));
   };
   
@@ -330,17 +378,18 @@ export default function AdminToolsPage() {
                   <div key={comment.id} className="p-4 border rounded bg-white dark:bg-gray-900 shadow">
                     <div className="text-sm text-gray-500 mb-1">
                       <strong>Student:</strong> {comment.target_user_id} | <strong>Category:</strong> {comment.category}
+                      {comment.feedback_source && <span className="ml-2 text-blue-500">(from Feedback)</span>}
                     </div>
                     <p className="mb-3 text-sm">{comment.comment_text}</p>
                     <div className="flex gap-2">
                       <button
-                        onClick={() => updateApproval(comment.id, true)}
+                        onClick={() => updateApproval(comment.id, true, comment.feedback_source)}
                         className="text-sm bg-green-600 hover:bg-green-500 text-white px-4 py-1 rounded"
                       >
                         ✅ Approve
                       </button>
                       <button
-                        onClick={() => updateApproval(comment.id, false)}
+                        onClick={() => updateApproval(comment.id, false, comment.feedback_source)}
                         className="text-sm bg-red-600 hover:bg-red-500 text-white px-4 py-1 rounded"
                       >
                         ❌ Reject

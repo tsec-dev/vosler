@@ -10,7 +10,7 @@ interface FeedbackModalProps {
   targetResponseId: string;
   onClose: () => void;
   classId: string;
-  onFeedbackSubmitted?: () => void; // ✅ Added the onFeedbackSubmitted prop
+  onFeedbackSubmitted?: () => void;
 }
 
 interface Question {
@@ -25,15 +25,20 @@ export default function FeedbackModal({
   targetResponseId,
   onClose,
   classId,
-  onFeedbackSubmitted, // ✅ Destructured onFeedbackSubmitted from props
+  onFeedbackSubmitted,
 }: FeedbackModalProps) {
   const { user } = useUser();
+  
+  // Fix: Use both user ID and email for tracking
   const peerId = user?.id || "";
+  const peerEmail = user?.primaryEmailAddress?.emailAddress || "";
 
   const [surveyId, setSurveyId] = useState<string | null>(null);
   const [questions, setQuestions] = useState<Question[]>([]);
   const [ratings, setRatings] = useState<Record<string, number>>({});
   const [comment, setComment] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState("");
 
   // Step 1: Load the most recent peer survey
   useEffect(() => {
@@ -91,23 +96,61 @@ export default function FeedbackModal({
       return;
     }
 
-    const payload = {
-      submitted_by: peerId,
-      target_id: targetUserEmail,
-      target_response_id: targetResponseId,
-      ratings,
-      comments: comment,
-      target_type: "peer"
-    };
+    setIsSubmitting(true);
+    setError("");
 
-    const { error } = await supabase.from("feedback").insert(payload);
-    if (error) {
-      console.error("Error submitting feedback:", error);
-      alert("Failed to submit feedback. Please try again.");
-    } else {
+    try {
+      // 1. Insert into the feedback table
+      const feedbackPayload = {
+        submitted_by: peerEmail, // Using email to match dashboard API
+        target_id: targetUserEmail,
+        target_response_id: targetResponseId,
+        ratings,
+        comments: comment,
+        target_type: "peer",
+        class_id: classId,
+        user_id: peerId,
+        approved: false // Default to unapproved
+      };
+
+      const { error: feedbackError } = await supabase
+        .from("feedback")
+        .insert(feedbackPayload);
+
+      if (feedbackError) throw new Error(`Feedback error: ${feedbackError.message}`);
+
+      // 2. For each category with a comment, add to survey_comments
+      if (comment.trim()) {
+        // This is a simplified version - you may need to adjust based on your schema
+        const commentPayload = {
+          target_user_id: targetUserEmail,
+          comment_text: comment,
+          approved: false,
+          class_id: classId,
+          submitted_by: peerEmail,
+          category: Object.keys(ratings)[0] || "General" // Using first category or "General"
+        };
+
+        const { error: commentError } = await supabase
+          .from("survey_comments")
+          .insert(commentPayload);
+
+        if (commentError) {
+          console.error("Comment error:", commentError);
+          // Continue even if comment insert fails
+        }
+      }
+
+      // Success!
       alert("Feedback submitted successfully!");
       onClose();
-      onFeedbackSubmitted?.(); // ✅ Trigger refresh if provided
+      onFeedbackSubmitted?.(); // Trigger dashboard refresh
+    } catch (err) {
+      console.error("Error submitting feedback:", err);
+      setError(err instanceof Error ? err.message : "Unknown error occurred");
+      alert("Failed to submit feedback. Please try again.");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -115,6 +158,12 @@ export default function FeedbackModal({
     <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
       <div className="bg-white dark:bg-gray-800 p-6 rounded shadow-lg max-w-md w-full">
         <h2 className="text-xl font-bold mb-4">Feedback for {targetUserEmail}</h2>
+
+        {error && (
+          <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded text-sm">
+            {error}
+          </div>
+        )}
 
         {questions.length === 0 && (
           <p className="text-sm text-gray-400">Loading survey questions...</p>
@@ -154,14 +203,18 @@ export default function FeedbackModal({
           <button
             className="bg-gray-400 hover:bg-gray-300 text-white px-4 py-2 rounded"
             onClick={onClose}
+            disabled={isSubmitting}
           >
             Cancel
           </button>
           <button
             onClick={handleSubmit}
-            className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded"
+            className={`bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded ${
+              isSubmitting ? 'opacity-75 cursor-not-allowed' : ''
+            }`}
+            disabled={isSubmitting}
           >
-            Submit Feedback
+            {isSubmitting ? 'Submitting...' : 'Submit Feedback'}
           </button>
         </div>
       </div>

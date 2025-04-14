@@ -75,9 +75,10 @@ export async function GET(request: Request) {
     console.log("Current theme:", currentTheme);
 
     // 3. Fetch self vs. peer averages using RPC
-    const { data: averages, error: averagesError } = await supabase.rpc("get_self_peer_gaps", {
+    const { data: averagesRaw, error: averagesError } = await supabase.rpc("get_self_peer_gaps", {
       class_filter: classId,
     });
+    
     if (averagesError) {
       console.error("Error in RPC get_self_peer_gaps:", averagesError);
       return NextResponse.json(
@@ -85,8 +86,18 @@ export async function GET(request: Request) {
         { status: 500 }
       );
     }
-    const safeAverages = averages || [];
-    console.log("Fetched averages (safe):", safeAverages);
+    
+    // Process the averages to ensure they have the expected format
+    // This fixes the Self vs Peer Averages section not populating
+    const safeAverages = (averagesRaw || []).map((item: any) => ({
+      category: item.category || 'Unknown',
+      selfavg: typeof item.selfavg === 'number' ? item.selfavg : 0,
+      peeravg: typeof item.peeravg === 'number' ? item.peeravg : 0,
+      // Add gap if it exists
+      gap: typeof item.gap === 'number' ? item.gap : 0
+    }));
+    
+    console.log("Processed averages:", safeAverages);
 
     // 4. Fetch classmates (excluding the current user) from student_profiles
     const { data: classmates, error: classmatesError } = await supabase
@@ -111,7 +122,7 @@ export async function GET(request: Request) {
     const studentEmails = filteredClassmates.map((s: any) => s.email);
 
     // 4.1. Fetch self survey responses for these students.
-    // We assume self survey submissions store the student’s email in user_id.
+    // We assume self survey submissions store the student's email in user_id.
     const { data: selfResponses, error: selfResponsesError } = await supabase
       .from("survey_responses")
       .select("user_id, id")
@@ -133,12 +144,11 @@ export async function GET(request: Request) {
     console.log("Updated classmates with selfResponseId:", classmatesWithSelf);
 
     // 5. Fetch feedback responses from the feedback table.
-    // 'submitted_by' is the email of the user who gave the feedback,
-    // 'target_type' is "peer" for peer feedback, and 'target_id' stores the email of the recipient.
+    // FIX: Make sure we're checking 'submitted_by' with the right value (email)
     const { data: feedback, error: feedbackError } = await supabase
       .from("feedback")
       .select("target_id")
-      .eq("submitted_by", userEmail)
+      .eq("submitted_by", userEmail)  // Using email to match what FeedbackModal sends
       .eq("target_type", "peer");
 
     if (feedbackError) {
@@ -157,7 +167,7 @@ export async function GET(request: Request) {
       currentTheme,
       averages: safeAverages,
       classmates: classmatesWithSelf, // includes selfResponseId (if present)
-      feedback, // feedback data
+      feedback: feedback || [], // feedback data, ensure it's an array
     };
 
     return NextResponse.json(responseData);
